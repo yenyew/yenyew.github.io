@@ -1,14 +1,14 @@
 // questionsdb.mjs
 import mongoose from 'mongoose';
 
-// Define the question schema
+
 const questionSchema = new mongoose.Schema({
-  id: {
+  number: {
     type: Number,
     required: true,
     unique: true,
   },
-  questionText: {
+  question: {
     type: String,
     required: true,
   },
