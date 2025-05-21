@@ -1,9 +1,15 @@
 import express from 'express';
 import Question from '../models/questionsdb.mjs';
-import { ObjectId } from 'mongodb';
 
 const router = express.Router();
+// Get all questions
+router.get("/", async (req, res) => {
+    const results = await Question.find({});
+    res.status(200).send(results);
+});
 
+
+// Get questions by number
 router.get("/:number",  async (req, res) => {
     try {
         let result = await Question.findOne({number: req.params.number});
@@ -16,17 +22,9 @@ router.get("/:number",  async (req, res) => {
     }
 });
 
-router.get("/:number", async (req,res)=> {
-    let collection = await db.collection("questions");
-    let query = {_id: new ObjectId(req.params.number)};
-    let result = await collection.findOne(query);
-
-    if (!result) res.send("Not found").status(404);
-    else res.send(result).status(200);
-});
-
-router.post("/", async (req,res)=> {
-    let newQuestion= {
+// Create a new question
+router.post("/", async (req, res) => {
+    const newQuestion = {
         number: req.body.number,
         question: req.body.question,
         hint: req.body.hint,
@@ -34,19 +32,18 @@ router.post("/", async (req,res)=> {
     };
 
     const result = await Question.create(newQuestion);
-    res.status(201).send(result)
-
-
+    res.status(201).send(result);
 });
 
-router.patch("/:number", async (req,res) =>{
-    const query = { _id: new ObjectId(req.params.number)};
-    const updates= {
+// Update a question by number
+router.patch("/:number", async (req, res) => {
+    const query = { number: parseInt(req.params.number) };
+    const updates = {
         $set: {
             number: req.body.number,
             question: req.body.question,
             hint: req.body.hint,
-            answer: req.body.number,
+            answer: req.body.answer,
         }
     };
 
@@ -55,14 +52,15 @@ router.patch("/:number", async (req,res) =>{
     else res.status(200).send(result);
 });
 
-
-router.delete('/:id', async (req, res) => {
-    const query = { _id: new ObjectId(req.params.id) };
+// Delete a question by number
+router.delete("/:number", async (req, res) => {
+    const query = { number: parseInt(req.params.number) };
     const result = await Question.deleteOne(query);
 
     if (result.deletedCount === 0) res.status(404).send("Not found");
     else res.status(200).send({ message: "Question deleted successfully" });
 });
+
 
 
 export default router;
