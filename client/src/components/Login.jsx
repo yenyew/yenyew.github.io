@@ -7,12 +7,12 @@ const LoginScreen = () => {
   const isTabletOrLarger = useMediaQuery({ minWidth: 768 });
 
   return (
-    <div
-      className={`login-container ${isMobile ? 'mobile' : ''}`}>
-        
+    <div className={`login-container ${isMobile ? 'mobile' : ''}`}>
+      <div className="overlay"></div> {/* Added overlay for dimming effect */}
+
       <div className="header">
         <img src="/images/ces.jpg" alt="Changi Experience Studio" className="ces-logo" />
-        <h2>GoChangi!</h2>
+        <h2>GoChangi</h2>
       </div>
 
       <div className="buttons">
