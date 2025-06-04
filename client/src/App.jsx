@@ -5,7 +5,7 @@ import GetUsername from './components/EnterUsername.jsx';
 import RulesPage from './components/RulesPage.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
 import Share from './components/Share.jsx';
-import LoginScreen from './components/Login.jsx';
+import LoginForm from './components/LoginForm.jsx';
 
 
 export default function App () {
@@ -17,7 +17,7 @@ export default function App () {
         <Route path="/rules" element={<RulesPage />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/share" element={<Share />} />
-        <Route path="/login" element={<LoginScreen />} />
+        <Route path="/login" element={<LoginForm />} />
     </Routes>
     </div>
   )
