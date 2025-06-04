@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Countdown from "./Countdown"; // adjust path if needed
+import Countdown from "./Countdown"; 
 
 const rules = [
   "Now let's go through some ground rules. Take your time to read them carefully, as your game timer has not started yet.",
@@ -103,7 +103,6 @@ export default function RulesPage() {
               </label>
             </div>
           )}
-
           <button
             onClick={handleStart}
             disabled={current !== rules.length - 1 || !agreed}
@@ -121,6 +120,24 @@ export default function RulesPage() {
           >
             Start Game
           </button>
+          <button
+            onClick={() => navigate("/getname")}
+            style={{
+              marginTop: "12px",
+              padding: "10px 24px",
+              fontSize: "14px",
+              backgroundColor: "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              width: "100%",
+              maxWidth: "300px",
+            }}
+          >
+            Back
+          </button>
+          
 
           {error && <div style={{ color: "red", marginTop: "16px" }}>{error}</div>}
         </>
