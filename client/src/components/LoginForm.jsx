@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LoginScreen.css"; // Retaining your existing CSS
+import "./LoginScreen.css"; // Keep your existing styles
 
-const Login = () => {
+const LoginScreen = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,7 +24,7 @@ const Login = () => {
       if (response.ok) {
         localStorage.setItem("jwtToken", data.token);
         alert("Login successful!");
-        navigate("/admin");
+        navigate("/admin"); // Navigate to AdminScreen
       } else {
         setError(data.message || "Invalid credentials");
       }
@@ -42,6 +42,7 @@ const Login = () => {
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="overlay"></div>
+
       <div className="header">
         <img src="/images/ces.jpg" alt="Logo" className="ces-logo" />
         <h2>Admin Login</h2>
@@ -96,4 +97,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default LoginScreen;
