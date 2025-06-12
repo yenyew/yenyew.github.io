@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "/QuestionPage.css";
 
-const mockQuestions = [
-  { question: "What is the capital of France?", hint: "It's known as the city of lights.",answer: "Paris" },
-  { question: "What is 5 + 7?", hint: "Think of simple addition.", answer: "12" },
-  // Add more mock questions as needed
-];
 
 const QuestionPage = () => {
   const [questions, setQuestions] = useState([]);
