@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import './MainStyles.css';
 
 export default function SharePage() {
   const [player, setPlayer] = useState(null);
@@ -44,12 +45,30 @@ export default function SharePage() {
   const getCurrentDateTime = () => {
     const date = new Date();
     const formattedDate = date.toLocaleDateString("en-SG", {
-      year: "numeric", month: "long", day: "numeric"
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
     const formattedTime = date.toLocaleTimeString("en-SG", {
-      hour: "2-digit", minute: "2-digit", hour12: false
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     });
     return { formattedDate, formattedTime };
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "GoChangi Challenge Completed!",
+          text: `I just finished the GoChangi quest with a score of ${player.score}! Try it yourself!`,
+          url: window.location.origin,
+        })
+        .catch((err) => console.error("Share failed:", err));
+    } else {
+      alert("Sharing is not supported on this device/browser.");
+    }
   };
 
   if (loading) return <p style={{ textAlign: "center" }}>Loading...</p>;
@@ -68,7 +87,7 @@ export default function SharePage() {
             color: "#fff",
             border: "none",
             borderRadius: "8px",
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           Go Home
@@ -80,65 +99,36 @@ export default function SharePage() {
   const { formattedDate, formattedTime } = getCurrentDateTime();
 
   return (
-    <div style={{ textAlign: "center", padding: "2rem", maxWidth: 500, margin: "0 auto" }}>
-      <h2>🎉 Congratulations {player.username}!</h2>
-      <p>You have completed the quest with these stats:</p>
+    <div className="page-container">
+      <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
+      <div className="page-overlay" />
+      <div className="page-content" style={{ textAlign: "center" }}>
+        <h2>🎉 Congratulations {player.username}!</h2>
+        <p>You have completed the quest with these stats:</p>
 
-      <div style={{ margin: "1.5rem 0", lineHeight: "1.8" }}>
-        <div><strong>Total Time:</strong> {formatTime(player.totalTimeInSeconds)} (includes penalties)</div>
-        <div><strong>Correct Answers:</strong> {player.score / 500}</div>
-        <div><strong>Hints Used:</strong> {player.hintsUsed || 0}</div>
-        <div><strong>Final Score:</strong> {player.score}</div>
-      </div>
+        <div style={{ margin: "1.5rem 0", lineHeight: "1.8" }}>
+          <div>
+            <strong>Total Time:</strong> {formatTime(player.totalTimeInSeconds)} (includes penalties)
+          </div>
+          <div><strong>Correct Answers:</strong> {player.score / 500}</div>
+          <div><strong>Hints Used:</strong> {player.hintsUsed || 0}</div>
+          <div><strong>Final Score:</strong> {player.score}</div>
+        </div>
 
-      <div style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: "2rem" }}>
-        <button 
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: 'GoChangi Challenge Completed!',
-                text: `I just finished the GoChangi quest with a score of ${player.score}! Try it yourself!`,
-                url: window.location.origin,
-              }).catch(err => console.error('Share failed:', err));
-            } else {
-              alert('Sharing is not supported on this device/browser.');
-            }
-          }}
-          style={{
-            padding: "12px 24px",
-            fontSize: "16px",
-            borderRadius: "8px",
-            backgroundColor: "#28a745",
-            color: "#fff",
-            border: "none"
-          }}
-        >
-          Share
-        </button>
+        <div className="button-group">
+          <button className="share-button" onClick={handleShare}>Share</button>
+          <button className="leaderboard-button" onClick={() => navigate("/leaderboard")}>Leaderboard</button>
+        </div>
 
-        <button
-          onClick={() => navigate("/leaderboard")}
-          style={{
-            padding: "12px 24px",
-            fontSize: "16px",
-            borderRadius: "8px",
-            backgroundColor: "#007bff",
-            color: "#fff",
-            border: "none"
-          }}
-        >
-          Leaderboard
-        </button>
-      </div>
+        <p style={{ fontWeight: "bold", marginTop: "2rem" }}>
+          🎁 Redeem your gifts at the redemption booth now!
+        </p>
+        <p>{formattedDate}, {formattedTime}</p>
 
-      <p style={{ fontWeight: "bold", marginTop: "2rem" }}>
-        🎁 Redeem your gifts at the redemption booth now!
-      </p>
-      <p>{formattedDate}, {formattedTime}</p>
-
-      <div style={{ marginTop: "1rem", fontSize: "18px" }}>
-        <strong>Your Reward Code:</strong><br />
-        <span style={{ fontSize: "24px", letterSpacing: "2px" }}>{player.rewardCode}</span>
+        <div style={{ marginTop: "1rem", fontSize: "18px" }}>
+          <strong>Your Reward Code:</strong><br />
+          <span style={{ fontSize: "24px", letterSpacing: "2px" }}>{player.rewardCode}</span>
+        </div>
       </div>
     </div>
   );
