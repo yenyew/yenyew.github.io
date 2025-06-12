@@ -4,11 +4,11 @@ import "./LoginScreen.css"; // Use existing styles
 
 const AdminScreen = () => {
   const [selectedQuestion, setSelectedQuestion] = useState("");
+  const [selected, setSelected] = useState(null);
   const [questions, setQuestions] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is authenticated
     const token = localStorage.getItem("jwtToken");
     if (!token) {
       alert("You must be logged in to access this page.");
@@ -34,12 +34,37 @@ const AdminScreen = () => {
   }, []);
 
   const handleQuestionChange = (e) => {
-    setSelectedQuestion(e.target.value);
+    const value = e.target.value;
+    const selectedObj = questions.find((q) => q.question === value);
+    setSelectedQuestion(value);
+    setSelected(selectedObj || null);
   };
 
-  // Navigates to the CreateQuestion page
   const handleNavigateToCreate = () => {
     navigate("/add-question");
+  };
+
+  const handleDelete = async () => {
+    if (!selected) return;
+    const confirmDelete = window.confirm("Are you sure you want to delete this question?");
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/questions/${selected.number}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        alert("Question deleted.");
+        setQuestions(prev => prev.filter(q => q.number !== selected.number));
+        setSelected(null);
+        setSelectedQuestion("");
+      } else {
+        alert("Failed to delete question.");
+      }
+    } catch (err) {
+      alert("Error deleting question.");
+    }
   };
 
   return (
@@ -74,12 +99,11 @@ const AdminScreen = () => {
           </select>
         </div>
 
-        {/* Navigate to CreateQuestion page */}
         <button
           onClick={handleNavigateToCreate}
           className="login-btn"
           style={{
-            background: "transparent",
+            background: "white",
             border: "2px solid #17C4C4",
             borderRadius: "50%",
             width: "60px",
@@ -87,12 +111,35 @@ const AdminScreen = () => {
             fontSize: "32px",
             marginTop: "20px",
             color: "#17C4C4",
-            backgroundColor: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            lineHeight: "0"
           }}
         >
           +
         </button>
+
         <p style={{ fontSize: "18px", color: "#000", marginTop: "10px" }}>Add Question</p>
+
+        {selected && (
+          <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <button
+              className="login-btn"
+              style={{ backgroundColor: "#FFC107", color: "black" }}
+              onClick={() => navigate(`/edit-question/${selected.number}`)}
+            >
+              Edit Question
+            </button>
+            <button
+              className="login-btn"
+              style={{ backgroundColor: "#DC3545", color: "black" }}
+              onClick={handleDelete}
+            >
+              Delete Question
+            </button>
+          </div>
+        )}
 
         <a href="/" style={{ color: "#17C4C4", marginTop: "20px", fontSize: "16px" }}>
           Return to Home Screen

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import "./LoginScreen.css"; // Use existing styles for consistency
+import React, { useEffect, useState } from "react";
+import "./LoginScreen.css";
 
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
@@ -7,6 +7,23 @@ const CreateQuestion = () => {
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [message, setMessage] = useState("");
+
+  // Fetch existing questions to determine next number
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/questions");
+        const data = await response.json();
+        const maxNumber = Math.max(...data.map(q => q.number || 0));
+        const nextNumber = maxNumber + 1;
+        setNumber(nextNumber);
+      } catch (err) {
+        console.error("Failed to fetch questions:", err);
+        setNumber(1); // fallback
+      }
+    };
+    fetchQuestions();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,11 +45,10 @@ const CreateQuestion = () => {
 
       if (response.ok) {
         setMessage("Question added successfully!");
-        // Clear form fields
-        setNumber("");
         setQuestion("");
         setHint("");
         setAnswer("");
+        setNumber((prev) => parseInt(prev) + 1); // auto-increment for next entry
       } else {
         const data = await response.json();
         setMessage(`Error: ${data.message || "Could not add question."}`);
@@ -65,12 +81,11 @@ const CreateQuestion = () => {
         <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
           <input
             type="number"
-            placeholder="Question Number"
             value={number}
-            onChange={(e) => setNumber(e.target.value)}
+            readOnly
             required
             className="login-btn"
-            style={{ marginBottom: "10px" }}
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
           <textarea
             placeholder="Question Description"
@@ -78,7 +93,7 @@ const CreateQuestion = () => {
             onChange={(e) => setQuestion(e.target.value)}
             required
             className="login-btn"
-            style={{ marginBottom: "10px", height: "100px", borderRadius: "20px" }}
+            style={{ marginBottom: "10px", height: "100px", borderRadius: "20px", backgroundColor: "white" }}
           />
           <input
             type="text"
@@ -86,7 +101,7 @@ const CreateQuestion = () => {
             value={hint}
             onChange={(e) => setHint(e.target.value)}
             className="login-btn"
-            style={{ marginBottom: "10px" }}
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
           <input
             type="text"
@@ -94,7 +109,7 @@ const CreateQuestion = () => {
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             className="login-btn"
-            style={{ marginBottom: "10px" }}
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
           <button
             type="submit"
