@@ -35,7 +35,7 @@ export default function RulesPage() {
       const startedAt = new Date();
 
       // Step 1: Create the player
-      const createResponse = await fetch("http://localhost:5000/players", {
+      const createResponse = await fetch("http://172.20.10.2:5000/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
@@ -48,7 +48,7 @@ export default function RulesPage() {
       sessionStorage.setItem("playerId", playerId);
 
       // Step 2: Patch player with start info
-      const patchResponse = await fetch(`http://localhost:5000/players/${playerId}`, {
+      const patchResponse = await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

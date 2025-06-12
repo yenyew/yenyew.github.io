@@ -15,7 +15,7 @@ export default function App () {
   return (
     <div className="app">
     <Routes>
-        <Route path="/questions" element={<QuestionPage />} />
+        <Route path="/game" element={<QuestionPage />} />
         <Route path="/" element={<HomePage />} />
         <Route path="/getname" element={<GetUsername />} />
         <Route path="/rules" element={<RulesPage />} />

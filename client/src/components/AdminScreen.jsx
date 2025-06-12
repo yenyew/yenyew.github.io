@@ -19,7 +19,7 @@ const AdminScreen = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch("http://localhost:5000/questions");
+        const response = await fetch("http://172.20.10.2:5000/questions");
         if (!response.ok) {
           throw new Error("Failed to fetch questions");
         }

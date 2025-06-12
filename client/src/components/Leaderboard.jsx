@@ -36,12 +36,12 @@ export default function LeaderboardPage() {
   const [players, setPlayers] = useState([]);
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(0);
-  const pageSize = 20;
+  const pageSize = 10;
 
   useEffect(() => {
     async function fetchPlayers() {
       try {
-        const response = await fetch("http://localhost:5000/players");
+        const response = await fetch("http://172.20.10.2:5000/players");
         if (!response.ok) throw new Error("Failed to fetch players");
         const data = await response.json();
         setPlayers(data.filter(p => p.finishedAt));

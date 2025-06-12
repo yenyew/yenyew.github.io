@@ -15,32 +15,14 @@ export default function SharePage() {
       return;
     }
 
-    const endGame = async (playerData) => {
-      if (!playerData.finishedAt) {
-        const finishedAt = new Date();
-        const startedAt = new Date(playerData.startedAt);
-        const totalTimeInSeconds = Math.floor((finishedAt - startedAt) / 1000);
-
-        await fetch(`http://localhost:5000/players/${playerId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ finishedAt, totalTimeInSeconds }),
-        });
-
-        setPlayer({ ...playerData, finishedAt, totalTimeInSeconds });
-      }
-    };
-
     const fetchPlayer = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/players/${playerId}`);
+        const res = await fetch(`http://172.20.10.2:5000/players/${playerId}`);
         if (!res.ok) throw new Error("Player not found");
 
         const data = await res.json();
         setPlayer(data);
         setLoading(false);
-
-        if (!data.finishedAt) endGame(data);
       } catch (err) {
         console.error("Failed to fetch player data:", err.message);
         sessionStorage.clear();
@@ -103,9 +85,9 @@ export default function SharePage() {
       <p>You have completed the quest with these stats:</p>
 
       <div style={{ margin: "1.5rem 0", lineHeight: "1.8" }}>
-        <div><strong>Total Time:</strong> {formatTime(player.totalTimeInSeconds)}</div>
-        <div><strong>Questions Correct:</strong> Coming soon</div>
-        <div><strong>Penalties:</strong> Coming soon</div>
+        <div><strong>Total Time:</strong> {formatTime(player.totalTimeInSeconds)} (includes penalties)</div>
+        <div><strong>Correct Answers:</strong> {player.score / 500}</div>
+        <div><strong>Hints Used:</strong> {player.hintsUsed || 0}</div>
         <div><strong>Final Score:</strong> {player.score}</div>
       </div>
 
