@@ -1,0 +1,292 @@
+/* =======
+  general styles
+  for all pages
+========== */
+
+.page-container,
+.home-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #000;
+}
+
+.page-background,
+.home-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.page-overlay,
+.home-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.6); /* adjustable background dim */
+  z-index: 1;
+}
+
+.rules-page .home-overlay {
+  background-color: rgba(255, 255, 255, 0.8); /* darker dim for Rules page */
+}
+
+
+.page-content,
+.home-content {
+  z-index: 2;
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem;
+  box-sizing: border-box;
+  color: #000;
+  text-align: center;
+}
+
+/* =======
+  home page
+========== */
+
+.home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+}
+
+.title-block {
+  margin-top: 4vh;
+}
+
+.description-block {
+  margin-top: auto;
+  margin-bottom: 10vh;
+}
+
+.home-content h1 {
+  font-size: 48px;
+  font-family: serif;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+/* =======
+  shared buttons
+========== */
+
+.home-buttons,
+.button-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.home-buttons button,
+.share-button,
+.leaderboard-button,
+.return-button {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 999px;
+  color: black;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  background: linear-gradient(to right, #c4ec1b, #00c4cc);
+  width: 200px;
+}
+
+.share-button {
+  background: linear-gradient(to right, #c4ec1b, #00c4cc);
+}
+
+.leaderboard-button {
+  background: linear-gradient(to right, #00c4cc, #4e9cff);
+}
+
+.return-button {
+  background: linear-gradient(to right, #c4ec1b, #00c4cc);
+  border-radius: 30px;
+}
+
+.home-buttons button:hover,
+.share-button:hover,
+.leaderboard-button:hover,
+.return-button:hover {
+  transform: scale(1.04);
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* =======
+  leaderboard page
+========== */
+
+.leaderboard-page {
+  text-align: center;
+}
+
+.leaderboard-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.filter-select {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 10px;
+  text-align: center;
+}
+
+.leaderboard-table thead {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.gold {
+  background-color: #ffe066;
+  font-weight: bold;
+}
+
+.silver {
+  background-color: #d0d0d0;
+  font-weight: bold;
+}
+
+.bronze {
+  background-color: #f4c49a;
+  font-weight: bold;
+}
+
+.current-player {
+  background-color: #cce5ff;
+}
+
+.you-indicator {
+  color: #007bff;
+  font-size: 0.85em;
+  font-weight: normal;
+  margin-left: 6px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 1.5rem;
+}
+
+.pagination button {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  background-color: #222;
+  color: white;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* =======
+  logos placement
+========== */
+
+.top-left-logo {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+}
+
+.top-left-logo img {
+  height: 60px;
+  width: auto;
+}
+
+.jewel-logo-wrapper {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.jewel-logo-wrapper img {
+  width: 100px;
+  height: auto;
+}
+
+/* =======
+  Rules page
+========== */
+
+.rules-button {
+  padding: 10px 20px;
+  font-size: 15px;
+  border: none;
+  border-radius: 999px;
+  font-weight: 500;
+  background: linear-gradient(to right, #c4ec1b, #00c4cc);
+  color: black;
+  cursor: pointer;
+  width: 120px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.rules-button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rules-start-button {
+  background: linear-gradient(to right, #c4ec1b, #00c4cc);
+  border: none;
+  border-radius: 30px;
+  padding: 12px;
+  font-size: 16px;
+  color: black;
+  font-weight: bold;
+  width: 200px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.rules-start-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rules-checkbox {
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
