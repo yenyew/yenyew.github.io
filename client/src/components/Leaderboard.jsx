@@ -64,6 +64,7 @@ export default function LeaderboardPage() {
       }
     }
     fetchPlayers();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => setPage(0), [filter]);
@@ -111,8 +112,8 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {pagedPlayers.map((player, index) => {
-                  const overallRank = players.findIndex(p => p._id === player._id);
+                {pagedPlayers.map((player) => {
+                  const overallRank = filteredPlayers.findIndex(p => p._id === player._id);
                   const isCurrent = player._id === currentPlayerId;
 
                   const highlightClass =

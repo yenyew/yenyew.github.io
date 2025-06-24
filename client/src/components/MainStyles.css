@@ -1,4 +1,7 @@
-/* ===== General Layout & Background ===== */
+/* =======
+  general styles
+  for all pages
+========== */
 
 .page-container,
 .home-container {
@@ -30,9 +33,14 @@
   left: 0;
   height: 100%;
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.6); /* adjustable background dim */
   z-index: 1;
 }
+
+.rules-page .home-overlay {
+  background-color: rgba(255, 255, 255, 0.8); /* darker dim for Rules page */
+}
+
 
 .page-content,
 .home-content {
@@ -45,7 +53,9 @@
   text-align: center;
 }
 
-/* ===== Homepage Specific Layout ===== */
+/* =======
+  home page
+========== */
 
 .home-content {
   display: flex;
@@ -70,7 +80,9 @@
   margin-bottom: 1rem;
 }
 
-/* ===== Shared Buttons ===== */
+/* =======
+  shared buttons
+========== */
 
 .home-buttons,
 .button-group {
@@ -120,7 +132,9 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* ===== Leaderboard Table ===== */
+/* =======
+  leaderboard page
+========== */
 
 .leaderboard-page {
   text-align: center;
@@ -202,3 +216,77 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* =======
+  logos placement
+========== */
+
+.top-left-logo {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+}
+
+.top-left-logo img {
+  height: 60px;
+  width: auto;
+}
+
+.jewel-logo-wrapper {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.jewel-logo-wrapper img {
+  width: 100px;
+  height: auto;
+}
+
+/* =======
+  Rules page
+========== */
+
+.rules-button {
+  padding: 10px 20px;
+  font-size: 15px;
+  border: none;
+  border-radius: 999px;
+  font-weight: 500;
+  background: linear-gradient(to right, #c4ec1b, #00c4cc);
+  color: black;
+  cursor: pointer;
+  width: 120px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.rules-button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rules-start-button {
+  background: linear-gradient(to right, #c4ec1b, #00c4cc);
+  border: none;
+  border-radius: 30px;
+  padding: 12px;
+  font-size: 16px;
+  color: black;
+  font-weight: bold;
+  width: 200px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.rules-start-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rules-checkbox {
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+

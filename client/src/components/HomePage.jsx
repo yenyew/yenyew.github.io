@@ -18,9 +18,13 @@ const HomePage = () => {
       <img src="/images/changihome.jpg" alt="Background" className="home-background" />
       <div className="home-overlay"></div>
 
+      <div className="top-left-logo">
+        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
+      </div>
+
       <div className="home-content">
         <div className="title-block">
-          <h1>Welcome to GoChangi!</h1>
+          <h1>Welcome To<br />GoChangi!</h1>
         </div>
 
         <div className="description-block">
@@ -29,6 +33,10 @@ const HomePage = () => {
             <button onClick={handlePlayClick}>Play</button>
             <button onClick={handleAdminLoginClick}>Admin Login</button>
           </div>
+
+          <div className="jewel-logo-wrapper">
+            <img src="/images/jewel.png" alt="Jewel Logo" />
+          </div>
         </div>
       </div>
     </div>
@@ -36,4 +44,3 @@ const HomePage = () => {
 };
 
 export default HomePage;
-//       <p style={{ fontSize: "16px", color: "#000", textAlign: "center" }}>
