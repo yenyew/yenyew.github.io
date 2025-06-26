@@ -4,6 +4,7 @@ import HomePage from './components/HomePage.jsx';
 import QuestionPage from './components/QuestionPage.jsx';
 
 import GetUsername from './components/EnterUsername.jsx';
+import GetCode from './components/EnterCollectionCode.jsx';
 import RulesPage from './components/RulesPage.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
 import Share from './components/Share.jsx';
@@ -24,6 +25,7 @@ export default function App () {
         <Route path="/login" element={<LoginForm />} />
         <Route path="/admin" element={<AdminScreen />} />
         <Route path="/add-question" element={<CreateQuestion />} />
+        <Route path="/getcode" element={<GetCode />} />
     </Routes>
     </div>
   )

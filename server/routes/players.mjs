@@ -21,6 +21,16 @@ router.get("/:id", async (req, res) => {
 
 // Create a new player
 router.post("/", async (req, res) => {
+    const collectionId = req.body.collectionId; 
+    // We extract collectionId from the request body because it should link to a document in the 'collections' collection.
+    // Since 'collection' is a reference field in the Player model, we must ensure the provided ID is valid and exists.
+
+    if (!collectionId || !ObjectId.isValid(collectionId)) {
+    return res.status(400).send("Invalid or missing collection ID");  
+    } 
+    // it must exist and be a valid MongoDB ObjectId, because we're storing it as a reference to another collection (Collections).
+
+    
     const newPlayer = {
         username: req.body.username,
         score: req.body.score,
@@ -28,6 +38,8 @@ router.post("/", async (req, res) => {
         startedAt: req.body.startedAt,
         finishedAt: req.body.finishedAt,
         rewardCode: req.body.rewardCode,
+        hintsUsed: req.body.hintsUsed,
+        collectionId: collectionId // Use the validated collectionId
     };
 
     const result = await Player.create(newPlayer);
@@ -36,6 +48,12 @@ router.post("/", async (req, res) => {
 
 // Update a player by id
 router.patch("/:id", async (req, res) => {
+    const collectionId = req.body.collectionId;
+
+    if (!collectionId || !ObjectId.isValid(collectionId)) {
+    return res.status(400).send("Invalid or missing collection ID");
+    }
+
     const query = { _id: new ObjectId(req.params.id) };
     const updates = {
         $set: {
@@ -45,6 +63,8 @@ router.patch("/:id", async (req, res) => {
             startedAt: req.body.startedAt,
             finishedAt: req.body.finishedAt,
             rewardCode: req.body.rewardCode,
+            hintsUsed: req.body.hintsUsed,
+            collectionId: collectionId
         }
     };
 
