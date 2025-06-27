@@ -58,27 +58,47 @@
 
 /* Centered login block */
 .buttons {
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 100%;
-  max-width: 300px;
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-form {
+.add-question-btn {
+  margin-top: 30px;
+  background-color: white !important;
+  border: 3px solid #17C4C4;
+  border-radius: 50%;
+  width: 65px;
+  height: 65px;
+  font-size: 36px;
+  color: #17C4C4 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;               
+  line-height: 1;          
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  aspect-ratio: 1 / 1;      
+}
+
+.centered-form {
   width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  align-items: center;
 }
 
 /* Inputs & buttons */
-/* Improved Input Style */
 input.login-btn,
 textarea.login-btn {
   padding: 14px 16px;
@@ -104,7 +124,6 @@ input.login-btn:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
-
 
 button.login-btn,
 .public-btn {

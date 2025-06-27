@@ -83,12 +83,12 @@ const AdminScreen = () => {
           Which questions would you like to add/edit/delete today?
         </p>
 
-        <div style={{ width: "80%", maxWidth: "300px", marginTop: "20px" }}>
+        <div style={{ width: "120%", maxWidth: "300px", marginTop: "20px" }}>
           <select
             value={selectedQuestion}
             onChange={handleQuestionChange}
-            className="login-btn"
-            style={{ borderRadius: "30px", fontSize: "18px" }}
+            className="centered-form"
+            style={{ borderRadius: "30px", fontSize: "17px" }}
           >
             <option value="">Select a question...</option>
             {questions.map((q) => (
@@ -101,23 +101,8 @@ const AdminScreen = () => {
 
         <button
           onClick={handleNavigateToCreate}
-          className="login-btn"
-          style={{
-            background: "white",
-            border: "2px solid #17C4C4",
-            borderRadius: "50%",
-            width: "60px",
-            height: "60px",
-            fontSize: "32px",
-            marginTop: "20px",
-            color: "#17C4C4",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            lineHeight: "0"
-          }}
-        >
-          +
+          className="add-question-btn">
+            +
         </button>
 
         <p style={{ fontSize: "18px", color: "#000", marginTop: "10px" }}>Add Question</p>
