@@ -3,7 +3,7 @@ import "./LoginScreen.css";
 
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
-  const [collection, setCollection] = useState("");
+  const [collectionId, setCollectionId] = useState("");
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
@@ -32,7 +32,7 @@ const CreateQuestion = () => {
 
     const newQuestion = {
       number: parseInt(number),
-      collection,
+      collectionId,
       question,
       hint,
       answer,
@@ -47,6 +47,7 @@ const CreateQuestion = () => {
 
       if (response.ok) {
         setMessage("Question added successfully!");
+        setCollectionId("");
         setQuestion("");
         setHint("");
         setAnswer("");
@@ -92,7 +93,7 @@ const CreateQuestion = () => {
           <textarea
             placeholder="Collection"
             value={collection}
-            onChange={(e) => setCollection(e.target.value)}
+            onChange={(e) => setCollectionId(e.target.value)}
             required
             className="login-btn"
             style={{ marginBottom: "10px", height: "50px", borderRadius: "20px", backgroundColor: "white" }}
