@@ -22,32 +22,11 @@ router.get("/:number",  async (req, res) => {
     }
 });
 
-// Get all questions in the "school" collection
-router.get("/collection/school", async (req, res) => {
-    try {
-        const results = await Question.find({ collection: "school" });
-        res.status(200).json(results);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
-
-// Get all questions in the "individual" collection
-router.get("/collection/individual", async (req, res) => {
-    try {
-        const results = await Question.find({ collection: "individual" });
-        res.status(200).json(results);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
-
-
 // Create a new question
 router.post("/", async (req, res) => {
     const newQuestion = {
         number: req.body.number,
-        collection: req.body.collection,
+        collectionId: req.body.collectionId,
         question: req.body.question,
         hint: req.body.hint,
         answer: req.body.answer,
@@ -63,7 +42,7 @@ router.patch("/:number", async (req, res) => {
     const updates = {
         $set: {
             number: req.body.number,
-            collection: req.body.collection,
+            collectionId: req.body.collectionId,
             question: req.body.question,
             hint: req.body.hint,
             answer: req.body.answer,

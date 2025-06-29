@@ -7,8 +7,9 @@ const questionSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  collection: {
-    type: String,
+  collectionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Collection",
     required: true,
   },
   question: {
