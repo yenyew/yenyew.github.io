@@ -4,8 +4,6 @@ import "./LoginScreen.css"; // Use existing styles
 
 const AdminScreen = () => {
   const [selectedQuestion, setSelectedQuestion] = useState("");
-  const [selected, setSelected] = useState(null);
-  const [questions, setQuestions] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,55 +14,22 @@ const AdminScreen = () => {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/questions");
-        if (!response.ok) {
-          throw new Error("Failed to fetch questions");
-        }
-        const data = await response.json();
-        setQuestions(data);
-      } catch (err) {
-        console.error("Error fetching questions:", err);
-      }
-    };
-
-    fetchQuestions();
-  }, []);
-
   const handleQuestionChange = (e) => {
     const value = e.target.value;
-    const selectedObj = questions.find((q) => q.question === value);
     setSelectedQuestion(value);
-    setSelected(selectedObj || null);
+
+    // Navigate based on selection
+    if (value === "school") {
+      navigate("/school-qns");
+    }
+    
+    if (value === "individual") {
+      navigate("/individual-qns");
+    }
   };
 
   const handleNavigateToCreate = () => {
     navigate("/add-question");
-  };
-
-  const handleDelete = async () => {
-    if (!selected) return;
-    const confirmDelete = window.confirm("Are you sure you want to delete this question?");
-    if (!confirmDelete) return;
-
-    try {
-      const res = await fetch(`http://localhost:5000/questions/${selected.number}`, {
-        method: "DELETE"
-      });
-
-      if (res.ok) {
-        alert("Question deleted.");
-        setQuestions(prev => prev.filter(q => q.number !== selected.number));
-        setSelected(null);
-        setSelectedQuestion("");
-      } else {
-        alert("Failed to delete question.");
-      }
-    } catch (err) {
-      alert("Error deleting question.");
-    }
   };
 
   return (
@@ -80,7 +45,7 @@ const AdminScreen = () => {
 
       <div className="buttons">
         <p style={{ fontSize: "20px", textAlign: "center", color: "#000", maxWidth: "300px" }}>
-          Which questions would you like to add/edit/delete today?
+          Which collection would you like to view or add today?
         </p>
 
         <div style={{ width: "120%", maxWidth: "300px", marginTop: "20px" }}>
@@ -90,41 +55,20 @@ const AdminScreen = () => {
             className="centered-form"
             style={{ borderRadius: "30px", fontSize: "17px" }}
           >
-            <option value="">Select a question...</option>
-            {questions.map((q) => (
-              <option key={q._id} value={q.question}>
-                Q{q.number}: {q.question}
-              </option>
-            ))}
+            <option value="">Select a collection...</option>
+            <option value="school">School</option>
+            <option value="individual">Individual</option>
           </select>
         </div>
 
         <button
           onClick={handleNavigateToCreate}
-          className="add-question-btn">
-            +
+          className="add-question-btn"
+        >
+          +
         </button>
 
         <p style={{ fontSize: "18px", color: "#000", marginTop: "10px" }}>Add Question</p>
-
-        {selected && (
-          <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <button
-              className="login-btn"
-              style={{ backgroundColor: "#FFC107", color: "black" }}
-              onClick={() => navigate(`/edit-question/${selected.number}`)}
-            >
-              Edit Question
-            </button>
-            <button
-              className="login-btn"
-              style={{ backgroundColor: "#DC3545", color: "black" }}
-              onClick={handleDelete}
-            >
-              Delete Question
-            </button>
-          </div>
-        )}
 
         <a href="/" style={{ color: "#17C4C4", marginTop: "20px", fontSize: "16px" }}>
           Return to Home Screen
