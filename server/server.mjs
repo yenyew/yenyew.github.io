@@ -7,7 +7,6 @@ import admins from './routes/admins.mjs';
 import questions from './routes/questions.mjs';
 import collections from './routes/collections.mjs';
 
-
 dotenv.config();
 
 const PORT = process.env.PORT || 2000;

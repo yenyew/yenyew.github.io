@@ -1,5 +1,6 @@
 import express from 'express';
 import Collection from '../models/collectiondb.mjs';
+import Question from "../models/questionsdb.mjs";
 
 const router = express.Router();
 
@@ -14,15 +15,42 @@ router.get('/', async (req, res) => {
 });
 
 // Get a single collection by code
-router.get('/:code', async (req, res) => {
+router.get("/with-questions", async (req, res) => {
   try {
-    const result = await Collection.findOne({ code: req.params.code });
-    if (!result) {
-      return res.status(404).json({ message: "Collection not found" });
-    }
-    res.status(200).json(result);
+    const collections = await Collection.aggregate([
+      {
+        $lookup: {
+          from: "questions",           // collection name in MongoDB (usually lowercase + plural)
+          localField: "_id",
+          foreignField: "collectionId",
+          as: "questions"
+        }
+      }
+    ]);
+
+    res.status(200).json(collections);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Aggregation failed", error: error.message });
+  }
+});
+
+router.get('/:code/questions', async (req, res) => {
+  try {
+    const collection = await Collection.findOne({ code: req.params.code });
+
+    if (!collection) {
+      return res.status(404).json({ message: 'Collection not found' });
+    }
+
+    const questions = await Question.find({ collectionId: collection._id });
+
+    res.status(200).json({
+      collection: collection.name,
+      code: collection.code,
+      questions: questions
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch questions', error: error.message });
   }
 });
 
