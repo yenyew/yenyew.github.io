@@ -1,5 +1,7 @@
 import express from 'express';
 import Question from '../models/questionsdb.mjs';
+import mongoose from 'mongoose';
+
 
 const router = express.Router();
 
@@ -15,18 +17,27 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get one question by number (for compatibility, but may be ambiguous across collections)
-router.get("/:number", async (req, res) => {
+// Get a specific question by number (scoped by collectionId in query params)
+router.get("/:number/:collectionId", async (req, res) => {
   try {
-    const result = await Question.findOne({ number: req.params.number });
+    const { number, collectionId } = req.params;
+
+    const result = await Question.findOne({
+      number: parseInt(number),
+      collectionId: new mongoose.Types.ObjectId(collectionId),
+    });
+
     if (!result) {
-      return res.status(404).json({ message: "Not found" });
+      return res.status(404).json({ message: "Question not found in this collection." });
     }
+
     res.status(200).json({ message: "Record found", data: result });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
+
+
 
 // Create a new question (now checks for uniqueness within the same collection)
 router.post("/", async (req, res) => {
@@ -55,29 +66,26 @@ router.post("/", async (req, res) => {
 });
 
 // Update a question (scoped by number + collectionId)
-router.patch("/:number", async (req, res) => {
+router.patch("/:number/:collectionId", async (req, res) => {
   try {
-    const { collectionId } = req.body;
-    const query = { number: parseInt(req.params.number), collectionId };
+    const { number, collectionId } = req.params;
+    const { question, hint, answer } = req.body;
 
-    const updates = {
-      $set: {
-        question: req.body.question,
-        hint: req.body.hint,
-        answer: req.body.answer,
-      }
-    };
+    const query = { number: parseInt(number), collectionId };
+    const updates = { $set: { question, hint, answer } };
 
     const result = await Question.updateOne(query, updates);
+
     if (result.matchedCount === 0) {
       res.status(404).json({ message: "Question not found in this collection." });
     } else {
-      res.status(200).json({ message: "Question updated successfully.", result });
+      res.status(200).json({ message: "Question updated successfully." });
     }
-  } catch (error) {
-    res.status(500).json({ message: "Error updating question", error: error.message });
+  } catch (err) {
+    res.status(500).json({ message: "Error updating question", error: err.message });
   }
 });
+
 
 // Delete a question (scoped by number + collectionId as path params)
 router.delete("/:number/:collectionId", async (req, res) => {

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import Countdown from "./Countdown";
 import "./MainStyles.css";
 
-// The list of game rules
 const rules = [
   "Now let's go through some ground rules. Take your time to read them carefully, as your game timer has not started yet.",
   "Your game is a trail of 12 clues with scheduled break(s) in between. You will receive clues one at a time. Only one answer is accepted for each clue, so answer carefully!",
@@ -16,15 +15,28 @@ export default function RulesPage() {
   const [current, setCurrent] = useState(0);
   const [agreed, setAgreed] = useState(false);
   const [username, setUsername] = useState("");
+  const [collectionName, setCollectionName] = useState("");
   const [error, setError] = useState("");
   const [showCountdown, setShowCountdown] = useState(false);
 
   useEffect(() => {
     const storedUsername = sessionStorage.getItem("username");
+    const collectionId = sessionStorage.getItem("collectionId");
+
     if (!storedUsername) {
       navigate("/getname");
     } else {
       setUsername(storedUsername);
+    }
+
+    if (collectionId) {
+      fetch(`http://localhost:5000/collections`)
+        .then(res => res.json())
+        .then(data => {
+          const match = data.find(col => col._id === collectionId);
+          if (match) setCollectionName(match.name);
+        })
+        .catch(err => console.error("Error fetching collection name:", err));
     }
   }, [navigate]);
 
@@ -97,7 +109,8 @@ export default function RulesPage() {
                 marginBottom: "1.2rem",
                 lineHeight: "1.4"
               }}>
-                Mmm, what a nice name, {username}!
+                Mmm, what a nice name, {username}!<br />
+                Welcome to <span style={{ color: "#00c4cc" }}>{collectionName}</span>!
               </h2>
             )}
 
@@ -110,7 +123,6 @@ export default function RulesPage() {
               {rules[current]}
             </div>
 
-            {/* Dot indicators */}
             <div style={{
               display: "flex",
               justifyContent: "center",
@@ -133,7 +145,6 @@ export default function RulesPage() {
               ))}
             </div>
 
-            {/* If on last rule, show start button */}
             {current === rules.length - 1 && (
               <>
                 <div className="rules-checkbox">
@@ -158,7 +169,6 @@ export default function RulesPage() {
               </>
             )}
 
-            {/* If NOT last rule → show Continue */}
             {current < rules.length - 1 && (
               <button
                 onClick={handleNext}
@@ -168,7 +178,6 @@ export default function RulesPage() {
               </button>
             )}
 
-            {/* Back button */}
             <button
               onClick={() => navigate("/getname")}
               className="rules-start-button"

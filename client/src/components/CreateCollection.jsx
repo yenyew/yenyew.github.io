@@ -4,12 +4,10 @@ import { useNavigate } from "react-router-dom";
 const CreateCollection = () => {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("");
 
     try {
       const res = await fetch("http://localhost:5000/collections", {
@@ -19,17 +17,15 @@ const CreateCollection = () => {
       });
 
       if (res.ok) {
-        setMessage("Collection created successfully!");
-        setName("");
-        setCode("");
-        setTimeout(() => navigate("/admin"), 1000);
+        alert("Collection created successfully!");
+        navigate("/admin");
       } else {
         const data = await res.json();
-        setMessage(data.message || "Failed to create collection.");
+        alert(data.message || "Failed to create collection.");
       }
     } catch (err) {
       console.error("Error creating collection:", err);
-      setMessage("Server error");
+      alert("Server error");
     }
   };
 
@@ -89,17 +85,6 @@ const CreateCollection = () => {
             Create
           </button>
         </form>
-
-        {message && (
-          <div
-            style={{
-              marginTop: "10px",
-              color: message.includes("success") ? "green" : "red",
-            }}
-          >
-            {message}
-          </div>
-        )}
       </div>
     </div>
   );

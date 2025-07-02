@@ -22,18 +22,24 @@ const EditCollection = () => {
         if (target) {
           setName(target.name);
           setCode(target.code);
-          fetchQuestions(target.code);
+          fetchQuestions(target.code, target._id); // ✅ pass both
         }
       } catch (err) {
         console.error("Error fetching collection:", err);
       }
     };
 
-    const fetchQuestions = async (collectionCode) => {
+    const fetchQuestions = async (collectionCode, collectionId) => {
       try {
         const res = await fetch(`http://localhost:5000/collections/${collectionCode}/questions`);
         const data = await res.json();
-        setQuestions(data.questions || []);
+
+        const withCollectionId = (data.questions || []).map((q) => ({
+          ...q,
+          collectionId: collectionId, // ✅ needed for edit navigation
+        }));
+
+        setQuestions(withCollectionId);
       } catch (err) {
         console.error("Failed to load questions:", err);
       }
@@ -104,7 +110,9 @@ const EditCollection = () => {
     }
   };
 
-  const handleQuestionClick = (number) => navigate(`/edit-question/${number}`);
+  const handleQuestionClick = (number, collectionId) => {
+    navigate(`/edit-question/${number}?collectionId=${collectionId}`);
+  };
 
   const sortedQuestions = [...questions];
   if (sortOrder === "asc") sortedQuestions.sort((a, b) => a.number - b.number);
@@ -193,14 +201,7 @@ const EditCollection = () => {
         <div style={{ marginTop: "30px", width: "100%", maxWidth: "300px" }}>
           <h3 style={{ color: "#000" }}>Questions in this Collection:</h3>
 
-          <label
-            style={{
-              fontWeight: "bold",
-              color: "#000",
-              fontSize: "14px",
-              marginBottom: "4px",
-            }}
-          >
+          <label style={{ fontWeight: "bold", color: "#000", fontSize: "14px", marginBottom: "4px" }}>
             Sort Questions By:
           </label>
           <select
@@ -250,7 +251,7 @@ const EditCollection = () => {
                       }}
                     >
                       <span
-                        onClick={() => handleQuestionClick(q.number)}
+                        onClick={() => handleQuestionClick(q.number, q.collectionId)}
                         style={{
                           cursor: "pointer",
                           overflow: "hidden",
@@ -282,13 +283,7 @@ const EditCollection = () => {
                 })}
               </ul>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: "10px",
-                }}
-              >
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
