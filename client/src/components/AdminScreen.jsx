@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LoginScreen.css"; // Use existing styles
+import "./LoginScreen.css";
 
 const AdminScreen = () => {
   const [selectedQuestion, setSelectedQuestion] = useState("");
+  const [collections, setCollections] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -11,20 +12,28 @@ const AdminScreen = () => {
     if (!token) {
       alert("You must be logged in to access this page.");
       navigate("/login");
+      return;
     }
+
+    // Fetch collections from backend
+    const fetchCollections = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/collections/");
+        const data = await response.json();
+        setCollections(data);
+      } catch (error) {
+        console.error("Error fetching collections:", error);
+      }
+    };
+
+    fetchCollections();
   }, [navigate]);
 
   const handleQuestionChange = (e) => {
     const value = e.target.value;
     setSelectedQuestion(value);
-
-    // Navigate based on selection
-    if (value === "school") {
-      navigate("/school-qns");
-    }
-    
-    if (value === "individual") {
-      navigate("/individual-qns");
+    if (value) {
+      navigate(`/questions?collection=${value}`);
     }
   };
 
@@ -56,15 +65,15 @@ const AdminScreen = () => {
             style={{ borderRadius: "30px", fontSize: "17px" }}
           >
             <option value="">Select a collection...</option>
-            <option value="school">School</option>
-            <option value="individual">Individual</option>
+            {collections.map((col) => (
+              <option key={col._id} value={col.code}>
+                {col.name}
+              </option>
+            ))}
           </select>
         </div>
 
-        <button
-          onClick={handleNavigateToCreate}
-          className="add-question-btn"
-        >
+        <button onClick={handleNavigateToCreate} className="add-question-btn">
           +
         </button>
 

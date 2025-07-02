@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./LoginScreen.css";
 
-const SchoolQns = () => {
+const QuestionsPage = () => {
   const [questions, setQuestions] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [collectionCode, setCollectionCode] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const passedCode = queryParams.get("collection");
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
@@ -15,17 +20,41 @@ const SchoolQns = () => {
   }, [navigate]);
 
   useEffect(() => {
-    fetchSchoolQuestions();
-  }, []);
+    const fetchCollections = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/collections/");
+        const data = await res.json();
+        setCollections(data);
+        if (data.length > 0 && !collectionCode) {
+          const codeToSet = passedCode || data[0].code;
+          setCollectionCode(codeToSet);
+        }
+      } catch (err) {
+        console.error("Error fetching collections:", err);
+      }
+    };
 
-  const fetchSchoolQuestions = async () => {
+    fetchCollections();
+    const interval = setInterval(fetchCollections, 1000);
+    return () => clearInterval(interval);
+  }, [passedCode, collectionCode]);
+
+  useEffect(() => {
+    if (!collectionCode) return;
+
+    fetchQuestions(collectionCode);
+    const interval = setInterval(() => fetchQuestions(collectionCode), 1000);
+    return () => clearInterval(interval);
+  }, [collectionCode]);
+
+  const fetchQuestions = async (code) => {
     try {
-      const response = await fetch("http://localhost:5000/collections/school/questions");
-      if (!response.ok) throw new Error("Failed to fetch school questions");
+      const response = await fetch(`http://localhost:5000/collections/${code}/questions`);
+      if (!response.ok) throw new Error("Failed to fetch questions");
       const data = await response.json();
       setQuestions(Array.isArray(data) ? data : data.questions || []);
     } catch (err) {
-      console.error("Error fetching school questions:", err);
+      console.error("Error fetching questions:", err);
       setQuestions([]);
     }
   };
@@ -45,7 +74,7 @@ const SchoolQns = () => {
 
       if (res.ok) {
         alert("Question deleted.");
-        setQuestions(prev => prev.filter(q => q.number !== number));
+        setQuestions((prev) => prev.filter((q) => q.number !== number));
       } else {
         alert("Failed to delete the question.");
       }
@@ -67,8 +96,24 @@ const SchoolQns = () => {
       </div>
 
       <div className="buttons" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+        <select
+          value={collectionCode}
+          onChange={(e) => {
+            const selected = e.target.value;
+            setCollectionCode(selected);
+            navigate(`/questions?collection=${selected}`);
+          }}
+          style={{ marginBottom: "20px", padding: "8px", fontSize: "16px" }}
+        >
+          {collections.map((col) => (
+            <option key={col._id} value={col.code}>
+              {col.name} Collection
+            </option>
+          ))}
+        </select>
+
         <p style={{ fontSize: "20px", textAlign: "center", color: "#000", maxWidth: "300px", marginBottom: "20px" }}>
-          Questions under the "School" Collection:
+          Questions under the "{collectionCode}" Collection:
         </p>
 
         {questions.length === 0 ? (
@@ -76,7 +121,17 @@ const SchoolQns = () => {
         ) : (
           <ul style={{ padding: 0, listStyleType: "none" }}>
             {questions.map((q) => (
-              <li key={q._id} style={{ backgroundColor: "#fff", padding: "10px 15px", borderRadius: "12px", marginBottom: "10px", color: "#000", fontSize: "16px" }}>
+              <li
+                key={q._id}
+                style={{
+                  backgroundColor: "#fff",
+                  padding: "10px 15px",
+                  borderRadius: "12px",
+                  marginBottom: "10px",
+                  color: "#000",
+                  fontSize: "16px",
+                }}
+              >
                 <div>
                   <strong>Q{q.number}:</strong> {q.question}
                 </div>
@@ -119,4 +174,4 @@ const SchoolQns = () => {
   );
 };
 
-export default SchoolQns;
+export default QuestionsPage;

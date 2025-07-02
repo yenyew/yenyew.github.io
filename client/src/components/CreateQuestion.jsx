@@ -9,22 +9,35 @@ const CreateQuestion = () => {
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [message, setMessage] = useState("");
+  const [collections, setCollections] = useState([]);
   const navigate = useNavigate();
 
+  // Fetch next question number
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const response = await fetch("http://localhost:5000/questions");
         const data = await response.json();
-        const maxNumber = Math.max(...data.map(q => q.number || 0));
-        const nextNumber = maxNumber + 1;
-        setNumber(nextNumber);
+        const maxNumber = Math.max(...data.map((q) => q.number || 0));
+        setNumber(maxNumber + 1);
       } catch (err) {
         console.error("Failed to fetch questions:", err);
-        setNumber(1); // fallback
+        setNumber(1);
       }
     };
+
+    const fetchCollections = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/collections/");
+        const data = await response.json();
+        setCollections(data);
+      } catch (err) {
+        console.error("Failed to fetch collections:", err);
+      }
+    };
+
     fetchQuestions();
+    fetchCollections();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -40,7 +53,7 @@ const CreateQuestion = () => {
     };
 
     try {
-      const response = await fetch("http://172.20.10.2:5000/questions", {
+      const response = await fetch("http://localhost:5000/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newQuestion),
@@ -92,7 +105,8 @@ const CreateQuestion = () => {
           <input
             type="number"
             value={number}
-            readOnly
+            onChange ={(e) => setNumber(e.target.value)}
+            placeholder="Question Number"
             required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
@@ -116,8 +130,11 @@ const CreateQuestion = () => {
             }}
           >
             <option value="">Select Collection</option>
-            <option value="68610b9e4c85e07c1782262c">School</option>
-            <option value="68610bad4c85e07c1782262e">Individual</option>
+            {collections.map((col) => (
+              <option key={col._id} value={col._id}>
+                {col.name}
+              </option>
+            ))}
           </select>
 
           <textarea
@@ -126,7 +143,12 @@ const CreateQuestion = () => {
             onChange={(e) => setQuestion(e.target.value)}
             required
             className="login-btn"
-            style={{ marginBottom: "10px", height: "100px", borderRadius: "20px", backgroundColor: "white" }}
+            style={{
+              marginBottom: "10px",
+              height: "100px",
+              borderRadius: "20px",
+              backgroundColor: "white",
+            }}
           />
           <input
             type="text"
@@ -164,14 +186,7 @@ const CreateQuestion = () => {
           </div>
         )}
 
-        <a
-          href="/"
-          style={{
-            color: "#17C4C4",
-            marginTop: "20px",
-            fontSize: "16px",
-          }}
-        >
+        <a href="/" style={{ color: "#17C4C4", marginTop: "20px", fontSize: "16px" }}>
           Return to Home Screen
         </a>
       </div>

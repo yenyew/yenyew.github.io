@@ -2,7 +2,6 @@ import { Route, Routes} from "react-router-dom" ;
 import './App.css'
 import HomePage from './components/HomePage.jsx';
 import QuestionPage from './components/QuestionPage.jsx';
-
 import GetUsername from './components/EnterUsername.jsx';
 import GetCode from './components/EnterCollectionCode.jsx';
 import RulesPage from './components/RulesPage.jsx';
@@ -11,9 +10,8 @@ import Share from './components/Share.jsx';
 import LoginForm from './components/LoginForm.jsx';
 import AdminScreen from './components/AdminScreen.jsx';
 import CreateQuestion from "./components/CreateQuestion.jsx";
-import SchoolQns from "./components/SchoolQns.jsx";
-import IndividualQns from "./components/IndividualQns.jsx";
 import EditQuestion from "./components/EditQns.jsx";
+import Questions from "./components/Questions.jsx";
 
 export default function App () {
   return (
@@ -28,8 +26,7 @@ export default function App () {
         <Route path="/login" element={<LoginForm />} />
         <Route path="/admin" element={<AdminScreen />} />
         <Route path="/add-question" element={<CreateQuestion />} />
-        <Route path="/school-qns" element={<SchoolQns />} />
-        <Route path="/individual-qns" element={<IndividualQns />} />
+        <Route path="/questions" element={<Questions />} />
         <Route path="/edit-question/:number" element={<EditQuestion />} />
         <Route path="/getcode" element={<GetCode />} />
     </Routes>
