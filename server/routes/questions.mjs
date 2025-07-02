@@ -26,6 +26,7 @@ router.get("/:number",  async (req, res) => {
 router.post("/", async (req, res) => {
     const newQuestion = {
         number: req.body.number,
+        collectionId: req.body.collectionId,
         question: req.body.question,
         hint: req.body.hint,
         answer: req.body.answer,
@@ -41,6 +42,7 @@ router.patch("/:number", async (req, res) => {
     const updates = {
         $set: {
             number: req.body.number,
+            collectionId: req.body.collectionId,
             question: req.body.question,
             hint: req.body.hint,
             answer: req.body.answer,

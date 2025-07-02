@@ -6,7 +6,11 @@ const questionSchema = new mongoose.Schema({
   number: {
     type: Number,
     required: true,
-    unique: true,
+  },
+  collectionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Collection",
+    required: true,
   },
   question: {
     type: String,

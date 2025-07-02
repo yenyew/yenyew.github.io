@@ -49,7 +49,7 @@ const LoginScreen = () => {
       </div>
 
       <div className="buttons">
-        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
+        <form onSubmit={handleSubmit} className="centered-form">
           {error && (
             <div style={{ color: "red", marginBottom: "10px", textAlign: "center" }}>
               {error}

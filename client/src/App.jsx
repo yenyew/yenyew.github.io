@@ -11,6 +11,9 @@ import Share from './components/Share.jsx';
 import LoginForm from './components/LoginForm.jsx';
 import AdminScreen from './components/AdminScreen.jsx';
 import CreateQuestion from "./components/CreateQuestion.jsx";
+import SchoolQns from "./components/SchoolQns.jsx";
+import IndividualQns from "./components/IndividualQns.jsx";
+import EditQuestion from "./components/EditQns.jsx";
 
 export default function App () {
   return (
@@ -25,6 +28,9 @@ export default function App () {
         <Route path="/login" element={<LoginForm />} />
         <Route path="/admin" element={<AdminScreen />} />
         <Route path="/add-question" element={<CreateQuestion />} />
+        <Route path="/school-qns" element={<SchoolQns />} />
+        <Route path="/individual-qns" element={<IndividualQns />} />
+        <Route path="/edit-question/:number" element={<EditQuestion />} />
         <Route path="/getcode" element={<GetCode />} />
     </Routes>
     </div>
