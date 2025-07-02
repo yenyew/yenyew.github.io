@@ -2,12 +2,18 @@ import express from 'express';
 import Question from '../models/questionsdb.mjs';
 
 const router = express.Router();
-// Get all questions
-router.get("/", async (req, res) => {
-    const results = await Question.find({});
-    res.status(200).send(results);
-});
 
+// Get all questions filtered by collectionId
+router.get("/", async (req, res) => {
+  try {
+    const { collectionId } = req.query;
+    const filter = collectionId ? { collectionId } : {};
+    const questions = await Question.find(filter).sort({ number: 1 });  
+    res.status(200).json(questions);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
 
 // Get questions by number
 router.get("/:number",  async (req, res) => {
@@ -24,15 +30,29 @@ router.get("/:number",  async (req, res) => {
 
 // Create a new question
 router.post("/", async (req, res) => {
-    const newQuestion = {
-        number: req.body.number,
-        question: req.body.question,
-        hint: req.body.hint,
-        answer: req.body.answer,
-    };
+    try {
+        const { number, collectionId, question, hint, answer } = req.body;
 
-    const result = await Question.create(newQuestion);
-    res.status(201).send(result);
+        // Check for existing question with the same number
+        const existing = await Question.findOne({ number });
+        if (existing) {
+            return res.status(400).json({ message: `Question with number ${number} already exists.` });
+        }
+
+        const newQuestion = {
+            number,
+            collectionId,
+            question,
+            hint,
+            answer,
+        };
+
+        const result = await Question.create(newQuestion);
+        res.status(201).send(result);
+    } catch (error) {
+        console.error("Error creating question:", error);
+        res.status(500).json({ message: "Server error while creating question", error: error.message });
+    }
 });
 
 // Update a question by number
@@ -41,6 +61,7 @@ router.patch("/:number", async (req, res) => {
     const updates = {
         $set: {
             number: req.body.number,
+            collectionId: req.body.collectionId,
             question: req.body.question,
             hint: req.body.hint,
             answer: req.body.answer,

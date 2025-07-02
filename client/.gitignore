@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .vite/
+**/.vite/
 dist/
 
 # Editor directories and files

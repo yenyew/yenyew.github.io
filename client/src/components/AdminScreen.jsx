@@ -1,102 +1,111 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LoginScreen.css"; // Use existing styles
+import "./LoginScreen.css";
 
 const AdminScreen = () => {
   const [selectedQuestion, setSelectedQuestion] = useState("");
-  const [questions, setQuestions] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is authenticated
     const token = localStorage.getItem("jwtToken");
     if (!token) {
       alert("You must be logged in to access this page.");
       navigate("/login");
+      return;
     }
-  }, [navigate]);
 
-  useEffect(() => {
-    const fetchQuestions = async () => {
+    const fetchCollections = async () => {
       try {
-        const response = await fetch("http://localhost:5000/questions");
-        if (!response.ok) {
-          throw new Error("Failed to fetch questions");
-        }
+        const response = await fetch("http://localhost:5000/collections/");
         const data = await response.json();
-        setQuestions(data);
-      } catch (err) {
-        console.error("Error fetching questions:", err);
+        setCollections(data);
+      } catch (error) {
+        console.error("Error fetching collections:", error);
       }
     };
 
-    fetchQuestions();
-  }, []);
+    fetchCollections();
+  }, [navigate]);
 
-  const handleQuestionChange = (e) => {
-    setSelectedQuestion(e.target.value);
+  const handleCollectionChange = (e) => {
+    const id = e.target.value;
+    setSelectedCollectionId(id);
+    if (id) {
+      navigate(`/edit-collection/${id}`);
+    }
   };
 
-  // Navigates to the CreateQuestion page
-  const handleNavigateToCreate = () => {
+  const handleQuestionChange = (e) => {
+    const value = e.target.value;
+    setSelectedQuestion(value);
+    if (value) {
+      navigate(`/questions?collection=${value}`);
+    }
+  };
+
+  const handleCreateQuestion = () => {
     navigate("/add-question");
+  };
+
+  const handleCreateCollection = () => {
+    navigate("/add-collection");
   };
 
   return (
     <div className="login-container">
-      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <img
+        src="/images/changihome.jpg"
+        alt="Background"
+        className="background-image"
+      />
+      <div className="page-overlay"></div>
 
       <div className="header">
-        <h1 style={{ fontSize: "48px", fontFamily: "serif", fontWeight: "bold", margin: 0 }}>
-          GoChangi!
-        </h1>
+        <h2>GoChangi!</h2>
       </div>
 
       <div className="buttons">
-        <p style={{ fontSize: "20px", textAlign: "center", color: "#000", maxWidth: "300px" }}>
-          Which questions would you like to add/edit/delete today?
+        <p style={{ fontSize: "18px", textAlign: "center", color: "#000" }}>
+          Which collection would you like to view?
         </p>
 
-        <div style={{ width: "80%", maxWidth: "300px", marginTop: "20px" }}>
+        <div style={{ width: "100%", maxWidth: "300px", marginTop: "16px" }}>
           <select
-            value={selectedQuestion}
-            onChange={handleQuestionChange}
-            className="login-btn"
-            style={{ borderRadius: "30px", fontSize: "18px" }}
+            value={selectedCollectionId}
+            onChange={handleCollectionChange}
+            className="centered-form"
+            style={{
+              borderRadius: "30px",
+              fontSize: "16px",
+              padding: "10px 16px",
+              width: "100%",
+            }}
           >
-            <option value="">Select a question...</option>
-            {questions.map((q) => (
-              <option key={q._id} value={q.question}>
-                Q{q.number}: {q.question}
+            <option value="">Select a collection...</option>
+            {collections.map((col) => (
+              <option key={col._id} value={col._id}>
+                {col.name} ({col.code})
               </option>
             ))}
           </select>
         </div>
 
-        {/* Navigate to CreateQuestion page */}
-        <button
-          onClick={handleNavigateToCreate}
-          className="login-btn"
-          style={{
-            background: "transparent",
-            border: "2px solid #17C4C4",
-            borderRadius: "50%",
-            width: "60px",
-            height: "60px",
-            fontSize: "32px",
-            marginTop: "20px",
-            color: "#17C4C4",
-            backgroundColor: "white",
-          }}
-        >
-          +
-        </button>
-        <p style={{ fontSize: "18px", color: "#000", marginTop: "10px" }}>Add Question</p>
+        <div style={{ marginTop: "30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+          <button onClick={handleCreateCollection} className="add-question-btn">+</button>
+          <span style={{ fontSize: "18px", color: "#007b8a", fontWeight: "600" }}>Collection</span>
+          <button onClick={handleCreateQuestion} className="add-question-btn">+</button>
+          <span style={{ fontSize: "18px", color: "#007b8a", fontWeight: "600" }}>Question</span>
+        </div>
 
-        <a href="/" style={{ color: "#17C4C4", marginTop: "20px", fontSize: "16px" }}>
+        <button
+          onClick={() => navigate("/")}
+          className="login-btn"
+          style={{ marginTop: "32px", width: "100%", maxWidth: "300px" }}
+        >
           Return to Home Screen
-        </a>
+        </button>
       </div>
     </div>
   );

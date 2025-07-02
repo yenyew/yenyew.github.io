@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import './MainStyles.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
 
   const handlePlayClick = () => {
-    navigate('/getname'); // Adjust route as needed
+    navigate('/getname');
   };
 
   const handleAdminLoginClick = () => {
@@ -13,51 +14,29 @@ const HomePage = () => {
   };
 
   return (
-    <div
-      style={{
-        height: '80vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center', // Center vertically
-        alignItems: 'center',
-        padding: '2rem 1rem',
-        boxSizing: 'border-box',
-      }}
-    >
-      <h1 style={{ margin: 0 }}>Welcome to GoChangi!</h1>
+    <div className="home-container">
+      <img src="/images/changihome.jpg" alt="Background" className="home-background" />
+      <div className="home-overlay"></div>
 
-      <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-        <p style={{ marginBottom: '1rem' }}>Discover Changi, One Clue at a Time!</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <button
-            onClick={handlePlayClick}
-            style={{
-              padding: '1rem 2rem',
-              fontSize: '1rem',
-              backgroundColor: '#007bff',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-          >
-            Play
-          </button>
-          <button
-            onClick={handleAdminLoginClick}
-            style={{
-              padding: '1rem 2rem',
-              fontSize: '1rem',
-              backgroundColor: '#28a745',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-          >
-            Admin Login
-          </button>
+      <div className="top-left-logo">
+        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
+      </div>
+
+      <div className="home-content">
+        <div className="title-block">
+          <h1>Welcome To<br />GoChangi!</h1>
+        </div>
+
+        <div className="description-block">
+          <p>Discover Changi, One Clue at a Time!</p>
+          <div className="home-buttons">
+            <button onClick={handlePlayClick}>Play</button>
+            <button onClick={handleAdminLoginClick}>Admin Login</button>
+          </div>
+
+          <div className="jewel-logo-wrapper">
+            <img src="/images/jewel.png" alt="Jewel Logo" />
+          </div>
         </div>
       </div>
     </div>

@@ -1,78 +1,74 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "./LoginScreen.css";
 
-const CreateQuestion = () => {
-  const [number, setNumber] = useState("");
+const EditQuestion = () => {
+  const [collections, setCollections] = useState([]);
   const [collectionId, setCollectionId] = useState("");
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [message, setMessage] = useState("");
-  const [collections, setCollections] = useState([]);
+  const { number } = useParams();
   const navigate = useNavigate();
 
-  // Fetch next question number
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/questions");
-        const data = await response.json();
-        const maxNumber = Math.max(...data.map((q) => q.number || 0));
-        setNumber(maxNumber + 1);
-      } catch (err) {
-        console.error("Failed to fetch questions:", err);
-        setNumber(1);
-      }
-    };
-
     const fetchCollections = async () => {
       try {
-        const response = await fetch("http://localhost:5000/collections/");
-        const data = await response.json();
+        const res = await fetch("http://localhost:5000/collections/");
+        const data = await res.json();
         setCollections(data);
       } catch (err) {
-        console.error("Failed to fetch collections:", err);
+        console.error("Error fetching collections:", err);
       }
     };
 
-    fetchQuestions();
+    const fetchQuestion = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/questions/${number}`);
+        if (!res.ok) throw new Error("Question not found");
+        const data = await res.json();
+        setQuestion(data.data.question);
+        setHint(data.data.hint);
+        setAnswer(data.data.answer);
+        setCollectionId(data.data.collectionId);
+      } catch (err) {
+        console.error("Error fetching question:", err);
+        setMessage("Failed to load question.");
+      }
+    };
+
     fetchCollections();
-  }, []);
+    fetchQuestion();
+  }, [number]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
-    const newQuestion = {
-      number: parseInt(number),
-      collectionId,
+    const updatedData = {
       question,
       hint,
       answer,
+      collectionId,
     };
 
     try {
-      const response = await fetch("http://localhost:5000/questions", {
-        method: "POST",
+      const response = await fetch(`http://localhost:5000/questions/${number}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQuestion),
+        body: JSON.stringify(updatedData),
       });
 
       if (response.ok) {
-        setMessage("Question added successfully!");
-        setCollectionId("");
-        setQuestion("");
-        setHint("");
-        setAnswer("");
-        setNumber((prev) => parseInt(prev) + 1);
+        setMessage("Question updated successfully!");
       } else {
         const data = await response.json();
-        setMessage(`Error: ${data.message || "Could not add question."}`);
+        setMessage(`Error: ${data.message || "Update failed"}`);
       }
     } catch (err) {
-      console.error("Error submitting question:", err);
-      setMessage("Something went wrong. Please try again.");
+      console.error("Error updating question:", err);
+      setMessage("Something went wrong.");
     }
   };
 
@@ -98,20 +94,10 @@ const CreateQuestion = () => {
 
       <div className="buttons">
         <h2 style={{ fontSize: "24px", color: "#000", textAlign: "center", marginBottom: "10px" }}>
-          Create a New Question:
+          Edit Question #{number}
         </h2>
 
         <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
-          <input
-            type="number"
-            value={number}
-            onChange ={(e) => setNumber(e.target.value)}
-            placeholder="Question Number"
-            required
-            className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
-          />
-
           <select
             value={collectionId}
             onChange={(e) => setCollectionId(e.target.value)}
@@ -176,7 +162,7 @@ const CreateQuestion = () => {
               marginTop: "10px",
             }}
           >
-            Add
+            Save
           </button>
         </form>
 
@@ -194,4 +180,4 @@ const CreateQuestion = () => {
   );
 };
 
-export default CreateQuestion;
+export default EditQuestion;

@@ -4,12 +4,14 @@ import "./QuestionPage.css";
 const QuestionPage = () => {
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [score, setScore] = useState(0);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
+  const [hintsUsed, setHintsUsed] = useState(0);
   const [startTime, setStartTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef();
+  const wrongAnswers = useRef(0);
 
   const handleCameraClick = () => fileInputRef.current.click();
 
@@ -39,14 +41,21 @@ const QuestionPage = () => {
 
   useEffect(() => {
     const fetchQuestions = async () => {
+      const collectionId = sessionStorage.getItem("collectionId");
+      if (!collectionId) {
+        console.error("No collectionId found in sessionStorage");
+        return;
+      }
+
       try {
-        const res = await fetch("http://172.20.10.2:5000/questions");
+        const res = await fetch(`http://172.20.10.2:5000/questions?collectionId=${collectionId}`);
         const data = await res.json();
         setQuestions(data);
       } catch (error) {
         console.error("Failed to fetch questions:", error);
       }
     };
+
     fetchQuestions();
   }, []);
 
@@ -63,7 +72,16 @@ const QuestionPage = () => {
     return `00:${mins}:${secs}`;
   };
 
-  const handleSubmit = () => {
+  const handleHintClick = () => {
+    if (questions[currentIndex]?.hint) {
+      setHintsUsed((prev) => prev + 1);
+      alert(`Hint: ${questions[currentIndex].hint}`);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!questions[currentIndex]) return;
+
     if (!userAnswer.trim()) {
       alert("Please enter your answer.");
       return;
@@ -75,27 +93,57 @@ const QuestionPage = () => {
 
     const correctAnswer = questions[currentIndex].answer?.toLowerCase().trim() || "";
     const input = userAnswer.toLowerCase().trim();
+    const isCorrect = input === correctAnswer;
 
-    let newScore = score;
-    if (input === correctAnswer) {
-      newScore += 1;
-      setScore(newScore);
-      alert("Correct! +1 point");
+    if (isCorrect) {
+      setCorrectAnswers((prev) => prev + 1);
+      alert("Correct!");
     } else {
+      wrongAnswers.current += 1;
       alert(`Incorrect. The correct answer was: ${questions[currentIndex].answer}`);
     }
 
     setUserAnswer("");
     setImagePreview(null);
 
-    if (currentIndex < questions.length - 1) {
+    const isLast = currentIndex === questions.length - 1;
+
+    if (!isLast) {
       setCurrentIndex((prev) => prev + 1);
-    } else {
-      alert(`Quiz complete! Final score: ${newScore}/${questions.length}`);
+      return;
     }
+
+    const finalCorrect = correctAnswers + (isCorrect ? 1 : 0);
+    const finalScore = finalCorrect * 500;
+    const rawTime = Math.floor((Date.now() - startTime) / 1000);
+    const finalWrongCount = wrongAnswers.current + (!isCorrect ? 1 : 0);
+    const finalTime = rawTime + finalWrongCount * 300;
+    const finalHintsUsed = hintsUsed;
+
+    alert(`Quiz complete! Final score: ${finalScore}`);
+
+    const playerId = sessionStorage.getItem("playerId");
+    const collectionId = sessionStorage.getItem("collectionId");
+
+    if (playerId) {
+      await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          score: finalScore,
+          totalTimeInSeconds: finalTime,
+          hintsUsed: finalHintsUsed,
+          finishedAt: new Date(),
+          collectionId,
+        }),
+      });
+    }
+
+    window.location.href = "/share";
   };
 
-  if (questions.length === 0) return <div>Loading...</div>;
+  if (questions.length === 0) return <div>Loading questions...</div>;
+  if (!questions[currentIndex]) return <div>Loading question...</div>;
 
   return (
     <div className="question-page">
@@ -107,7 +155,7 @@ const QuestionPage = () => {
             <div className="team-box">Team 1</div>
           </div>
           <div className="right-header">
-            <div className="score-box">Score: {score}</div>
+            <div className="score-box">Score: {correctAnswers * 500}</div>
             <div className="time-box">Time: {formatTime(elapsed)}</div>
           </div>
         </div>
@@ -116,17 +164,18 @@ const QuestionPage = () => {
           <div className="question-box">
             Q{currentIndex + 1}: {questions[currentIndex].question}
           </div>
-          <div className="hint-box">{questions[currentIndex].hint}</div>
         </div>
 
-        {/* ✅ Preview Image if exists */}
+        <div className="hint-box">
+          <button onClick={handleHintClick}>💡 Show Hint</button>
+        </div>
+
         {imagePreview && (
           <div className="image-preview-container">
             <img src={imagePreview} alt="Captured" className="image-preview" />
           </div>
         )}
 
-        {/* ✅ Input field + Camera button stays ALWAYS */}
         <div className="answer-input">
           <input
             type="text"

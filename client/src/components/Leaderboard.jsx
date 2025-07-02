@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import './MainStyles.css';
 
 const FILTERS = [
   { label: "Today", value: "day" },
@@ -10,154 +11,160 @@ const FILTERS = [
 function isWithin(date, filter) {
   const now = new Date();
   const d = new Date(date);
-  if (filter === "day") {
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
-  }
+  if (filter === "day") return d.toDateString() === now.toDateString();
   if (filter === "week") {
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    return d >= startOfWeek && d <= now;
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    start.setHours(0, 0, 0, 0);
+    return d >= start && d <= now;
   }
-  if (filter === "month") {
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth()
-    );
-  }
-  return true; // all time
+  if (filter === "month") return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  return true;
 }
 
 export default function LeaderboardPage() {
   const [players, setPlayers] = useState([]);
+  const [collections, setCollections] = useState({});
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(0);
-  const pageSize = 20;
+  const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
+
+  const pageSize = 10;
+  const currentPlayerId = sessionStorage.getItem("playerId");
 
   useEffect(() => {
-    async function fetchPlayers() {
+    async function fetchAll() {
       try {
-        const response = await fetch("http://localhost:5000/players");
-        if (!response.ok) throw new Error("Failed to fetch players");
-        const data = await response.json();
-        setPlayers(data.filter(p => p.finishedAt));
+        const [playersRes, collectionsRes] = await Promise.all([
+          fetch("http://172.20.10.2:5000/players"),
+          fetch("http://172.20.10.2:5000/collections"),
+        ]);
+        const [playersData, collectionsData] = await Promise.all([
+          playersRes.json(),
+          collectionsRes.json(),
+        ]);
+
+        const finishedPlayers = playersData.filter(p => p.finishedAt);
+        const sorted = finishedPlayers.sort((a, b) =>
+          b.score === a.score ? a.totalTimeInSeconds - b.totalTimeInSeconds : b.score - a.score
+        );
+        setPlayers(sorted);
+
+        const colMap = {};
+        collectionsData.forEach(col => colMap[col._id] = col.name);
+        setCollections(colMap);
+
+        const currentIndex = sorted.findIndex(p => p._id === currentPlayerId);
+        setPage(Math.max(0, Math.floor(currentIndex / pageSize)));
       } catch (err) {
         console.error(err);
       }
     }
-    fetchPlayers();
+    fetchAll();
   }, []);
 
-  // Filter and sort
-  const filteredPlayers = players
-    .filter(p => isWithin(p.finishedAt, filter))
-    .sort((a, b) => {
-      if (b.score === a.score) {
-        return a.totalTimeInSeconds - b.totalTimeInSeconds;
-      }
-      return b.score - a.score;
-    });
+  useEffect(() => setPage(0), [filter]);
 
-  // Pagination
+  const filteredPlayers = players.filter(p => isWithin(p.finishedAt, filter));
   const totalPages = Math.ceil(filteredPlayers.length / pageSize);
   const pagedPlayers = filteredPlayers.slice(page * pageSize, (page + 1) * pageSize);
 
-  const formatTime = (seconds) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60), sec = s % 60;
+    const h = Math.floor(m / 60);
+    return `${h > 0 ? `${h}h ` : ""}${m % 60}m ${sec}s`;
   };
 
-  const handleBack = () => {
-    window.history.back();
-  };
-
-  // Highlight current player
-  const currentPlayerId = sessionStorage.getItem("playerId");
-
-  // Reset to first page when filter changes
-  useEffect(() => {
-    setPage(0);
-  }, [filter]);
+  const formatDate = (dateStr) => new Date(dateStr).toLocaleString("en-SG", {
+    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
 
   return (
-    <div style={{ maxWidth: 500, margin: "32px auto", textAlign: "center" }}>
-      <button
-        onClick={handleBack}
-        style={{
-          marginBottom: "16px",
-          padding: "8px 24px",
-          fontSize: "16px",
-          backgroundColor: "#007bff",
-          color: "#fff",
-          border: "none",
-          borderRadius: "8px",
-          cursor: "pointer",
-        }}
-      >
-        ← Back
-      </button>
-      <h2>🏆 Leaderboard</h2>
-      <div style={{ marginBottom: "16px" }}>
+    <div className="page-container">
+      <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
+      <div className="page-overlay"></div>
+
+      <div className="page-content leaderboard-page">
+        <h1 className="leaderboard-title">Leaderboard</h1>
+
         <select
           value={filter}
-          onChange={e => setFilter(e.target.value)}
-          style={{ padding: "8px", fontSize: "16px", borderRadius: "8px" }}
+          onChange={(e) => setFilter(e.target.value)}
+          className="filter-select"
         >
           {FILTERS.map(f => (
             <option key={f.value} value={f.value}>{f.label}</option>
           ))}
         </select>
-      </div>
-      {pagedPlayers.length === 0 ? (
-        <p>No completed players yet.</p>
-      ) : (
-        <>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Rank</th>
-                <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Name</th>
-                <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Score</th>
-                <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedPlayers.map((player, index) => (
-                <tr
-                  key={player._id}
-                  style={
-                    player._id === currentPlayerId
-                      ? { backgroundColor: "#ffe066", fontWeight: "bold" }
-                      : {}
-                  }
-                >
-                  <td style={{ padding: "8px" }}>{page * pageSize + index + 1}</td>
-                  <td style={{ padding: "8px" }}>{player.username}</td>
-                  <td style={{ padding: "8px" }}>{player.score}</td>
-                  <td style={{ padding: "8px" }}>{formatTime(player.totalTimeInSeconds)}</td>
+
+        {pagedPlayers.length === 0 ? (
+          <p className="no-results">No completed players yet.</p>
+        ) : (
+          <>
+            <table className="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Score</th>
+                  <th>Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div style={{ marginTop: "16px", display: "flex", justifyContent: "center", gap: 16 }}>
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-              &larr; Prev
-            </button>
-            <span>
-              Page {page + 1} of {totalPages}
-            </span>
-            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
-              Next &rarr;
-            </button>
-          </div>
-        </>
-      )}
+              </thead>
+              <tbody>
+                {pagedPlayers.map((player) => {
+                  const rank = filteredPlayers.findIndex(p => p._id === player._id);
+                  const isCurrent = player._id === currentPlayerId;
+                  const correct = player.score / 500;
+                  const highlight =
+                    rank === 0 ? "gold" :
+                    rank === 1 ? "silver" :
+                    rank === 2 ? "bronze" : "";
+
+                  return (
+                    <tr
+                      key={player._id}
+                      className={`${highlight} ${isCurrent ? "current-player" : ""}`}
+                      onMouseEnter={() => setHoveredPlayerId(player._id)}
+                      onMouseLeave={() => setHoveredPlayerId(null)}
+                    >
+                      <td>{rank + 1}</td>
+                      <td style={{ position: "relative" }}>
+                        {player.username}
+                        {isCurrent && <span className="you-indicator"> ← You</span>}
+
+                        {hoveredPlayerId === player._id && (
+                          <div className="player-tooltip">
+                            <div><strong>Collection:</strong> {collections[player.collectionId] || "Unknown"}</div>
+                            <div><strong>Date:</strong> {formatDate(player.finishedAt)}</div>
+                            <div><strong>Correct:</strong> {correct} / 12</div>
+                          </div>
+                        )}
+                      </td>
+                      <td>{player.score}</td>
+                      <td>{formatTime(player.totalTimeInSeconds)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="pagination">
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                ← Prev
+              </button>
+              <span>Page {page + 1} of {totalPages}</span>
+              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                Next →
+              </button>
+            </div>
+          </>
+        )}
+
+        <button className="return-button" onClick={() => window.history.back()}>
+          Return
+        </button>
+      </div>
     </div>
   );
 }
+  
