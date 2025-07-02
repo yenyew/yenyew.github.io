@@ -1,0 +1,100 @@
+    import React, { useState } from "react";
+    import { useNavigate } from "react-router-dom";
+
+    const CreateCollection = () => {
+    const [name, setName] = useState("");
+    const [code, setCode] = useState("");
+    const [message, setMessage] = useState("");
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setMessage("");
+
+        try {
+        const res = await fetch("http://localhost:5000/collections", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, code }),
+        });
+
+        if (res.ok) {
+            setMessage("Collection created successfully!");
+            setName("");
+            setCode("");
+            setTimeout(() => navigate("/admin"), 1000);
+        } else {
+            const data = await res.json();
+            setMessage(data.message || "Failed to create collection.");
+        }
+        } catch (err) {
+        console.error("Error creating collection:", err);
+        setMessage("Server error");
+        }
+    };
+
+    return (
+        <div className="login-container">
+        <img src="/images/changihome.jpg" alt="Background" className="background-image" />
+        <div className="overlay"></div>
+
+        <div className="buttons">
+            <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "10px" }}>Create New Collection</h2>
+
+            {/* BACK BUTTON */}
+            <button
+            onClick={() => navigate("/admin")}
+            className="login-btn"
+            style={{
+                backgroundColor: "#17C4C4",
+                color: "#fff",
+                width: "120px",
+                marginBottom: "20px",
+            }}
+            >
+            &lt; Back
+            </button>
+
+            <form onSubmit={handleSubmit} style={{ maxWidth: "300px", width: "100%" }}>
+            <input
+                type="text"
+                placeholder="Collection Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="login-btn"
+                style={{ marginBottom: "10px", backgroundColor: "white" }}
+            />
+            <input
+                type="text"
+                placeholder="Collection Code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+                className="login-btn"
+                style={{ marginBottom: "10px", backgroundColor: "white" }}
+            />
+            <button
+                type="submit"
+                className="login-btn"
+                style={{
+                background: "linear-gradient(90deg, #C4EB22, #17C4C4)",
+                color: "black",
+                width: "100%",
+                }}
+            >
+                Create
+            </button>
+            </form>
+
+            {message && (
+            <div style={{ marginTop: "10px", color: message.includes("success") ? "green" : "red" }}>
+                {message}
+            </div>
+            )}
+        </div>
+        </div>
+    );
+    };
+
+    export default CreateCollection;

@@ -11,60 +11,56 @@ const FILTERS = [
 function isWithin(date, filter) {
   const now = new Date();
   const d = new Date(date);
-  if (filter === "day") {
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
-  }
+  if (filter === "day") return d.toDateString() === now.toDateString();
   if (filter === "week") {
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    return d >= startOfWeek && d <= now;
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    start.setHours(0, 0, 0, 0);
+    return d >= start && d <= now;
   }
-  if (filter === "month") {
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth()
-    );
-  }
+  if (filter === "month") return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   return true;
 }
 
 export default function LeaderboardPage() {
   const [players, setPlayers] = useState([]);
+  const [collections, setCollections] = useState({});
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(0);
-  const pageSize = 10;
+  const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
 
+  const pageSize = 10;
   const currentPlayerId = sessionStorage.getItem("playerId");
 
   useEffect(() => {
-    async function fetchPlayers() {
+    async function fetchAll() {
       try {
-        const response = await fetch("http://172.20.10.2:5000/players");
-        const data = await response.json();
-        const filtered = data.filter(p => p.finishedAt);
+        const [playersRes, collectionsRes] = await Promise.all([
+          fetch("http://172.20.10.2:5000/players"),
+          fetch("http://172.20.10.2:5000/collections"),
+        ]);
+        const [playersData, collectionsData] = await Promise.all([
+          playersRes.json(),
+          collectionsRes.json(),
+        ]);
 
-        const sorted = filtered.sort((a, b) =>
-          b.score === a.score
-            ? a.totalTimeInSeconds - b.totalTimeInSeconds
-            : b.score - a.score
+        const finishedPlayers = playersData.filter(p => p.finishedAt);
+        const sorted = finishedPlayers.sort((a, b) =>
+          b.score === a.score ? a.totalTimeInSeconds - b.totalTimeInSeconds : b.score - a.score
         );
+        setPlayers(sorted);
+
+        const colMap = {};
+        collectionsData.forEach(col => colMap[col._id] = col.name);
+        setCollections(colMap);
 
         const currentIndex = sorted.findIndex(p => p._id === currentPlayerId);
-        const initialPage = Math.floor(currentIndex / pageSize);
-
-        setPlayers(sorted);
-        setPage(initialPage >= 0 ? initialPage : 0);
+        setPage(Math.max(0, Math.floor(currentIndex / pageSize)));
       } catch (err) {
         console.error(err);
       }
     }
-    fetchPlayers();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchAll();
   }, []);
 
   useEffect(() => setPage(0), [filter]);
@@ -73,12 +69,15 @@ export default function LeaderboardPage() {
   const totalPages = Math.ceil(filteredPlayers.length / pageSize);
   const pagedPlayers = filteredPlayers.slice(page * pageSize, (page + 1) * pageSize);
 
-  const formatTime = (seconds) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60), sec = s % 60;
+    const h = Math.floor(m / 60);
+    return `${h > 0 ? `${h}h ` : ""}${m % 60}m ${sec}s`;
   };
+
+  const formatDate = (dateStr) => new Date(dateStr).toLocaleString("en-SG", {
+    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
 
   return (
     <div className="page-container">
@@ -113,23 +112,33 @@ export default function LeaderboardPage() {
               </thead>
               <tbody>
                 {pagedPlayers.map((player) => {
-                  const overallRank = filteredPlayers.findIndex(p => p._id === player._id);
+                  const rank = filteredPlayers.findIndex(p => p._id === player._id);
                   const isCurrent = player._id === currentPlayerId;
-
-                  const highlightClass =
-                    overallRank === 0 ? "gold" :
-                    overallRank === 1 ? "silver" :
-                    overallRank === 2 ? "bronze" : "";
+                  const correct = player.score / 500;
+                  const highlight =
+                    rank === 0 ? "gold" :
+                    rank === 1 ? "silver" :
+                    rank === 2 ? "bronze" : "";
 
                   return (
                     <tr
                       key={player._id}
-                      className={`${highlightClass} ${isCurrent ? "current-player" : ""}`}
+                      className={`${highlight} ${isCurrent ? "current-player" : ""}`}
+                      onMouseEnter={() => setHoveredPlayerId(player._id)}
+                      onMouseLeave={() => setHoveredPlayerId(null)}
                     >
-                      <td>{overallRank + 1}</td>
-                      <td>
+                      <td>{rank + 1}</td>
+                      <td style={{ position: "relative" }}>
                         {player.username}
                         {isCurrent && <span className="you-indicator"> ← You</span>}
+
+                        {hoveredPlayerId === player._id && (
+                          <div className="player-tooltip">
+                            <div><strong>Collection:</strong> {collections[player.collectionId] || "Unknown"}</div>
+                            <div><strong>Date:</strong> {formatDate(player.finishedAt)}</div>
+                            <div><strong>Correct:</strong> {correct} / 12</div>
+                          </div>
+                        )}
                       </td>
                       <td>{player.score}</td>
                       <td>{formatTime(player.totalTimeInSeconds)}</td>
@@ -158,3 +167,4 @@ export default function LeaderboardPage() {
     </div>
   );
 }
+  
