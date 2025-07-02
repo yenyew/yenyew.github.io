@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Countdown from "./Countdown"; 
+import Countdown from "./Countdown";
+import "./MainStyles.css";
 
+// The list of game rules
 const rules = [
   "Now let's go through some ground rules. Take your time to read them carefully, as your game timer has not started yet.",
   "Your game is a trail of 12 clues with scheduled break(s) in between. You will receive clues one at a time. Only one answer is accepted for each clue, so answer carefully!",
@@ -17,7 +19,6 @@ export default function RulesPage() {
   const [error, setError] = useState("");
   const [showCountdown, setShowCountdown] = useState(false);
 
-
   useEffect(() => {
     const storedUsername = sessionStorage.getItem("username");
     if (!storedUsername) {
@@ -27,15 +28,11 @@ export default function RulesPage() {
     }
   }, [navigate]);
 
-  const handlePrev = () => setCurrent((c) => Math.max(0, c - 1));
-  const handleNext = () => setCurrent((c) => Math.min(rules.length - 1, c + 1));
-
   const beginGame = async () => {
     try {
       const startedAt = new Date();
 
-      // Step 1: Create the player
-      const createResponse = await fetch("http://localhost:5000/players", {
+      const createResponse = await fetch("http://172.20.10.2:5000/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
@@ -47,8 +44,7 @@ export default function RulesPage() {
       const playerId = playerData._id;
       sessionStorage.setItem("playerId", playerId);
 
-      // Step 2: Patch player with start info
-      const patchResponse = await fetch(`http://localhost:5000/players/${playerId}`, {
+      await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -57,11 +53,7 @@ export default function RulesPage() {
         })
       });
 
-      if (!patchResponse.ok) throw new Error("Failed to patch player with start time");
-
-      // Step 3: Navigate to game
       navigate("/game");
-
     } catch (err) {
       console.error(err);
       setError("There was an error starting the game. Please try again.");
@@ -74,74 +66,114 @@ export default function RulesPage() {
     }
   };
 
+  const handleNext = () => {
+    setCurrent(prev => Math.min(rules.length - 1, prev + 1));
+  };
+
   return (
-    <div className="form-container" style={{ maxWidth: 500, margin: "32px auto", textAlign: "center" }}>
-      {showCountdown && <Countdown onComplete={beginGame} />}
+    <div className="page-container rules-page">
+      <img src="/images/changihome.jpg" alt="Background" className="home-background" />
+      <div className="home-overlay" />
 
-      {!showCountdown && (
-        <>
-          {current === 0 && <h2>Mmm, what a nice name, {username}!</h2>}
-          <div style={{ minHeight: 120, margin: "24px 0" }}>
-            <p>{rules[current]}</p>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 24 }}>
-            <button onClick={handlePrev} disabled={current === 0}>&larr;</button>
-            <span>{current + 1} / {rules.length}</span>
-            <button onClick={handleNext} disabled={current === rules.length - 1}>&rarr;</button>
-          </div>
+      <div className="page-content" style={{ textAlign: "center" }}>
+        {showCountdown ? (
+          <Countdown onComplete={beginGame} />
+        ) : (
+          <>
+            {current === 0 && (
+              <h2 style={{
+                fontSize: "1.8rem",
+                fontWeight: "bold",
+                marginBottom: "1.2rem",
+                lineHeight: "1.4"
+              }}>
+                Mmm, what a nice name, {username}!
+              </h2>
+            )}
 
-          {current === rules.length - 1 && (
-            <div style={{ marginBottom: 24 }}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={agreed}
-                  onChange={e => setAgreed(e.target.checked)}
-                  style={{ marginRight: 8 }}
-                />
-                I have read and agree to the rules.
-              </label>
+            <div style={{
+              fontSize: "1.05rem",
+              marginBottom: "2rem",
+              lineHeight: "1.6",
+              minHeight: "160px"
+            }}>
+              {rules[current]}
             </div>
-          )}
-          <button
-            onClick={handleStart}
-            disabled={current !== rules.length - 1 || !agreed}
-            style={{
-              padding: "12px 32px",
-              fontSize: "16px",
-              backgroundColor: agreed && current === rules.length - 1 ? "#007bff" : "#ccc",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: agreed && current === rules.length - 1 ? "pointer" : "not-allowed",
-              width: "100%",
-              maxWidth: "300px",
-            }}
-          >
-            Start Game
-          </button>
-          <button
-            onClick={() => navigate("/getname")}
-            style={{
-              marginTop: "12px",
-              padding: "10px 24px",
-              fontSize: "14px",
-              backgroundColor: "#6c757d",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              width: "100%",
-              maxWidth: "300px",
-            }}
-          >
-            Back
-          </button>
-          
 
-          {error && <div style={{ color: "red", marginTop: "16px" }}>{error}</div>}
-        </>
-      )}
+            {/* Dot indicators */}
+            <div style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "8px",
+              marginBottom: "24px"
+            }}>
+              {rules.map((_, index) => (
+                <div
+                  key={index}
+                  onClick={() => setCurrent(index)}
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    backgroundColor: index === current ? "#00c4cc" : "#ccc",
+                    cursor: "pointer",
+                    transition: "all 0.3s"
+                  }}
+                ></div>
+              ))}
+            </div>
+
+            {/* If on last rule, show start button */}
+            {current === rules.length - 1 && (
+              <>
+                <div className="rules-checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      style={{ marginRight: 8 }}
+                    />
+                    I have read and agree to the rules.
+                  </label>
+                </div>
+
+                <button
+                  onClick={handleStart}
+                  disabled={!agreed}
+                  className="rules-start-button"
+                >
+                  Start Game
+                </button>
+              </>
+            )}
+
+            {/* If NOT last rule → show Continue */}
+            {current < rules.length - 1 && (
+              <button
+                onClick={handleNext}
+                className="rules-start-button"
+              >
+                Continue →
+              </button>
+            )}
+
+            {/* Back button */}
+            <button
+              onClick={() => navigate("/getname")}
+              className="rules-start-button"
+              style={{
+                marginTop: "12px",
+                background: "linear-gradient(to right, #00c4cc, #4e9cff)"
+              }}
+            >
+              Back
+            </button>
+
+            {error && <div style={{ color: "red", marginTop: "16px" }}>{error}</div>}
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,34 +1,45 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MainStyles.css";
 
-export default function EnterUsername() {
-  const [form, setForm] = useState({ username: "" });
+export default function EnterCollCode() {
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const savedUsername = sessionStorage.getItem("username");
-    if (savedUsername) {
-      setForm({ username: savedUsername });
-    }
-  }, []);
-
-  const updateForm = (value) => {
-    setForm((prev) => ({ ...prev, ...value }));
-  };
-
-  const onSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!form.username.trim()) {
-      setError("Please enter your name.");
+    if (!code.trim()) {
+      setError("Please enter a code.");
       return;
     }
 
-    sessionStorage.setItem("username", form.username);
-    navigate("/getcode");
+    try {
+      // ✅ Replace with your actual backend URL
+      const res = await fetch("http://172.20.10.2:5000/collections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!res.ok) {
+        setError("Invalid code. Please check with the staff.");
+        return;
+      }
+
+      const data = await res.json();
+
+      // Save the actual MongoDB collection ID
+      sessionStorage.setItem("collectionId", data._id);
+
+      // Continue to rules page
+      navigate("/rules");
+    } catch (err) {
+      console.error("Code validation failed:", err);
+      setError("Something went wrong. Please try again later.");
+    }
   };
 
   return (
@@ -43,32 +54,19 @@ export default function EnterUsername() {
       <button
         className="return-button"
         style={{ position: "absolute", bottom: "24px", left: "24px", zIndex: 2, width: "auto", padding: "10px 24px" }}
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/getname")}
       >
         Back
       </button>
 
       <div className="page-content">
-        <h1 style={{
-          fontSize: "1.8rem",
-          fontFamily: "serif",
-          fontWeight: "bold",
-          marginBottom: "1.5rem",
-          lineHeight: "1.5"
-        }}>
-          Hi there! Welcome to the Changi<br />Experience Studio @ Jewel!
-        </h1>
-
-        <p style={{ marginBottom: "2rem", fontSize: "1.1rem" }}>
-          How should I address you on this journey?
-        </p>
-
-        <form onSubmit={onSubmit}>
+        <h2 style={{ marginBottom: "1.5rem" }}>Enter your collection code</h2>
+        <form onSubmit={handleSubmit}>
           <input
             type="text"
-            placeholder="Enter your name"
-            value={form.username}
-            onChange={(e) => updateForm({ username: e.target.value })}
+            placeholder="Enter code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
             style={{
               padding: "12px 20px",
               fontSize: "16px",
@@ -82,7 +80,7 @@ export default function EnterUsername() {
           />
           <br />
           <button type="submit" className="share-button" style={{ maxWidth: "200px", width: "100%" }}>
-            Let's Go
+            Continue
           </button>
           {error && <div style={{ color: "red", marginTop: "12px" }}>{error}</div>}
         </form>

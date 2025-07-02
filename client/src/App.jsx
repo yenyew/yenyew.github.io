@@ -4,6 +4,7 @@ import HomePage from './components/HomePage.jsx';
 import QuestionPage from './components/QuestionPage.jsx';
 
 import GetUsername from './components/EnterUsername.jsx';
+import GetCode from './components/EnterCollectionCode.jsx';
 import RulesPage from './components/RulesPage.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
 import Share from './components/Share.jsx';
@@ -18,7 +19,7 @@ export default function App () {
   return (
     <div className="app">
     <Routes>
-        <Route path="/questions" element={<QuestionPage />} />
+        <Route path="/game" element={<QuestionPage />} />
         <Route path="/" element={<HomePage />} />
         <Route path="/getname" element={<GetUsername />} />
         <Route path="/rules" element={<RulesPage />} />
@@ -30,6 +31,7 @@ export default function App () {
         <Route path="/school-qns" element={<SchoolQns />} />
         <Route path="/individual-qns" element={<IndividualQns />} />
         <Route path="/edit-question/:number" element={<EditQuestion />} />
+        <Route path="/getcode" element={<GetCode />} />
     </Routes>
     </div>
   )
