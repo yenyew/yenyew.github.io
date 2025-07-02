@@ -1,6 +1,6 @@
 .question-page {
   height: 100vh;
-  background-image:  url('/images/changihome.jpg');/* fallback background */
+  background-image:url('/images/changihome.jpg');/* fallback background */
   background-size: cover;
   background-position: center;
   display: flex;
@@ -36,11 +36,20 @@
 }
 
 .score-box, .time-box {
+  position: fixed;
+  top: 20px;
+  right: 20px;
   background-color: #2585b1;
-  padding: 3px 15px;
+  padding: 6px 18px;
   border-radius: 20px;
-  margin-bottom: 10px;
   text-align: center;
+  color: white;
+  z-index: 1000;
+  margin-bottom: 10px;
+}
+/* Stack time-box below score-box */
+.time-box {
+  top: 60px; /* Shift slightly lower than score-box */
 }
 
 .ces-header {
@@ -61,6 +70,8 @@
   border-radius: 20px;
   font-weight: bold;
   font-size: 16px;
+  margin-top: 200px;
+  width: 370px;
 }
 
 .hint-box {
@@ -69,6 +80,8 @@
   border-radius: 20px;
   font-size: 14px;
   color: white;
+  width: 370px;
+
 }
 
 .answer-input {
@@ -79,7 +92,17 @@
   padding: 3px 15px;
   gap: 10px;
   border: 1px solid #ccc;
-  margin-top: 250px;
+  margin-top: 200px;
+  width: 370px;
+
+}
+
+.answer-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: nowrap;
 }
 
 .answer-input input {
@@ -108,8 +131,25 @@
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.2s;
+  margin-right: 30px;
 }
 
 .submit-button:hover {
   background-color: #0056b3;
 }
+
+.image-preview-container {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.image-preview {
+  max-width: 90%;
+  max-height: 200px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+
+
+

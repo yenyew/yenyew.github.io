@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import Countdown from "./Countdown";
+import QuestionPage from "./QuestionPage";
 
 export default function EnterUsername() {
   const [form, setForm] = useState({ username: "" });
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [phase, setPhase] = useState("form"); // "form" → "countdown" → "quiz"
 
   // Load saved username from sessionStorage on mount
   useEffect(() => {
@@ -28,7 +29,15 @@ export default function EnterUsername() {
     }
 
     sessionStorage.setItem("username", form.username);
-    navigate("/rules");
+    setPhase("countdown");
+  }
+
+  if (phase === "countdown") {
+    return <Countdown onComplete={() => setPhase("quiz")} />;
+  }
+
+  if (phase === "quiz") {
+    return <QuestionPage />;
   }
 
   return (

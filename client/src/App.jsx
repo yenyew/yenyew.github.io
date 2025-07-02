@@ -2,7 +2,6 @@ import { Route, Routes} from "react-router-dom" ;
 import './App.css'
 import HomePage from './components/HomePage.jsx';
 import QuestionPage from './components/QuestionPage.jsx';
-
 import GetUsername from './components/EnterUsername.jsx';
 import RulesPage from './components/RulesPage.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
