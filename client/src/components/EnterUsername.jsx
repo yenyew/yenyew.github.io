@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
+<<<<<<< HEAD
+import Countdown from "./Countdown";
+import QuestionPage from "./QuestionPage";
+=======
 import { useNavigate } from "react-router-dom";
 import "./MainStyles.css";
+>>>>>>> 0091a8a783fe2608053b5fb4e066ecadbd71dcfe
 
 export default function EnterUsername() {
   const [form, setForm] = useState({ username: "" });
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [phase, setPhase] = useState("form"); // "form" → "countdown" → "quiz"
 
   useEffect(() => {
     const savedUsername = sessionStorage.getItem("username");
@@ -28,8 +33,21 @@ export default function EnterUsername() {
     }
 
     sessionStorage.setItem("username", form.username);
+<<<<<<< HEAD
+    setPhase("countdown");
+  }
+
+  if (phase === "countdown") {
+    return <Countdown onComplete={() => setPhase("quiz")} />;
+  }
+
+  if (phase === "quiz") {
+    return <QuestionPage />;
+  }
+=======
     navigate("/getcode");
   };
+>>>>>>> 0091a8a783fe2608053b5fb4e066ecadbd71dcfe
 
   return (
     <div className="home-container">
