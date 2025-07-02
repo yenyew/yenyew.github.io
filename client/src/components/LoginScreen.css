@@ -1,17 +1,25 @@
 .login-container {
   position: relative;
-  height: 100vh;
+  min-height: 100vh;
   width: 100vw;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 0;
-  color: #000000;
+  padding-top: 120px;
+  padding-bottom: 60px;
   box-sizing: border-box;
+  z-index: 2;
 }
 
-/* Background and overlay */
+.scroll-wrapper {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Background image */
 .background-image {
   position: fixed;
   top: 0;
@@ -22,6 +30,7 @@
   z-index: 0;
 }
 
+/* Overlay layer */
 .overlay {
   position: fixed;
   top: 0;
@@ -32,7 +41,7 @@
   z-index: 1;
 }
 
-/* Header stays fixed */
+/* Fixed header */
 .header {
   position: fixed;
   top: 24px;
@@ -40,7 +49,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  z-index: 2;
+  z-index: 3;
 }
 
 .ces-logo {
@@ -49,25 +58,26 @@
   margin-bottom: 12px;
 }
 
-.header h2 {
+.header h2,
+.header h1 {
   font-size: 48px;
   font-family: serif;
   font-weight: bold;
   margin: 0;
 }
 
-/* Centered login block */
+/* Button container for all content */
 .buttons {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  max-width: 600px;
+  gap: 20px;
+  z-index: 3;
 }
 
+/* Add question button */
 .add-question-btn {
   margin-top: 30px;
   background-color: white !important;
@@ -80,14 +90,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;               
-  line-height: 1;          
+  padding: 0;
+  line-height: 1;
   text-align: center;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  aspect-ratio: 1 / 1;      
+  aspect-ratio: 1 / 1;
 }
 
+/* Form styling */
 .centered-form {
   width: 100%;
   max-width: 300px;
@@ -98,7 +109,7 @@
   align-items: center;
 }
 
-/* Inputs & buttons */
+/* Input styling */
 input.login-btn,
 textarea.login-btn {
   padding: 14px 16px;
@@ -125,6 +136,7 @@ input.login-btn:focus {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
+/* Button styling */
 button.login-btn,
 .public-btn {
   padding: 15px;
@@ -145,7 +157,7 @@ button.login-btn,
   opacity: 0.9;
 }
 
-/* Footer */
+/* Footer styling */
 .footer {
   position: fixed;
   bottom: 20px;
@@ -174,7 +186,7 @@ button.login-btn,
   height: 18px;
 }
 
-/* Mobile tweaks */
+/* Mobile responsiveness */
 @media (max-width: 767px) {
   .ces-logo {
     width: 140px;
@@ -204,6 +216,7 @@ button.login-btn,
   }
 }
 
+/* Optional overlay tweaks */
 .page-overlay,
 .home-overlay {
   position: fixed;
@@ -211,6 +224,6 @@ button.login-btn,
   left: 0;
   height: 100%;
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.6); /* adjustable background dim */
+  background-color: rgba(255, 255, 255, 0.6);
   z-index: 1;
 }
