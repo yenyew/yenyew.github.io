@@ -7,7 +7,7 @@ const QuestionPage = () => {
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
   const [hintsUsed, setHintsUsed] = useState(0);
-  const [startTime, setStartTime] = useState(Date.now());
+  const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef();
@@ -86,10 +86,10 @@ const QuestionPage = () => {
       alert("Please enter your answer.");
       return;
     }
-    if (!imagePreview) {
-      alert("Please upload an image.");
-      return;
-    }
+    // if (!imagePreview) {
+    //   alert("Please upload an image.");
+    //   return;
+    // }
 
     const correctAnswer = questions[currentIndex].answer?.toLowerCase().trim() || "";
     const input = userAnswer.toLowerCase().trim();
@@ -113,6 +113,7 @@ const QuestionPage = () => {
       return;
     }
 
+    // Calculate final values for PATCH
     const finalCorrect = correctAnswers + (isCorrect ? 1 : 0);
     const finalScore = finalCorrect * 500;
     const rawTime = Math.floor((Date.now() - startTime) / 1000);

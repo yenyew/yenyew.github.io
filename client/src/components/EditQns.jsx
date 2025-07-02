@@ -8,7 +8,6 @@ const EditQuestion = () => {
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
-  const [message, setMessage] = useState("");
   const { number } = useParams();
   const navigate = useNavigate();
 
@@ -34,7 +33,7 @@ const EditQuestion = () => {
         setCollectionId(data.data.collectionId);
       } catch (err) {
         console.error("Error fetching question:", err);
-        setMessage("Failed to load question.");
+        alert("Failed to load question.");
       }
     };
 
@@ -44,14 +43,7 @@ const EditQuestion = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("");
-
-    const updatedData = {
-      question,
-      hint,
-      answer,
-      collectionId,
-    };
+    const updatedData = { question, hint, answer, collectionId };
 
     try {
       const response = await fetch(`http://localhost:5000/questions/${number}`, {
@@ -61,14 +53,14 @@ const EditQuestion = () => {
       });
 
       if (response.ok) {
-        setMessage("Question updated successfully!");
+        alert("Question updated successfully!");
       } else {
         const data = await response.json();
-        setMessage(`Error: ${data.message || "Update failed"}`);
+        alert(`Error: ${data.message || "Update failed"}`);
       }
     } catch (err) {
       console.error("Error updating question:", err);
-      setMessage("Something went wrong.");
+      alert("Something went wrong.");
     }
   };
 
@@ -79,7 +71,7 @@ const EditQuestion = () => {
 
       <div className="header">
         <button
-          onClick={() => navigate("/admin")}
+          onClick={() => navigate(`/edit-collection/${collectionId}`)}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
@@ -88,7 +80,7 @@ const EditQuestion = () => {
             marginBottom: "10px",
           }}
         >
-          &lt; Admin
+          &lt; Back
         </button>
       </div>
 
@@ -165,16 +157,6 @@ const EditQuestion = () => {
             Save
           </button>
         </form>
-
-        {message && (
-          <div style={{ color: message.includes("successfully") ? "green" : "red", marginTop: "10px" }}>
-            {message}
-          </div>
-        )}
-
-        <a href="/" style={{ color: "#17C4C4", marginTop: "20px", fontSize: "16px" }}>
-          Return to Home Screen
-        </a>
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import "./LoginScreen.css";
 
 const AdminScreen = () => {
-  const [selectedQuestion, setSelectedQuestion] = useState("");
   const [collections, setCollections] = useState([]);
   const [selectedCollectionId, setSelectedCollectionId] = useState("");
   const navigate = useNavigate();
@@ -34,14 +33,6 @@ const AdminScreen = () => {
     setSelectedCollectionId(id);
     if (id) {
       navigate(`/edit-collection/${id}`);
-    }
-  };
-
-  const handleQuestionChange = (e) => {
-    const value = e.target.value;
-    setSelectedQuestion(value);
-    if (value) {
-      navigate(`/questions?collection=${value}`);
     }
   };
 
