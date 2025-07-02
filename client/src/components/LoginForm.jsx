@@ -13,7 +13,7 @@ const LoginScreen = () => {
     setError(""); // Reset error
 
     try {
-      const response = await fetch("http://172.20.10.2:5000/admins/login", {
+      const response = await fetch("http://localhost:5000/admins/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

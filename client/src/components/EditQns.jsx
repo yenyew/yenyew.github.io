@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import "./LoginScreen.css";
 
 const EditQuestion = () => {
+  const [collections, setCollections] = useState([]);
   const [collectionId, setCollectionId] = useState("");
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
@@ -12,6 +13,16 @@ const EditQuestion = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/collections/");
+        const data = await res.json();
+        setCollections(data);
+      } catch (err) {
+        console.error("Error fetching collections:", err);
+      }
+    };
+
     const fetchQuestion = async () => {
       try {
         const res = await fetch(`http://localhost:5000/questions/${number}`);
@@ -27,6 +38,7 @@ const EditQuestion = () => {
       }
     };
 
+    fetchCollections();
     fetchQuestion();
   }, [number]);
 
@@ -104,8 +116,11 @@ const EditQuestion = () => {
             }}
           >
             <option value="">Select Collection</option>
-            <option value="68610b9e4c85e07c1782262c">School</option>
-            <option value="68610bad4c85e07c1782262e">Individual</option>
+            {collections.map((col) => (
+              <option key={col._id} value={col._id}>
+                {col.name}
+              </option>
+            ))}
           </select>
 
           <textarea
@@ -157,14 +172,7 @@ const EditQuestion = () => {
           </div>
         )}
 
-        <a
-          href="/"
-          style={{
-            color: "#17C4C4",
-            marginTop: "20px",
-            fontSize: "16px",
-          }}
-        >
+        <a href="/" style={{ color: "#17C4C4", marginTop: "20px", fontSize: "16px" }}>
           Return to Home Screen
         </a>
       </div>

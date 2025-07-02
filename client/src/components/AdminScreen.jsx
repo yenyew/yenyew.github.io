@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "./LoginScreen.css";
 
 const AdminScreen = () => {
+  const [selectedQuestion, setSelectedQuestion] = useState("");
+  const [collections, setCollections] = useState([]);
   const [collections, setCollections] = useState([]);
   const [selectedCollectionId, setSelectedCollectionId] = useState("");
   const navigate = useNavigate();
@@ -12,11 +14,32 @@ const AdminScreen = () => {
     if (!token) {
       alert("You must be logged in to access this page.");
       navigate("/login");
+      return;
     } else {
       fetchCollections();
+
     }
+
+    // Fetch collections from backend
+    const fetchCollections = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/collections/");
+        const data = await response.json();
+        setCollections(data);
+      } catch (error) {
+        console.error("Error fetching collections:", error);
+      }
+    };
+
+    fetchCollections();
   }, [navigate]);
 
+  const handleQuestionChange = (e) => {
+    const value = e.target.value;
+    setSelectedQuestion(value);
+    if (value) {
+      navigate(`/questions?collection=${value}`);
+      
   const fetchCollections = async () => {
     try {
       const res = await fetch("http://localhost:5000/collections");
@@ -71,12 +94,20 @@ const AdminScreen = () => {
           >
             <option value="">Select a collection...</option>
             {collections.map((col) => (
+
+              <option key={col._id} value={col.code}>
+                {col.name}
+
               <option key={col._id} value={col._id}>
                 {col.name} ({col.code})
               </option>
             ))}
           </select>
         </div>
+
+        <button onClick={handleNavigateToCreate} className="add-question-btn">
+          +
+        </button>
 
         <div style={{ marginTop: "30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
           <button onClick={handleCreateCollection} className="add-question-btn">+ Collection</button>

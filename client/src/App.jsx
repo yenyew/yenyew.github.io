@@ -12,6 +12,7 @@ import LoginForm from './components/LoginForm.jsx';
 import AdminScreen from './components/AdminScreen.jsx';
 import CreateQuestion from "./components/CreateQuestion.jsx";
 import EditQuestion from "./components/EditQns.jsx";
+import Questions from "./components/Questions.jsx";
 import CreateCollection from "./components/CreateCollection.jsx";
 import EditCollection from "./components/EditCollection.jsx";
 
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/login" element={<LoginForm />} />
         <Route path="/admin" element={<AdminScreen />} />
         <Route path="/add-question" element={<CreateQuestion />} />
+        <Route path="/questions" element={<Questions />} />
         <Route path="/edit-question/:number" element={<EditQuestion />} />
         <Route path="/add-collection" element={<CreateCollection />} />
         <Route path="/edit-collection/:id" element={<EditCollection />} />
