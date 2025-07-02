@@ -12,19 +12,28 @@ const QuestionPage = () => {
 
   const wrongAnswers = useRef(0); // Used to calculate penalty time
 
+  // Fetch only questions related to the player's collection
   useEffect(() => {
     const fetchQuestions = async () => {
+      const collectionId = sessionStorage.getItem("collectionId");
+      if (!collectionId) {
+        console.error("No collectionId found in sessionStorage");
+        return;
+      }
+
       try {
-        const res = await fetch("http://172.20.10.2:5000/questions");
+        const res = await fetch(`http://172.20.10.2:5000/questions?collectionId=${collectionId}`);
         const data = await res.json();
         setQuestions(data);
       } catch (error) {
         console.error("Failed to fetch questions:", error);
       }
     };
+
     fetchQuestions();
   }, []);
 
+  // Timer
   useEffect(() => {
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTime) / 1000));
@@ -39,11 +48,15 @@ const QuestionPage = () => {
   };
 
   const handleHintClick = () => {
-    setHintsUsed((prev) => prev + 1);
-    alert(`Hint: ${questions[currentIndex].hint}`);
+    if (questions[currentIndex]?.hint) {
+      setHintsUsed((prev) => prev + 1);
+      alert(`Hint: ${questions[currentIndex].hint}`);
+    }
   };
 
   const handleSubmit = async () => {
+    if (!questions[currentIndex]) return;
+
     const correctAnswer = questions[currentIndex].answer?.toLowerCase().trim() || "";
     const input = userAnswer.toLowerCase().trim();
     const isCorrect = input === correctAnswer;
@@ -70,12 +83,13 @@ const QuestionPage = () => {
     const finalScore = finalCorrect * 500;
     const rawTime = Math.floor((Date.now() - startTime) / 1000);
     const finalWrongCount = wrongAnswers.current + (!isCorrect ? 1 : 0);
-    const finalTime = rawTime + finalWrongCount * 300; // 5 mins per wrong answer
+    const finalTime = rawTime + finalWrongCount * 300;
     const finalHintsUsed = hintsUsed;
 
     alert(`Quiz complete! Final score: ${finalScore}`);
 
     const playerId = sessionStorage.getItem("playerId");
+    const collectionId = sessionStorage.getItem("collectionId"); // pull from sessionStorage
     if (playerId) {
       await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
         method: "PATCH",
@@ -85,14 +99,16 @@ const QuestionPage = () => {
           totalTimeInSeconds: finalTime,
           hintsUsed: finalHintsUsed,
           finishedAt: new Date(),
+          collectionId, // include this!
         }),
       });
     }
-
+    
     window.location.href = "/share";
   };
 
-  if (questions.length === 0) return <div>Loading...</div>;
+  if (questions.length === 0) return <div>Loading questions...</div>;
+  if (!questions[currentIndex]) return <div>Loading question...</div>;
 
   return (
     <div className="question-page">
