@@ -31,14 +31,23 @@ export default function RulesPage() {
   const beginGame = async () => {
     try {
       const startedAt = new Date();
+      const collectionId = sessionStorage.getItem("collectionId");
+
+      if (!collectionId) {
+        setError("Missing collection. Please enter your code again.");
+        return;
+      }
 
       const createResponse = await fetch("http://172.20.10.2:5000/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username, collectionId }),
       });
 
-      if (!createResponse.ok) throw new Error("Failed to create player");
+      if (!createResponse.ok) {
+        const msg = await createResponse.text();
+        throw new Error("Player creation failed: " + msg);
+      }
 
       const playerData = await createResponse.json();
       const playerId = playerData._id;
@@ -49,8 +58,9 @@ export default function RulesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           startedAt: startedAt.toISOString(),
-          totalTimeInSeconds: 0
-        })
+          totalTimeInSeconds: 0,
+          collectionId
+        }),
       });
 
       navigate("/game");

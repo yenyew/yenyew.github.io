@@ -2,12 +2,18 @@ import express from 'express';
 import Question from '../models/questionsdb.mjs';
 
 const router = express.Router();
-// Get all questions
-router.get("/", async (req, res) => {
-    const results = await Question.find({});
-    res.status(200).send(results);
-});
 
+// Get all questions filtered by collectionId
+router.get("/", async (req, res) => {
+  try {
+    const { collectionId } = req.query;
+    const filter = collectionId ? { collectionId } : {};
+    const questions = await Question.find(filter).sort({ number: 1 });  
+    res.status(200).json(questions);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
 
 // Get questions by number
 router.get("/:number",  async (req, res) => {

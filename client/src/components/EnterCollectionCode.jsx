@@ -8,39 +8,31 @@ export default function EnterCollCode() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    if (!code.trim()) {
-      setError("Please enter a code.");
+  if (!code.trim()) {
+    setError("Please enter a code.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`http://172.20.10.2:5000/collections/${code.trim()}`);
+
+    if (!res.ok) {
+      setError("Invalid code. Please check with the staff.");
       return;
     }
 
-    try {
-      // ✅ Replace with your actual backend URL
-      const res = await fetch("http://172.20.10.2:5000/collections", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
+    const data = await res.json();
+    sessionStorage.setItem("collectionId", data._id);
+    navigate("/rules");
+  } catch (err) {
+    console.error("Code validation failed:", err);
+    setError("Something went wrong. Please try again later.");
+  }
+};
 
-      if (!res.ok) {
-        setError("Invalid code. Please check with the staff.");
-        return;
-      }
-
-      const data = await res.json();
-
-      // Save the actual MongoDB collection ID
-      sessionStorage.setItem("collectionId", data._id);
-
-      // Continue to rules page
-      navigate("/rules");
-    } catch (err) {
-      console.error("Code validation failed:", err);
-      setError("Something went wrong. Please try again later.");
-    }
-  };
 
   return (
     <div className="home-container">
