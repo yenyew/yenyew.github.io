@@ -7,7 +7,7 @@ import "./MainStyles.css";
 export default function EnterUsername() {
   const [form, setForm] = useState({ username: "" });
   const [error, setError] = useState("");
-  const [phase, setPhase] = useState("form"); // "form" → "countdown" → "quiz"
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedUsername = sessionStorage.getItem("username");
