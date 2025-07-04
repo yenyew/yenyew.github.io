@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Countdown from "./Countdown";
-import QuestionPage from "./QuestionPage";
 import { useNavigate } from "react-router-dom";
 import "./MainStyles.css";
 
@@ -30,16 +28,6 @@ export default function EnterUsername() {
     }
 
     sessionStorage.setItem("username", form.username);
-    setPhase("countdown");
-  }
-
-  if (phase === "countdown") {
-    return <Countdown onComplete={() => setPhase("quiz")} />;
-  }
-
-  if (phase === "quiz") {
-    return <QuestionPage />;
-  }
     navigate("/getcode");
   };
 
@@ -101,4 +89,4 @@ export default function EnterUsername() {
       </div>
     </div>
   );
-
+}
