@@ -44,6 +44,10 @@ const AdminScreen = () => {
     navigate("/add-collection");
   };
 
+  const handleViewLeaderboard = () => {
+    navigate("/admin-leaderboard");
+  };
+
   return (
     <div className="login-container">
       <img
@@ -91,9 +95,17 @@ const AdminScreen = () => {
         </div>
 
         <button
+          onClick={handleViewLeaderboard}
+          className="login-btn"
+          style={{ marginTop: "24px", width: "100%", maxWidth: "300px", backgroundColor: "#007b8a" }}
+        >
+          View Leaderboard
+        </button>
+
+        <button
           onClick={() => navigate("/")}
           className="login-btn"
-          style={{ marginTop: "32px", width: "100%", maxWidth: "300px" }}
+          style={{ marginTop: "16px", width: "100%", maxWidth: "300px" }}
         >
           Return to Home Screen
         </button>
