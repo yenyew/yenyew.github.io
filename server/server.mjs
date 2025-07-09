@@ -6,6 +6,7 @@ import players from './routes/players.mjs';
 import admins from './routes/admins.mjs';
 import questions from './routes/questions.mjs';
 import collections from './routes/collections.mjs';
+import photoUpload from './routes/photoUpload.mjs';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use("/players", players);
 app.use("/admins", admins);
 app.use("/questions", questions);
 app.use("/collections", collections);
+app.use("/upload-photo", photoUpload);
 
 // Connect to MongoDB
 mongoose.set('strictQuery', true);

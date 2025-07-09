@@ -12,20 +12,7 @@ const CreateQuestion = () => {
   const [collections, setCollections] = useState([]);
   const navigate = useNavigate();
 
-  // Fetch next question number
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/questions");
-        const data = await response.json();
-        const maxNumber = Math.max(...data.map((q) => q.number || 0));
-        setNumber(maxNumber + 1);
-      } catch (err) {
-        console.error("Failed to fetch questions:", err);
-        setNumber(1);
-      }
-    };
-
     const fetchCollections = async () => {
       try {
         const response = await fetch("http://localhost:5000/collections/");
@@ -36,13 +23,25 @@ const CreateQuestion = () => {
       }
     };
 
-    fetchQuestions();
     fetchCollections();
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
+  e.preventDefault();
+  setMessage("");
+
+  try {
+    const allRes = await fetch("http://localhost:5000/questions");
+    const allQuestions = await allRes.json();
+
+    const exists = allQuestions.some(
+      (q) => q.number === parseInt(number) && q.collectionId === collectionId
+    );
+
+    if (exists) {
+      alert("A question with that number already exists in the selected collection.");
+      return;
+    }
 
     const newQuestion = {
       number: parseInt(number),
@@ -52,29 +51,29 @@ const CreateQuestion = () => {
       answer,
     };
 
-    try {
-      const response = await fetch("http://localhost:5000/questions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQuestion),
-      });
+    const response = await fetch("http://localhost:5000/questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newQuestion),
+    });
 
-      if (response.ok) {
-        setMessage("Question added successfully!");
-        setCollectionId("");
-        setQuestion("");
-        setHint("");
-        setAnswer("");
-        setNumber((prev) => parseInt(prev) + 1);
-      } else {
-        const data = await response.json();
-        setMessage(`Error: ${data.message || "Could not add question."}`);
-      }
-    } catch (err) {
-      console.error("Error submitting question:", err);
-      setMessage("Something went wrong. Please try again.");
+    if (response.ok) {
+      alert("Question added successfully!");
+      setCollectionId("");
+      setQuestion("");
+      setHint("");
+      setAnswer("");
+      setNumber("");
+    } else {
+      const data = await response.json();
+      setMessage(`Error: ${data.message || "Could not add question."}`);
     }
-  };
+  } catch (err) {
+    console.error("Error submitting question:", err);
+    setMessage("Something went wrong. Please try again.");
+  }
+};
+
 
   return (
     <div className="login-container">
@@ -92,7 +91,7 @@ const CreateQuestion = () => {
             marginBottom: "10px",
           }}
         >
-          &lt; Admin
+          &lt; Back
         </button>
       </div>
 
@@ -105,7 +104,7 @@ const CreateQuestion = () => {
           <input
             type="number"
             value={number}
-            onChange ={(e) => setNumber(e.target.value)}
+            onChange={(e) => setNumber(e.target.value)}
             placeholder="Question Number"
             required
             className="login-btn"
@@ -181,14 +180,9 @@ const CreateQuestion = () => {
         </form>
 
         {message && (
-          <div style={{ color: message.includes("successfully") ? "green" : "red", marginTop: "10px" }}>
-            {message}
-          </div>
+          <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
         )}
 
-        <a href="/" style={{ color: "#17C4C4", marginTop: "20px", fontSize: "16px" }}>
-          Return to Home Screen
-        </a>
       </div>
     </div>
   );

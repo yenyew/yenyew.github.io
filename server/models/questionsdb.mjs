@@ -19,12 +19,15 @@ const questionSchema = new mongoose.Schema({
   answer: {
     type: String,
     required: true,
-  },
+  },  
   hint: {
     type: String,
     required: true,
   }
 });
+
+// Ensure that the combination of number and collectionId is unique
+questionSchema.index({ number: 1, collectionId: 1 }, { unique: true });
 
 // Create and export the Question model
 const Question = mongoose.model('Question', questionSchema);

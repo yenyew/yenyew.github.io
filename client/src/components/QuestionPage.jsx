@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import "/QuestionPage.css";
+import "./QuestionPage.css";
 
 const QuestionPage = () => {
   const [questions, setQuestions] = useState([]);
@@ -7,12 +7,38 @@ const QuestionPage = () => {
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
   const [hintsUsed, setHintsUsed] = useState(0);
-  const [startTime, setStartTime] = useState(Date.now());
+  const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef();
+  const wrongAnswers = useRef(0);
 
-  const wrongAnswers = useRef(0); // Used to calculate penalty time
+  const handleCameraClick = () => fileInputRef.current.click();
 
-  // Fetch only questions related to the player's collection
+  const handleImageCapture = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    try {
+      const response = await fetch("http://172.20.10.2:5000/upload-photo", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok) alert("Upload failed: " + result.error);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("An error occurred during upload.");
+    }
+  };
+
   useEffect(() => {
     const fetchQuestions = async () => {
       const collectionId = sessionStorage.getItem("collectionId");
@@ -33,7 +59,6 @@ const QuestionPage = () => {
     fetchQuestions();
   }, []);
 
-  // Timer
   useEffect(() => {
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTime) / 1000));
@@ -57,6 +82,15 @@ const QuestionPage = () => {
   const handleSubmit = async () => {
     if (!questions[currentIndex]) return;
 
+    if (!userAnswer.trim()) {
+      alert("Please enter your answer.");
+      return;
+    }
+    // if (!imagePreview) {
+    //   alert("Please upload an image.");
+    //   return;
+    // }
+
     const correctAnswer = questions[currentIndex].answer?.toLowerCase().trim() || "";
     const input = userAnswer.toLowerCase().trim();
     const isCorrect = input === correctAnswer;
@@ -70,6 +104,7 @@ const QuestionPage = () => {
     }
 
     setUserAnswer("");
+    setImagePreview(null);
 
     const isLast = currentIndex === questions.length - 1;
 
@@ -78,7 +113,7 @@ const QuestionPage = () => {
       return;
     }
 
-    // Final calculations
+    // Calculate final values for PATCH
     const finalCorrect = correctAnswers + (isCorrect ? 1 : 0);
     const finalScore = finalCorrect * 500;
     const rawTime = Math.floor((Date.now() - startTime) / 1000);
@@ -89,7 +124,8 @@ const QuestionPage = () => {
     alert(`Quiz complete! Final score: ${finalScore}`);
 
     const playerId = sessionStorage.getItem("playerId");
-    const collectionId = sessionStorage.getItem("collectionId"); // pull from sessionStorage
+    const collectionId = sessionStorage.getItem("collectionId");
+
     if (playerId) {
       await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
         method: "PATCH",
@@ -99,11 +135,11 @@ const QuestionPage = () => {
           totalTimeInSeconds: finalTime,
           hintsUsed: finalHintsUsed,
           finishedAt: new Date(),
-          collectionId, // include this!
+          collectionId,
         }),
       });
     }
-    
+
     window.location.href = "/share";
   };
 
@@ -112,6 +148,7 @@ const QuestionPage = () => {
 
   return (
     <div className="question-page">
+      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="overlay">
         <div className="header">
           <div className="left-header">
@@ -134,6 +171,12 @@ const QuestionPage = () => {
           <button onClick={handleHintClick}>💡 Show Hint</button>
         </div>
 
+        {imagePreview && (
+          <div className="image-preview-container">
+            <img src={imagePreview} alt="Captured" className="image-preview" />
+          </div>
+        )}
+
         <div className="answer-input">
           <input
             type="text"
@@ -142,12 +185,18 @@ const QuestionPage = () => {
             onChange={(e) => setUserAnswer(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           />
-          <button className="camera-button">📷</button>
+          <button className="camera-button" onClick={handleCameraClick}>📷</button>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: "none" }}
+            ref={fileInputRef}
+            onChange={handleImageCapture}
+          />
         </div>
 
-        <button className="submit-button" onClick={handleSubmit}>
-          Submit
-        </button>
+        <button className="submit-button" onClick={handleSubmit}>Submit</button>
       </div>
     </div>
   );
