@@ -27,7 +27,7 @@ const QuestionPage = () => {
     formData.append("photo", file);
 
     try {
-      const response = await fetch("http://172.20.10.2:5000/upload-photo", {
+      const response = await fetch("http://localhost:5000/upload-photo", {
         method: "POST",
         body: formData,
       });
@@ -48,7 +48,7 @@ const QuestionPage = () => {
       }
 
       try {
-        const res = await fetch(`http://172.20.10.2:5000/questions?collectionId=${collectionId}`);
+        const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
         const data = await res.json();
         setQuestions(data);
       } catch (error) {
@@ -86,21 +86,23 @@ const QuestionPage = () => {
       alert("Please enter your answer.");
       return;
     }
-    // if (!imagePreview) {
-    //   alert("Please upload an image.");
-    //   return;
-    // }
 
-    const correctAnswer = questions[currentIndex].answer?.toLowerCase().trim() || "";
     const input = userAnswer.toLowerCase().trim();
-    const isCorrect = input === correctAnswer;
+
+    let acceptableAnswers = questions[currentIndex].answer;
+    if (!Array.isArray(acceptableAnswers)) {
+      acceptableAnswers = [acceptableAnswers];
+    }
+
+    const isCorrect = acceptableAnswers.some(ans => ans.toLowerCase().trim() === input);
 
     if (isCorrect) {
       setCorrectAnswers((prev) => prev + 1);
       alert("Correct!");
     } else {
       wrongAnswers.current += 1;
-      alert(`Incorrect. The correct answer was: ${questions[currentIndex].answer}`);
+      const answerDisplay = acceptableAnswers.join(" or ");
+      alert(`Incorrect. Accepted answers: ${answerDisplay}`);
     }
 
     setUserAnswer("");
@@ -113,7 +115,6 @@ const QuestionPage = () => {
       return;
     }
 
-    // Calculate final values for PATCH
     const finalCorrect = correctAnswers + (isCorrect ? 1 : 0);
     const finalScore = finalCorrect * 500;
     const rawTime = Math.floor((Date.now() - startTime) / 1000);
@@ -127,7 +128,7 @@ const QuestionPage = () => {
     const collectionId = sessionStorage.getItem("collectionId");
 
     if (playerId) {
-      await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
+      await fetch(`http://localhost:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

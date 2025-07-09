@@ -50,7 +50,7 @@ export default function RulesPage() {
         return;
       }
 
-      const createResponse = await fetch("http://172.20.10.2:5000/players", {
+      const createResponse = await fetch("http://172.20.10.5:5000/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, collectionId }),
@@ -65,7 +65,7 @@ export default function RulesPage() {
       const playerId = playerData._id;
       sessionStorage.setItem("playerId", playerId);
 
-      await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
+      await fetch(`http://172.20.10.5:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
