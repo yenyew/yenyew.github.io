@@ -8,9 +8,9 @@ import admins from './routes/admins.mjs';
 import questions from './routes/questions.mjs';
 import collections from './routes/collections.mjs';
 import photoUpload from './routes/photoUpload.mjs';
-import autoClearRoutes from './routes/autoClear.mjs'; // ✅ Auto-clear route
-import AutoClearConfig from './models/autoCleardb.mjs'; // ✅ Auto-clear model
-import Player from './models/playerdb.mjs'; // ✅ Required for deletion
+import autoClearRoutes from './routes/autoClear.mjs'; 
+import AutoClearConfig from './models/autoCleardb.mjs'; 
+import Player from './models/playerdb.mjs'; 
 
 dotenv.config();
 
@@ -29,7 +29,7 @@ app.use("/admins", admins);
 app.use("/questions", questions);
 app.use("/collections", collections);
 app.use("/upload-photo", photoUpload);
-app.use("/auto-clear-config", autoClearRoutes); // ✅ Mount auto-clear config route
+app.use("/auto-clear-config", autoClearRoutes);
 
 // MongoDB connection
 mongoose.set('strictQuery', true);
@@ -51,7 +51,6 @@ app.listen(PORT, () => {
   console.log(`Server is running on port: http://localhost:${PORT}`);
 });
 
-// ✅ Auto-clear job: runs every hour to check if it's time to clear players
 setInterval(async () => {
   try {
     const config = await AutoClearConfig.findOne();
@@ -62,7 +61,7 @@ setInterval(async () => {
     let due = false;
 
     if (config.interval === "day") {
-      due = now - last >= 24 * 60 * 60 * 1000;
+      due = now - last >= 20 * 1000; // 20 seconds instead of 24 hours (testing purpose)
     } else if (config.interval === "week") {
       due = now - last >= 7 * 24 * 60 * 60 * 1000;
     } else if (config.interval === "month") {
@@ -71,23 +70,26 @@ setInterval(async () => {
 
     if (!due) return;
 
-    let threshold;
+    let filter = {};
     if (config.target === "today") {
-      threshold = new Date();
-      threshold.setHours(0, 0, 0, 0);
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      filter.finishedAt = { $gte: start, $lte: now };
     } else if (config.target === "week") {
-      threshold = new Date();
-      threshold.setDate(threshold.getDate() - threshold.getDay());
-      threshold.setHours(0, 0, 0, 0);
+      const start = new Date();
+      start.setDate(start.getDate() - start.getDay());
+      start.setHours(0, 0, 0, 0);
+      filter.finishedAt = { $gte: start, $lte: now };
     } else if (config.target === "month") {
-      threshold = new Date();
-      threshold.setDate(1);
-      threshold.setHours(0, 0, 0, 0);
+      const start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      filter.finishedAt = { $gte: start, $lte: now };
     } else {
-      threshold = new Date(0); // delete all
+      filter.finishedAt = { $lte: now }; // All players finished before now
     }
 
-    const result = await Player.deleteMany({ finishedAt: { $lte: threshold } });
+    const result = await Player.deleteMany(filter);
     config.lastClearedAt = now;
     await config.save();
 
@@ -95,4 +97,4 @@ setInterval(async () => {
   } catch (err) {
     console.error("[AUTO CLEAR ERROR]", err);
   }
-}, 60 * 60 * 1000); // Run every hour
+}, 20 * 1000); // Every 20 seconds for testing
