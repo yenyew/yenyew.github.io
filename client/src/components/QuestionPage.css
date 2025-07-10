@@ -1,141 +1,178 @@
-.question-page {
-  height: 100vh;
-  background-image:url('/images/changihome.jpg');/* fallback background */
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+  .question-page {
+    height: 100vh;
+    background-image:url('/images/changihome.jpg');/* fallback background */
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-.overlay {
-  background-color: rgba(255, 255, 255, 0.4);
-  width: 90%;
-  max-width: 500px;
-  height:780px;
-  border-radius: 20px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+  .overlay {
+    background-color: rgba(255, 255, 255, 0.4);
+    width: 90%;
+    max-width: 500px;
+    height:780px;
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
 
-.team-box {
-  background-color: #1ea4e2;
-  padding: 5px 15px;
-  border-radius: 20px;
-  margin-top: 5px;
-  text-align: center;
-}
+  .team-box {
+    background-color: #1ea4e2;
+    padding: 5px 15px;
+    border-radius: 20px;
+    margin-top: 5px;
+    text-align: center;
+  }
 
-.score-box, .time-box {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background-color: #2585b1;
-  padding: 6px 18px;
-  border-radius: 20px;
-  text-align: center;
-  color: white;
-  z-index: 1000;
-  margin-bottom: 10px;
-}
-/* Stack time-box below score-box */
-.time-box {
-  top: 60px; /* Shift slightly lower than score-box */
-}
+  .score-box, .time-box {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #1ea4e2;
+    padding: 6px 18px;
+    border-radius: 20px;
+    text-align: center;
+    color: white;
+    z-index: 1000;
+    margin-bottom: 10px;
+  }
+  
+  .time-box {
+    top: 60px; 
+  }
 
-.ces-header {
-  width: 200px; /* adjust as needed */
-  height: auto;
-  object-fit: contain;
-}
+  .ces-header {
+    width: 200px; 
+    height: auto;
+    object-fit: contain;
+  }
 
-.question-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+  .question-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-.question-box {
-  background-color: #afd419;
-  padding: 10px;
-  border-radius: 20px;
-  font-weight: bold;
-  font-size: 16px;
-  margin-top: 200px;
-  width: 370px;
-}
+  .question-box {
+    background-color: #afd419;
+    padding: 10px;
+    border-radius: 20px;
+    text-align: left;
+    font-size: 16px;
+    margin-top: 200px;
+    width: 290px;
+  }
 
-.hint-box {
-  background-color: #1ea4e2;
-  padding: 10px;
-  border-radius: 20px;
-  font-size: 14px;
-  color: white;
-  width: 370px;
+  .hint-box {
+    background-color: #1ea4e2;
+    padding: 10px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: white;
+    width: 120px;
+    margin-left:227px;
 
-}
-
-.answer-input {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  border-radius: 30px;
-  padding: 3px 15px;
-  gap: 10px;
-  border: 1px solid #ccc;
-  margin-top: 200px;
-  width: 370px;
-
-}
-
-.answer-input {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: nowrap;
-}
-
-.answer-input input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 16px;
-  background: transparent;
-  color: black;
-}
-
-.camera-button {
-  font-size: 20px;
-  background: none;
-  border: none;
+  }
+  .hint-box button {
+  background-color: transparent; 
+  color: white; 
+  border: none; 
   cursor: pointer;
+  font-size: 16px;
+  padding: 0; 
+  outline: none; 
 }
 
+.hint-box button:hover {
+  text-decoration: underline; 
+}
+
+  .answer-input {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border-radius: 30px;
+    padding: 3px 15px;
+    gap: 10px;
+    border: 1px solid #ccc;
+    margin-top: 200px;
+    width: 350px;
+    height:35px;
+
+  }
+
+  .answer-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .answer-input input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    background: transparent;
+    color: black;
+  }
+
+
+ /* Container for buttons - add this to wrap the buttons */
+.button-container {
+  display: flex;
+  justify-content: space-between; /* Distribute space between buttons */
+  width: 100%; /* Take up the full width of the parent container */
+  margin-top: 20px; /* Add margin if needed */
+}
+
+/* Submit button - aligned to the right */
 .submit-button {
-  align-self: flex-end;
-  padding: 10px 20px;
-  background-color: #007bff;
+  padding: 12px 25px;
+  background-color:#1ea4e2;
+;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 25px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.2s;
-  margin-right: 30px;
+  transition: background-color 0.3s ease-in-out;
+  font-size: 18px;
+  width: auto;
+  margin-right: 50px;
 }
 
 .submit-button:hover {
-  background-color: #0056b3;
+  background-color: #1ea4e2;
 }
 
+/* Skip Question button - aligned to the left */
+.skip-button {
+  padding: 12px 25px;
+  background-color: #ff5e57;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+  font-size: 18px;
+  width: auto;
+  
+}
 
+.skip-button:hover {
+  background-color: #e04d44;
+}

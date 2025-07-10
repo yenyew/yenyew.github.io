@@ -10,7 +10,7 @@ const QuestionPage = () => {
   const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
   const wrongAnswers = useRef(0);
-  const timePenalty = useRef(0); // added to track skip penalties
+  const timePenalty = useRef(0); 
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -170,9 +170,9 @@ const QuestionPage = () => {
           />
         </div>
 
-        <div className="button-group">
-          <button className="submit-button" onClick={handleSubmit}>Submit</button>
+        <div className="button-container">
           <button className="submit-button" onClick={handleSkip}>Skip Question</button>
+          <button className="submit-button" onClick={handleSubmit}>Submit</button>
         </div>
       </div>
     </div>
