@@ -26,6 +26,7 @@ export default function LeaderboardPage() {
   const [players, setPlayers] = useState([]);
   const [collections, setCollections] = useState({});
   const [filter, setFilter] = useState("all");
+  const [selectedCollection, setSelectedCollection] = useState("all");
   const [page, setPage] = useState(0);
   const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
 
@@ -45,9 +46,7 @@ export default function LeaderboardPage() {
         ]);
 
         const finishedPlayers = playersData.filter(p => p.finishedAt);
-        const sorted = finishedPlayers.sort((a, b) =>
-          b.score === a.score ? a.totalTimeInSeconds - b.totalTimeInSeconds : b.score - a.score
-        );
+        const sorted = finishedPlayers.sort((a, b) => a.totalTimeInSeconds - b.totalTimeInSeconds);
         setPlayers(sorted);
 
         const colMap = {};
@@ -63,9 +62,14 @@ export default function LeaderboardPage() {
     fetchAll();
   }, []);
 
-  useEffect(() => setPage(0), [filter]);
+  useEffect(() => setPage(0), [filter, selectedCollection]);
 
-  const filteredPlayers = players.filter(p => isWithin(p.finishedAt, filter));
+  const filteredPlayers = players.filter(
+    (p) =>
+      isWithin(p.finishedAt, filter) &&
+      (selectedCollection === "all" || p.collectionId === selectedCollection)
+  );
+
   const totalPages = Math.ceil(filteredPlayers.length / pageSize);
   const pagedPlayers = filteredPlayers.slice(page * pageSize, (page + 1) * pageSize);
 
@@ -87,15 +91,28 @@ export default function LeaderboardPage() {
       <div className="page-content leaderboard-page">
         <h1 className="leaderboard-title">Leaderboard</h1>
 
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="filter-select"
-        >
-          {FILTERS.map(f => (
-            <option key={f.value} value={f.value}>{f.label}</option>
-          ))}
-        </select>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="filter-select"
+          >
+            {FILTERS.map(f => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </select>
+
+          <select
+            value={selectedCollection}
+            onChange={(e) => setSelectedCollection(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Collections</option>
+            {Object.entries(collections).map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+        </div>
 
         {pagedPlayers.length === 0 ? (
           <p className="no-results">No completed players yet.</p>
@@ -106,7 +123,6 @@ export default function LeaderboardPage() {
                 <tr>
                   <th>Rank</th>
                   <th>Name</th>
-                  <th>Score</th>
                   <th>Time</th>
                 </tr>
               </thead>
@@ -114,7 +130,7 @@ export default function LeaderboardPage() {
                 {pagedPlayers.map((player) => {
                   const rank = filteredPlayers.findIndex(p => p._id === player._id);
                   const isCurrent = player._id === currentPlayerId;
-                  const correct = player.score / 500;
+
                   const highlight =
                     rank === 0 ? "gold" :
                     rank === 1 ? "silver" :
@@ -136,11 +152,9 @@ export default function LeaderboardPage() {
                           <div className="player-tooltip">
                             <div><strong>Collection:</strong> {collections[player.collectionId] || "Unknown"}</div>
                             <div><strong>Date:</strong> {formatDate(player.finishedAt)}</div>
-                            <div><strong>Correct:</strong> {correct} / 12</div>
                           </div>
                         )}
                       </td>
-                      <td>{player.score}</td>
                       <td>{formatTime(player.totalTimeInSeconds)}</td>
                     </tr>
                   );
@@ -167,4 +181,3 @@ export default function LeaderboardPage() {
     </div>
   );
 }
-  
