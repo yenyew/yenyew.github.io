@@ -118,6 +118,8 @@ export default function ResultPage() {
         <div style={{ margin: "1.5rem 0", lineHeight: "1.8" }}>
           <div><strong>Total Time (with penalties):</strong> {formatTime(totalTime)}</div>
           <div><strong>Hints Used:</strong> {player.hintsUsed || 0}</div>
+          <div><strong>Questions Skipped:</strong> {player.questionsSkipped || 0}</div>
+          <div><strong>Wrong Answers:</strong> {player.wrongAnswers || 0}</div>
         </div>
 
         <div className="button-group">

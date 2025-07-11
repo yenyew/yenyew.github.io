@@ -10,6 +10,7 @@ const QuestionPage = () => {
   const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
   const wrongAnswers = useRef(0);
+  const questionsSkipped = useRef(0);
   const timePenalty = useRef(0); 
 
   useEffect(() => {
@@ -56,41 +57,62 @@ const QuestionPage = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (!questions[currentIndex]) return;
+const handleSubmit = () => {
+  if (!questions[currentIndex]) return;
 
-    if (!userAnswer.trim()) {
-      alert("Please enter your answer.");
-      return;
-    }
+  if (!userAnswer.trim()) {
+    alert("Please enter your answer.");
+    return;
+  }
 
-    const correctAnswer = questions[currentIndex].answer?.toLowerCase().trim() || "";
-    const input = userAnswer.toLowerCase().trim();
-    const isCorrect = input === correctAnswer;
+  const confirmSubmit = window.confirm(
+    "Are you sure you want to submit? Wrong answers will incur a 5-minute penalty."
+  );
+  if (!confirmSubmit) return;
 
-    if (isCorrect) {
-      setCorrectAnswers((prev) => prev + 1);
-      setUserAnswer("");
-      const isLast = currentIndex === questions.length - 1;
+  const input = userAnswer.toLowerCase().trim();
+  let acceptableAnswers = questions[currentIndex].answer;
+  if (!Array.isArray(acceptableAnswers)) {
+    acceptableAnswers = [acceptableAnswers];
+  }
 
-      if (isLast) {
-        handleFinish(true);
-      } else {
-        setCurrentIndex((prev) => prev + 1);
-      }
+  const isCorrect = acceptableAnswers.some(
+    (ans) => ans.toLowerCase().trim() === input
+  );
 
-      alert("Correct!");
+  const isLast = currentIndex === questions.length - 1;
+
+  if (isCorrect) {
+    alert("Correct!");
+    setCorrectAnswers((prev) => prev + 1);
+    setUserAnswer("");
+
+    if (isLast) {
+      setTimeout(() => handleFinish(true), 100); // Show alert first, then finish
     } else {
-      wrongAnswers.current += 1;
-      alert(`Incorrect. Try again!`);
+      setCurrentIndex((prev) => prev + 1);
     }
-  };
+
+  } else {
+    alert("Incorrect."); // no answer suggestions shown
+    wrongAnswers.current += 1;
+    timePenalty.current += 300; // Add 5-minute penalty
+    setUserAnswer("");
+
+    if (isLast) {
+      setTimeout(() => handleFinish(false), 100);
+    }
+  }
+};
+
+
 
   const handleSkip = () => {
     const confirmSkip = window.confirm("Are you sure you want to skip this question? A 10-minute penalty will be added.");
     if (!confirmSkip) return;
 
     timePenalty.current += 600; // Add 10 minutes
+    questionsSkipped.current += 1;
     setUserAnswer("");
 
     const isLast = currentIndex === questions.length - 1;
@@ -104,14 +126,13 @@ const QuestionPage = () => {
 
   const handleFinish = async (answeredLast) => {
     const finalCorrect = correctAnswers + (answeredLast ? 1 : 0);
-    const finalScore = finalCorrect * 500;
+    const finalScore = finalCorrect;
     const rawTime = Math.floor((Date.now() - startTime) / 1000);
     const finalWrongCount = wrongAnswers.current;
     const finalTime = rawTime + finalWrongCount * 300 + timePenalty.current;
     const finalHintsUsed = hintsUsed;
 
-    alert(`Quiz complete! Final score: ${finalScore}`);
-
+    alert("Quiz complete!");
     const playerId = sessionStorage.getItem("playerId");
     const collectionId = sessionStorage.getItem("collectionId");
 
@@ -125,6 +146,8 @@ const QuestionPage = () => {
           hintsUsed: finalHintsUsed,
           finishedAt: new Date(),
           collectionId,
+          wrongAnswers: finalWrongCount,
+          questionsSkipped: questionsSkipped.current
         }),
       });
     }
@@ -142,10 +165,9 @@ const QuestionPage = () => {
         <div className="header">
           <div className="left-header">
             <img src="/images/ces.jpg" alt="Changi Experience Studio" className="ces-header" />
-            <div className="team-box">Team 1</div>
+            {/* <div className="team-box">Team 1</div> */}
           </div>
           <div className="right-header">
-            <div className="score-box">Score: {correctAnswers * 500}</div>
             <div className="time-box">Time: {formatTime(elapsed)}</div>
           </div>
         </div>

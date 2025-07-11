@@ -43,7 +43,7 @@ const EditQuestion = () => {
         const data = await res.json();
         setQuestion(data.data.question);
         setHint(data.data.hint);
-        setAnswer(data.data.answer);
+        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer); // Join array answers into a string
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -61,7 +61,7 @@ const EditQuestion = () => {
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, hint, answer, collectionId }),
+        body: JSON.stringify({ question, hint, answer: answer.split(",").map(ans => ans.trim()), collectionId }),
       });
 
       if (res.ok) {
@@ -124,6 +124,9 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+          <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
+            Enter multiple acceptable answers, separated by commas.
+          </p>
           <input
             type="text"
             placeholder="Answer"

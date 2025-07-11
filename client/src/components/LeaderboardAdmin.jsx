@@ -126,6 +126,7 @@ export default function LeaderboardAdmin() {
       }
       window.location.reload();
     } catch (e) {
+      console.error("Manual clear failed:", e);
       alert("Failed to clear leaderboard");
     }
   };
@@ -223,8 +224,8 @@ export default function LeaderboardAdmin() {
         )}
 
         <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
-          <button onClick={openManual}>Manual Clear…</button>
-          <button onClick={openAuto}>Auto-Clear Settings…</button>
+          <button onClick={openManual}>Manual Clear</button>
+          <button onClick={openAuto}>Auto-Clear</button>
           <button className="return-button" onClick={() => window.history.back()}>Return</button>
         </div>
       </div>
@@ -258,9 +259,8 @@ export default function LeaderboardAdmin() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Auto-Clear Configuration</h3>
-            <p style={{ fontSize: "0.9em", color: "#777" }}>
-              Current: {autoClear.interval}, {autoClear.target} <br />
-              Last updated: {autoClear.lastUpdated ? formatDate(autoClear.lastUpdated) : "N/A"}
+            <p style={{ fontSize: "0.9em", color: "#777", marginBottom: "10px" }}>
+              <strong>Current Configs:</strong> {autoClear.interval}, {autoClear.target}
             </p>
             <div style={{ marginBottom: 10, textAlign: "left" }}>
               <label>Interval:</label>

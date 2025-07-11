@@ -48,7 +48,7 @@ const CreateQuestion = () => {
       collectionId,
       question,
       hint,
-      answer,
+      answer: answer.split(",").map(ans => ans.trim()), // Split the answer by commas and trim whitespace
     };
 
     const response = await fetch("http://localhost:5000/questions", {
@@ -157,6 +157,9 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+          <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
+            Enter multiple acceptable answers, separated by commas.
+          </p>
           <input
             type="text"
             placeholder="Answer"
