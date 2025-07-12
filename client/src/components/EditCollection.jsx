@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "./LoginScreen.css";
-
+import "./MainStyles.css";
 const EditCollection = () => {
   const { id } = useParams();
   const [name, setName] = useState("");
@@ -125,7 +124,7 @@ const EditCollection = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header">
         <button

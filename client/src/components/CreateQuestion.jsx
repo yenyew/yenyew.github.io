@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LoginScreen.css";
-
+import "./MainStyles.css";
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
   const [collectionId, setCollectionId] = useState("");
@@ -78,7 +77,7 @@ const CreateQuestion = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header">
         <button

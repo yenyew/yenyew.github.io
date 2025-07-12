@@ -2,14 +2,20 @@ import mongoose from 'mongoose';
 
 const AutoClearSchema = new mongoose.Schema({
   interval: {
-    type: String, // "day", "week", "month"
-    enum: ['day', 'week', 'month'],
+    type: String,
+    enum: ['day', 'week', 'month', 'custom'], 
     required: true,
   },
   target: {
-    type: String, // "today", "week", "month", "all"
-    enum: ['today', 'week', 'month', 'all'],
+    type: String,
+    enum: ['today', 'week', 'month', 'custom', 'all'], 
     required: true,
+  },
+  startDate: {
+    type: Date,
+  },
+  endDate: {
+    type: Date,
   },
   lastClearedAt: {
     type: Date,

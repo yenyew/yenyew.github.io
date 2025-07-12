@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./LoginScreen.css";
-
+import "./MainStyles.css";
 const QuestionsPage = () => {
   const [questions, setQuestions] = useState([]);
   const [collections, setCollections] = useState([]);

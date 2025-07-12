@@ -39,8 +39,6 @@ export default function LeaderboardAdmin() {
   const [showAutoModal, setShowAutoModal] = useState(false);
 
   const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
-
-
   const pageSize = 10;
 
   useEffect(() => {
@@ -66,6 +64,10 @@ export default function LeaderboardAdmin() {
         const cfg = {
           interval: acData.interval,
           target: acData.target,
+          startDate: acData.startDate || "",
+          endDate: acData.endDate || "",
+          customIntervalValue: acData.customIntervalValue || "",
+          customIntervalUnit: acData.customIntervalUnit || "minute",
           lastUpdated: acData.lastUpdated || new Date().toISOString()
         };
         setAutoClear(cfg);
@@ -87,6 +89,7 @@ export default function LeaderboardAdmin() {
     const h = Math.floor(m / 60);
     return `${h > 0 ? `${h}h ` : ""}${m % 60}m ${sec}s`;
   };
+
   const formatDate = dt => {
     const date = new Date(dt);
     const day = date.getDate();
@@ -97,7 +100,6 @@ export default function LeaderboardAdmin() {
     return `${day}/${month}/${year}, ${hour}:${minute}`;
   };
 
-
   const openManual = () => {
     setManualRange("day");
     setManualCol("all");
@@ -106,24 +108,20 @@ export default function LeaderboardAdmin() {
   const closeManual = () => setShowManualModal(false);
 
   const confirmManualClear = async () => {
-    const rangeLabel = FILTERS.find(f => f.value === manualRange)?.label || manualRange;
-    const collectionName = manualCol === "all" ? "All Collections" : collections[manualCol] || "Unknown Collection";
-    const confirmed = window.confirm(`Are you sure you want to clear players from ${rangeLabel} in ${collectionName}?`);
+    const confirmed = window.confirm(`Clear players from ${manualRange} in ${manualCol === "all" ? "All Collections" : collections[manualCol]}?`);
     if (!confirmed) return;
 
     try {
       if (manualRange === "all" && manualCol === "all") {
         await fetch(`${baseUrl}/players/clear`, { method: "DELETE" });
-        alert("All players cleared");
       } else {
-        const res = await fetch(`${baseUrl}/players/manual-clear/${manualRange}`, {
+        await fetch(`${baseUrl}/players/manual-clear/${manualRange}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(manualCol === "all" ? {} : { collectionId: manualCol })
         });
-        const data = await res.json();
-        alert(`Deleted ${data.deletedCount ?? "?"} players`);
       }
+      alert("Players cleared.");
       window.location.reload();
     } catch (e) {
       console.error("Manual clear failed:", e);
@@ -138,24 +136,61 @@ export default function LeaderboardAdmin() {
   const closeAuto = () => setShowAutoModal(false);
 
   const confirmAuto = async () => {
+    const payload = {
+      interval: tempAuto.interval,
+      target: tempAuto.target,
+      ...(tempAuto.target === "custom" && {
+        startDate: tempAuto.startDate,
+        endDate: tempAuto.endDate,
+      }),
+      ...(tempAuto.interval === "custom" && {
+        customIntervalValue: Number(tempAuto.customIntervalValue),
+        customIntervalUnit: tempAuto.customIntervalUnit,
+      })
+    };
+
+    const intervalToMinutes = {
+      minute: 1,
+      hour: 60,
+      day: 1440,
+      week: 10080,
+      month: 43200,
+    };
+
+    const targetThreshold = {
+      today: 1440,
+      week: 10080,
+      month: 43200,
+    };
+
+    const intervalMins = payload.customIntervalValue * intervalToMinutes[payload.customIntervalUnit];
+    const requiredMins = targetThreshold[payload.target] || 0;
+
+    if (tempAuto.interval === "custom" && intervalMins < requiredMins) {
+      alert("Custom interval too frequent for selected target range. Increase the interval or adjust target.");
+      return;
+    }
+
     try {
-      const payload = {
-        interval: tempAuto.interval,
-        target: tempAuto.target
-      };
-      const res = await fetch(`${baseUrl}/auto-clear-config`, {
+      await fetch(`${baseUrl}/auto-clear-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      await res.json();
       setAutoClear({ ...payload, lastUpdated: new Date().toISOString() });
-      alert("Auto-clear config saved. Applies to all collections.");
+      alert("Auto-clear config saved.");
       setShowAutoModal(false);
     } catch {
       alert("Failed to save auto-clear config");
     }
   };
+
+  const isCustomIntervalInvalid =
+    tempAuto.interval === "custom" && (!tempAuto.customIntervalValue || !tempAuto.customIntervalUnit);
+
+  const isSaveDisabled =
+    (tempAuto.target === "custom" && (!tempAuto.startDate || !tempAuto.endDate)) ||
+    isCustomIntervalInvalid;
 
   return (
     <div className="page-container">
@@ -182,17 +217,16 @@ export default function LeaderboardAdmin() {
           <>
             <table className="leaderboard-table small-text">
               <thead>
-              <tr>
-                <th>Rank</th><th>Name</th><th>Time</th><th>Collection</th><th>Date</th><th>Redeemed</th>
-              </tr>
-            </thead>
+                <tr>
+                  <th>Rank</th><th>Name</th><th>Time</th><th>Collection</th><th>Date</th><th>Redeemed</th>
+                </tr>
+              </thead>
               <tbody>
                 {paged.map((p, i) => (
                   <tr
                     key={p._id}
                     onMouseEnter={() => setHoveredPlayerId(p._id)}
                     onMouseLeave={() => setHoveredPlayerId(null)}
-                    style={{ position: "relative" }}
                   >
                     <td>{i + 1 + page * pageSize}</td>
                     <td>
@@ -201,9 +235,7 @@ export default function LeaderboardAdmin() {
                         <div className="player-tooltip">
                           <div><strong>Collection:</strong> {collections[p.collectionId] || "Unknown"}</div>
                           <div><strong>Finished:</strong> {formatDate(p.finishedAt)}</div>
-                          {p.redeemed && (
-                            <div><strong>Redeemed:</strong> {formatDate(p.redeemedAt)}</div>
-                          )}
+                          {p.redeemed && <div><strong>Redeemed:</strong> {formatDate(p.redeemedAt)}</div>}
                         </div>
                       )}
                     </td>
@@ -215,6 +247,7 @@ export default function LeaderboardAdmin() {
                 ))}
               </tbody>
             </table>
+
             <div className="pagination">
               <button onClick={() => setPage(x => Math.max(0, x - 1))} disabled={page === 0}>← Prev</button>
               <span>Page {page + 1} of {totalPages}</span>
@@ -229,6 +262,89 @@ export default function LeaderboardAdmin() {
           <button className="return-button" onClick={() => window.history.back()}>Return</button>
         </div>
       </div>
+
+      {showAutoModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Auto-Clear Configuration</h3>
+            <p style={{ fontSize: "0.9em", color: "#777", marginBottom: "10px" }}>
+              <strong>Current:</strong> {autoClear.interval}, {autoClear.target}
+            </p>
+
+            <div style={{ marginBottom: 10, textAlign: "left" }}>
+              <label>Interval:</label>
+              <select
+                value={tempAuto.interval}
+                onChange={e => setTempAuto(t => ({ ...t, interval: e.target.value }))}
+              >
+                <option value="day">Daily</option>
+                <option value="week">Weekly</option>
+                <option value="month">Monthly</option>
+                <option value="custom">Custom Interval</option>
+              </select>
+            </div>
+
+            {tempAuto.interval === "custom" && (
+              <div style={{ marginTop: 10, textAlign: "left" }}>
+                <label>Custom Interval:</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={tempAuto.customIntervalValue || ""}
+                  onChange={e => setTempAuto(t => ({ ...t, customIntervalValue: e.target.value }))}
+                  placeholder="Enter number"
+                />
+                <select
+                  value={tempAuto.customIntervalUnit || "minute"}
+                  onChange={e => setTempAuto(t => ({ ...t, customIntervalUnit: e.target.value }))}
+                >
+                  <option value="minute">Minutes</option>
+                  <option value="hour">Hours</option>
+                  <option value="day">Days</option>
+                </select>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 10, textAlign: "left" }}>
+              <label>Target Range:</label>
+              <select value={tempAuto.target} onChange={e => setTempAuto(t => ({ ...t, target: e.target.value }))}>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="custom">Custom Range</option>
+                <option value="all">All Players</option>
+              </select>
+            </div>
+
+            {tempAuto.target === "custom" && (
+              <div style={{ marginBottom: 10, textAlign: "left" }}>
+                <label>Start Date:</label>
+                <input
+                  type="date"
+                  value={tempAuto.startDate?.slice(0, 10) || ""}
+                  onChange={(e) => setTempAuto(t => ({ ...t, startDate: e.target.value }))}
+                />
+                <br />
+                <label>End Date:</label>
+                <input
+                  type="date"
+                  value={tempAuto.endDate?.slice(0, 10) || ""}
+                  onChange={(e) => setTempAuto(t => ({ ...t, endDate: e.target.value }))}
+                />
+              </div>
+            )}
+
+            <div style={{ fontSize: "0.85em", color: "#999", marginBottom: 15 }}>
+              ⚠ Auto-clear applies to <strong>all collections</strong>.
+            </div>
+
+            <button onClick={confirmAuto} style={{ marginRight: 10 }} disabled={isSaveDisabled}>
+              Save
+            </button>
+            <button onClick={closeAuto}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {showManualModal && (
         <div className="modal-overlay">
@@ -251,45 +367,6 @@ export default function LeaderboardAdmin() {
             </div>
             <button onClick={confirmManualClear} style={{ marginRight: 10 }}>Confirm</button>
             <button onClick={closeManual}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {showAutoModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Auto-Clear Configuration</h3>
-            <p style={{ fontSize: "0.9em", color: "#777", marginBottom: "10px" }}>
-              <strong>Current Configs:</strong> {autoClear.interval}, {autoClear.target}
-            </p>
-            <div style={{ marginBottom: 10, textAlign: "left" }}>
-              <label>Interval:</label>
-              <select
-                value={tempAuto.interval}
-                onChange={e => setTempAuto(t => ({ ...t, interval: e.target.value }))}
-              >
-                <option value="day">Daily</option>
-                <option value="week">Weekly</option>
-                <option value="month">Monthly</option>
-              </select>
-            </div>
-            <div style={{ marginBottom: 10, textAlign: "left" }}>
-              <label>Target Range:</label>
-              <select
-                value={tempAuto.target}
-                onChange={e => setTempAuto(t => ({ ...t, target: e.target.value }))}
-              >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="all">All Players</option>
-              </select>
-            </div>
-            <div style={{ fontSize: "0.85em", color: "#999", marginBottom: 15 }}>
-              ⚠ This auto-clear will apply to <strong>all collections</strong>.
-            </div>
-            <button onClick={confirmAuto} style={{ marginRight: 10 }}>Save</button>
-            <button onClick={closeAuto}>Cancel</button>
           </div>
         </div>
       )}

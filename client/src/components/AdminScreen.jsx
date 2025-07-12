@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LoginScreen.css";
+import "./MainStyles.css";
 
 const AdminScreen = () => {
   const [collections, setCollections] = useState([]);
@@ -48,6 +48,10 @@ const AdminScreen = () => {
     navigate("/admin-leaderboard");
   };
 
+  const handleBadUsernames = () => {
+    navigate("/bad-usernames");
+  }
+
   return (
     <div className="login-container">
       <img
@@ -57,8 +61,8 @@ const AdminScreen = () => {
       />
       <div className="page-overlay"></div>
 
-      <div className="header">
-        <h2>GoChangi!</h2>
+      <div className="top-left-logo"> 
+        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
       </div>
 
       <div className="buttons">
@@ -100,6 +104,14 @@ const AdminScreen = () => {
           style={{ marginTop: "24px", width: "100%", maxWidth: "300px", backgroundColor: "#007b8a" }}
         >
           View Leaderboard
+        </button>
+
+        <button
+          onClick={handleBadUsernames}
+          className="login-btn"
+          style={{ marginTop: "16px", width: "100%", maxWidth: "300px", backgroundColor: "#cc4125" }}
+        >
+          Manage Bad Usernames
         </button>
 
         <button

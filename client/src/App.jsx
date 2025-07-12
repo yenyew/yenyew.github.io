@@ -11,11 +11,12 @@ import Results from './components/ResultPage.jsx';
 import LoginForm from './components/LoginForm.jsx';
 import AdminScreen from './components/AdminScreen.jsx';
 import CreateQuestion from "./components/CreateQuestion.jsx";
-import EditQuestion from "./components/EditQns.jsx";
+import EditQuestion from "./components/EditQuestion.jsx";
 import Questions from "./components/Questions.jsx";
 import CreateCollection from "./components/CreateCollection.jsx";
 import EditCollection from "./components/EditCollection.jsx";
 import AdminLeaderboard from "./components/LeaderboardAdmin.jsx";
+import BadUsernames from "./components/BadUsernames.jsx";
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/add-collection" element={<CreateCollection />} />
         <Route path="/edit-collection/:id" element={<EditCollection />} />
         <Route path="/admin-leaderboard" element={<AdminLeaderboard />} />
+        <Route path="/bad-usernames" element={<BadUsernames />} />
       </Routes>
     </div>
   );

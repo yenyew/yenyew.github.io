@@ -11,6 +11,7 @@ import photoUpload from './routes/photoUpload.mjs';
 import autoClearRoutes from './routes/autoClear.mjs'; 
 import AutoClearConfig from './models/autoCleardb.mjs'; 
 import Player from './models/playerdb.mjs'; 
+import BadUsername from './routes/badUsername.mjs';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/questions", questions);
 app.use("/collections", collections);
 app.use("/upload-photo", photoUpload);
 app.use("/auto-clear-config", autoClearRoutes);
+app.use("/bad-usernames", BadUsername);
 
 // MongoDB connection
 mongoose.set('strictQuery', true);
@@ -61,7 +63,7 @@ setInterval(async () => {
     let due = false;
 
     if (config.interval === "day") {
-      due = now - last >= 20 * 1000; // 20 seconds instead of 24 hours (testing purpose)
+      due = now - last >= 10 * 1000; // 1 seconds instead of 24 hours (testing purpose)
     } else if (config.interval === "week") {
       due = now - last >= 7 * 24 * 60 * 60 * 1000;
     } else if (config.interval === "month") {
@@ -74,20 +76,49 @@ setInterval(async () => {
     if (config.target === "today") {
       const start = new Date();
       start.setHours(0, 0, 0, 0);
-      filter.finishedAt = { $gte: start, $lte: now };
+
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+
+      filter.finishedAt = { $gte: start, $lte: end };
+
     } else if (config.target === "week") {
       const start = new Date();
-      start.setDate(start.getDate() - start.getDay());
+      start.setDate(start.getDate() - start.getDay()); // Sunday
       start.setHours(0, 0, 0, 0);
-      filter.finishedAt = { $gte: start, $lte: now };
+
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+
+      filter.finishedAt = { $gte: start, $lte: end };
+
     } else if (config.target === "month") {
       const start = new Date();
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
-      filter.finishedAt = { $gte: start, $lte: now };
+
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(0); // last day of the previous month
+      end.setHours(23, 59, 59, 999);
+
+      filter.finishedAt = { $gte: start, $lte: end };
+
+    } else if (config.target === "custom") {
+      if (!config.startDate || !config.endDate) return;
+
+      const start = new Date(config.startDate);
+      const end = new Date(config.endDate);
+      end.setHours(23, 59, 59, 999);
+
+      filter.finishedAt = { $gte: start, $lte: end };
+
     } else {
-      filter.finishedAt = { $lte: now }; // All players finished before now
+      // "all"
+      filter.finishedAt = { $lte: new Date() };
     }
+
 
     const result = await Player.deleteMany(filter);
     config.lastClearedAt = now;
@@ -97,4 +128,4 @@ setInterval(async () => {
   } catch (err) {
     console.error("[AUTO CLEAR ERROR]", err);
   }
-}, 20 * 1000); // Every 20 seconds for testing
+}, 10 * 1000); 
