@@ -1,35 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "./LoginScreen.css";
 
 const EditQuestion = () => {
-  const { number } = useParams();
-  const location = useLocation();
+  const { number, collectionId } = useParams();
   const navigate = useNavigate();
 
-  const [collectionId, setCollectionId] = useState("");
   const [collectionName, setCollectionName] = useState("");
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const colId = params.get("collectionId");
-
-    if (!colId) {
+    if (!collectionId) {
       alert("Missing collection ID.");
-      navigate("/admin");
+      navigate("/questions");
       return;
     }
-
-    setCollectionId(colId);
 
     const fetchCollectionName = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
         const data = await res.json();
-        const target = data.find((col) => col._id === colId);
+        const target = data.find((col) => col._id === collectionId);
         if (target) setCollectionName(target.name || "");
       } catch (err) {
         console.error("Error fetching collections:", err);
@@ -38,7 +31,7 @@ const EditQuestion = () => {
 
     const fetchQuestion = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/questions/${number}/${colId}`);
+        const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`);
         if (!res.ok) throw new Error("Question not found");
         const data = await res.json();
         setQuestion(data.data.question);
@@ -52,7 +45,7 @@ const EditQuestion = () => {
 
     fetchCollectionName();
     fetchQuestion();
-  }, [number, location.search, navigate]);
+  }, [number, collectionId, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,7 +59,7 @@ const EditQuestion = () => {
 
       if (res.ok) {
         alert("Question updated successfully!");
-        navigate(`/edit-collection/${collectionId}`);
+        navigate(`/questions`);
       } else {
         const data = await res.json();
         alert(`Error: ${data.message || "Update failed"}`);
@@ -84,7 +77,7 @@ const EditQuestion = () => {
 
       <div className="header">
         <button
-          onClick={() => navigate(`/edit-collection/${collectionId}`)}
+          onClick={() => navigate(`/questions`)}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",

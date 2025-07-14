@@ -76,3 +76,119 @@ html, body {
   margin: 0;
   color: black;
 }
+
+/* Collection and Question display styles */
+ul {
+  padding: 0;
+  list-style-type: none;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto; /* Enable scrolling for long lists */
+}
+
+li {
+  background-color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  color: #000;
+  font-size: 16px;
+  word-break: break-word;
+}
+
+button {
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+button:focus {
+  outline: none;
+}
+
+/* Add question & collection styles */
+textarea, input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+input[type="text"] {
+  font-size: 16px;
+}
+
+button {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* Scrollable container for questions */
+.scroll-wrapper {
+  max-height: 80vh; /* Increase this value to 80% of the viewport height */
+  overflow-y: scroll;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+select {
+  padding: 8px;
+  font-size: 16px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  width: 100%;
+}
+
+a {
+  color: #17C4C4;
+  font-size: 16px;
+  display: block;
+  margin-top: 16px;
+  text-align: center;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button.login-btn {
+  padding: 10px;
+  font-size: 16px;
+  background-color: #17C4C4;
+  color: #fff;
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Gradient button styling for Add Question and Add Collection */
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  background: linear-gradient(90deg, #C4EB22, #00b8b8); /* Gradient */
+  color: #fff;
+}
+
+button.add-question, button.add-collection {
+  background: linear-gradient(90deg, #C4EB22, #00b8b8); /* Same gradient as login-btn */
+  color: white;
+  width: 100%;
+  margin-bottom: 20px; /* Space below the buttons */
+}
+
+button.add-question:hover, button.add-collection:hover {
+  opacity: 0.8;
+}

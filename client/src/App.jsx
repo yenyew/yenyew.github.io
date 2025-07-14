@@ -31,7 +31,7 @@ export default function App() {
         <Route path="/admin" element={<AdminScreen />} />
         <Route path="/add-question" element={<CreateQuestion />} />
         <Route path="/questions" element={<Questions />} />
-        <Route path="/edit-question/:number" element={<EditQuestion />} />
+        <Route path="/edit-question/:number/:collectionId" element={<EditQuestion />} />
         <Route path="/add-collection" element={<CreateCollection />} />
         <Route path="/edit-collection/:id" element={<EditCollection />} />
       </Routes>
