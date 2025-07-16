@@ -110,7 +110,7 @@ const EditCollection = () => {
   };
 
   const handleQuestionClick = (number, collectionId) => {
-    navigate(`/edit-question/${number}?collectionId=${collectionId}`);
+    navigate(`/edit-question/${number}/${collectionId}`);
   };
 
   const sortedQuestions = [...questions];

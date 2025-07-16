@@ -1,34 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "./MainStyles.css";
+
 const EditQuestion = () => {
-  const { number } = useParams();
-  const location = useLocation();
+  const { number, collectionId } = useParams(); // ✅ Get both from URL params
   const navigate = useNavigate();
 
-  const [collectionId, setCollectionId] = useState("");
   const [collectionName, setCollectionName] = useState("");
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const colId = params.get("collectionId");
-
-    if (!colId) {
+    if (!collectionId) {
       alert("Missing collection ID.");
       navigate("/admin");
       return;
     }
 
-    setCollectionId(colId);
-
     const fetchCollectionName = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
         const data = await res.json();
-        const target = data.find((col) => col._id === colId);
+        const target = data.find((col) => col._id === collectionId);
         if (target) setCollectionName(target.name || "");
       } catch (err) {
         console.error("Error fetching collections:", err);
@@ -37,12 +31,12 @@ const EditQuestion = () => {
 
     const fetchQuestion = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/questions/${number}/${colId}`);
+        const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`);
         if (!res.ok) throw new Error("Question not found");
         const data = await res.json();
         setQuestion(data.data.question);
         setHint(data.data.hint);
-        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer); // Join array answers into a string
+        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer);
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -51,7 +45,7 @@ const EditQuestion = () => {
 
     fetchCollectionName();
     fetchQuestion();
-  }, [number, location.search, navigate]);
+  }, [number, collectionId, navigate]); // ✅ Updated dependencies
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +54,12 @@ const EditQuestion = () => {
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, hint, answer: answer.split(",").map(ans => ans.trim()), collectionId }),
+        body: JSON.stringify({ 
+          question, 
+          hint, 
+          answer: answer.split(",").map(ans => ans.trim()), 
+          collectionId 
+        }),
       });
 
       if (res.ok) {

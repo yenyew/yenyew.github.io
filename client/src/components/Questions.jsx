@@ -6,6 +6,7 @@ const QuestionsPage = () => {
   const [questions, setQuestions] = useState([]);
   const [collections, setCollections] = useState([]);
   const [collectionCode, setCollectionCode] = useState("");
+  const [selectedCollection, setSelectedCollection] = useState(null); // Add this state
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -28,6 +29,9 @@ const QuestionsPage = () => {
         if (data.length > 0 && !collectionCode) {
           const codeToSet = passedCode || data[0].code;
           setCollectionCode(codeToSet);
+          // Set the selected collection object
+          const selectedCol = data.find(col => col.code === codeToSet);
+          setSelectedCollection(selectedCol);
         }
       } catch (err) {
         console.error("Error fetching collections:", err);
@@ -60,7 +64,12 @@ const QuestionsPage = () => {
   };
 
   const handleEdit = (number) => {
-    navigate(`/edit-question/${number}`);
+    if (!selectedCollection) {
+      alert("Collection not selected");
+      return;
+    }
+    // Use the same navigation pattern as EditCollection
+    navigate(`/edit-question/${number}/${selectedCollection._id}`);
   };
 
   const handleDelete = async (number) => {
@@ -101,6 +110,9 @@ const QuestionsPage = () => {
           onChange={(e) => {
             const selected = e.target.value;
             setCollectionCode(selected);
+            // Update selected collection when changing
+            const selectedCol = collections.find(col => col.code === selected);
+            setSelectedCollection(selectedCol);
             navigate(`/questions?collection=${selected}`);
           }}
           style={{ marginBottom: "20px", padding: "8px", fontSize: "16px" }}
