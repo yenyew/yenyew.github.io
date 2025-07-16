@@ -42,7 +42,7 @@ router.get("/:number/:collectionId", async (req, res) => {
 // Create a new question (now checks for uniqueness within the same collection)
 router.post("/", async (req, res) => {
   try {
-    const { number, collectionId, question, hint, answer } = req.body;
+    const { number, collectionId, question, hint, answer, funFact } = req.body;
 
     const existing = await Question.findOne({ number, collectionId });
     if (existing) {
@@ -55,6 +55,7 @@ router.post("/", async (req, res) => {
       question,
       hint,
       answer,
+      funFact
     };
 
     const result = await Question.create(newQuestion);
@@ -69,10 +70,10 @@ router.post("/", async (req, res) => {
 router.patch("/:number/:collectionId", async (req, res) => {
   try {
     const { number, collectionId } = req.params;
-    const { question, hint, answer } = req.body;
+    const { question, hint, answer, funFact } = req.body;
 
     const query = { number: parseInt(number), collectionId };
-    const updates = { $set: { question, hint, answer } };
+    const updates = { $set: { question, hint, answer, funFact } };
 
     const result = await Question.updateOne(query, updates);
 

@@ -23,6 +23,10 @@ const questionSchema = new mongoose.Schema({
   hint: {
     type: String,
     required: true,
+  },
+  funFact: {
+    type: String,
+    required: true,
   }
 });
 
