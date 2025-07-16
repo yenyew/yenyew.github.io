@@ -178,7 +178,7 @@ const BadUsernames = () => {
             className="login-btn"
             style={{ marginBottom: "8px", backgroundColor: "white" }}
           />
-          <p style={{ fontSize: "12px", color: "#666", textAlign: "center", marginBottom: "10px" }}>
+          <p style={{ fontSize: "12px", color: "#666", textAlign: "center", marginBottom: "10px", fontWeight: "bold" }}>
             💡 Tip: Separate multiple usernames with commas (e.g., "user1, user2, user3")
           </p>
           <button
@@ -282,7 +282,8 @@ const BadUsernames = () => {
                       borderRadius: "5px",
                       padding: "4px 8px",
                       fontSize: "12px",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                       width: "60px"  
                     }}
                   >
                     Remove

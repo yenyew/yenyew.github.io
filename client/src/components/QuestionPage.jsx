@@ -46,14 +46,8 @@ const QuestionPage = () => {
   };
 
   const handleHintClick = () => {
-<<<<<<< HEAD
-    if (questions[currentIndex]?.hint) {
-      const confirmHint = window.confirm("Are you sure you want to use a hint? A 2-minute penalty will be added to your time.");
-      if (!confirmHint) return;
-=======
     const hint = questions[currentIndex]?.hint;
     if (!hint) return;
->>>>>>> 00c647660ea13394d79eeaacbd6aae4d8245207f
 
     const confirmed = window.confirm("Use a hint? A 2-minute penalty will be added.");
     if (confirmed) {
@@ -64,30 +58,14 @@ const QuestionPage = () => {
   };
 
   const handleSubmit = () => {
-<<<<<<< HEAD
-    if (!questions[currentIndex]) return;
-=======
     const currentQuestion = questions[currentIndex];
     if (!currentQuestion) return;
->>>>>>> 00c647660ea13394d79eeaacbd6aae4d8245207f
 
     if (!userAnswer.trim()) {
       alert("Please enter your answer.");
       return;
     }
 
-<<<<<<< HEAD
-    const confirmSubmit = window.confirm(
-      "Are you sure you want to submit? Wrong answers will incur a 5-minute penalty."
-    );
-    if (!confirmSubmit) return;
-
-    const input = userAnswer.toLowerCase().trim();
-    let acceptableAnswers = questions[currentIndex].answer;
-    if (!Array.isArray(acceptableAnswers)) {
-      acceptableAnswers = [acceptableAnswers];
-    }
-=======
     const confirmed = window.confirm("Submit answer? Wrong answers add 5-minute penalty.");
     if (!confirmed) return;
 
@@ -95,7 +73,6 @@ const QuestionPage = () => {
     const acceptableAnswers = Array.isArray(currentQuestion.answer)
       ? currentQuestion.answer
       : [currentQuestion.answer];
->>>>>>> 00c647660ea13394d79eeaacbd6aae4d8245207f
 
     const isCorrect = acceptableAnswers.some(
       (ans) => ans.toLowerCase().trim() === input
@@ -108,12 +85,9 @@ const QuestionPage = () => {
       setCorrectAnswers((prev) => prev + 1);
       setUserAnswer("");
 
-<<<<<<< HEAD
       const funFact = questions[currentIndex].funFact || "No fun fact available.";
       alert(`🎉 Fun Fact: ${funFact}`);
 
-=======
->>>>>>> 00c647660ea13394d79eeaacbd6aae4d8245207f
       if (isLast) {
         setTimeout(() => handleFinish(true), 100);
       } else {
@@ -139,12 +113,9 @@ const QuestionPage = () => {
     questionsSkipped.current += 1;
     setUserAnswer("");
 
-<<<<<<< HEAD
     const funFact = questions[currentIndex].funFact || "No fun fact available.";
     alert(`🎉 Fun Fact: ${funFact}`);
 
-=======
->>>>>>> 00c647660ea13394d79eeaacbd6aae4d8245207f
     const isLast = currentIndex === questions.length - 1;
     if (isLast) {
       handleFinish(false);
@@ -165,7 +136,7 @@ const QuestionPage = () => {
 
     if (playerId) {
       try {
-        await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
+        await fetch(`http://localhost:5000/players/${playerId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -37,8 +37,8 @@ export default function LeaderboardPage() {
     async function fetchAll() {
       try {
         const [playersRes, collectionsRes] = await Promise.all([
-          fetch("http://172.20.10.2:5000/players"),
-          fetch("http://172.20.10.2:5000/collections"),
+          fetch("http://localhost:5000/players"),
+          fetch("http://localhost:5000/collections"),
         ]);
         const [playersData, collectionsData] = await Promise.all([
           playersRes.json(),

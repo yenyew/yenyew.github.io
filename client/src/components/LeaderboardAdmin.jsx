@@ -23,7 +23,7 @@ function isWithin(date, filter) {
 }
 
 export default function LeaderboardAdmin() {
-  const baseUrl = "http://172.20.10.2:5000";
+  const baseUrl = "http://localhost:5000";
 
   const [players, setPlayers] = useState([]);
   const [collections, setCollections] = useState({});

@@ -42,7 +42,7 @@ const EditCollection = () => {
 
         const withCollectionId = (data.questions || []).map((q) => ({
           ...q,
-          collectionId: collectionId, // ✅ needed for edit navigation
+          collectionId: collectionId, 
         }));
 
         setQuestions(withCollectionId);

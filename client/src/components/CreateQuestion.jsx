@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MainStyles.css";
+
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
   const [collectionId, setCollectionId] = useState("");
@@ -36,6 +37,41 @@ const CreateQuestion = () => {
     e.preventDefault();
     setMessage("");
 
+    // Validation for empty fields
+    if (!number || number.trim() === "") {
+      alert("Please enter a question number.");
+      return;
+    }
+
+    if (!collectionId || collectionId.trim() === "") {
+      alert("Please select a collection.");
+      return;
+    }
+
+    if (!question || question.trim() === "") {
+      alert("Please enter a question description.");
+      return;
+    }
+
+    if (!answer || answer.trim() === "") {
+      alert("Please enter an answer.");
+      return;
+    }
+
+    // Optional: Validate that question number is a positive integer
+    const questionNumber = parseInt(number);
+    if (isNaN(questionNumber) || questionNumber <= 0) {
+      alert("Please enter a valid positive question number.");
+      return;
+    }
+
+    // Optional: Validate that answer is not just commas
+    const trimmedAnswers = answer.split(",").map(ans => ans.trim()).filter(ans => ans.length > 0);
+    if (trimmedAnswers.length === 0) {
+      alert("Please enter at least one valid answer.");
+      return;
+    }
+
     try {
       const allRes = await fetch("http://localhost:5000/questions");
       const allQuestions = await allRes.json();
@@ -52,10 +88,10 @@ const CreateQuestion = () => {
       const newQuestion = {
         number: parseInt(number),
         collectionId,
-        question,
-        hint,
-        answer: answer.split(",").map(ans => ans.trim()), // Split the answer by commas and trim 
-        funFact
+        question: question.trim(),
+        hint: hint.trim(),
+        answer: trimmedAnswers, // Use the filtered answers
+        funFact: funFact.trim()
       };
 
       const response = await fetch("http://localhost:5000/questions", {
@@ -74,19 +110,22 @@ const CreateQuestion = () => {
         setFunFact("");
       } else {
         const data = await response.json();
-        setMessage(`Error: ${data.message || "Could not add question."}`);
+        alert(`Error: ${data.message || "Could not add question."}`);
       }
     } catch (err) {
       console.error("Error submitting question:", err);
-      setMessage("Something went wrong. Please try again.");
+      alert("Something went wrong. Please try again.");
     }
   };
-
 
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="page-overlay"></div>
+
+      <div className="top-left-logo">
+        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
+      </div>
 
       <div className="header">
         <button
@@ -114,7 +153,6 @@ const CreateQuestion = () => {
             value={number}
             onChange={(e) => setNumber(e.target.value)}
             placeholder="Question Number"
-            required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
@@ -122,7 +160,6 @@ const CreateQuestion = () => {
           <select
             value={collectionId}
             onChange={(e) => setCollectionId(e.target.value)}
-            required
             className="dropdown-select"
             style={{
               marginBottom: "10px",
@@ -148,7 +185,6 @@ const CreateQuestion = () => {
             placeholder="Question Description"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            required
             className="login-btn"
             style={{
               marginBottom: "10px",
@@ -159,7 +195,7 @@ const CreateQuestion = () => {
           />
           <input
             type="text"
-            placeholder="Hint"
+            placeholder="Hint (Optional)"
             value={hint}
             onChange={(e) => setHint(e.target.value)}
             className="login-btn"
@@ -178,7 +214,7 @@ const CreateQuestion = () => {
           />
           <input
             type="text"
-            placeholder="Fun Fact"
+            placeholder="Fun Fact (Optional)"
             value={funFact}
             onChange={(e) => setFunFact(e.target.value)}
             className="login-btn"
@@ -201,7 +237,6 @@ const CreateQuestion = () => {
         {message && (
           <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
         )}
-
       </div>
     </div>
   );

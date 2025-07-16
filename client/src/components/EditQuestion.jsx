@@ -62,11 +62,11 @@ const EditQuestion = () => {
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, hint, answer: answer.split(",").map(ans => ans.trim()), funFact, collectionId }),
         body: JSON.stringify({ 
           question, 
           hint, 
           answer: answer.split(",").map(ans => ans.trim()), 
+          funFact,
           collectionId 
         }),
       });
