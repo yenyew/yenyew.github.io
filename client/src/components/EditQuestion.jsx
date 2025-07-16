@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import "./MainStyles.css";
 
 const EditQuestion = () => {
-  const { number, collectionId } = useParams(); // ✅ Get both from URL params
+  const { number, collectionId } = useParams();
   const navigate = useNavigate();
 
   const [collectionName, setCollectionName] = useState("");
@@ -14,7 +14,7 @@ const EditQuestion = () => {
   useEffect(() => {
     if (!collectionId) {
       alert("Missing collection ID.");
-      navigate("/admin");
+      navigate("/questions");
       return;
     }
 
@@ -45,7 +45,7 @@ const EditQuestion = () => {
 
     fetchCollectionName();
     fetchQuestion();
-  }, [number, collectionId, navigate]); // ✅ Updated dependencies
+  }, [number, collectionId, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +64,7 @@ const EditQuestion = () => {
 
       if (res.ok) {
         alert("Question updated successfully!");
-        navigate(`/edit-collection/${collectionId}`);
+        navigate(`/questions`);
       } else {
         const data = await res.json();
         alert(`Error: ${data.message || "Update failed"}`);
@@ -82,7 +82,7 @@ const EditQuestion = () => {
 
       <div className="header">
         <button
-          onClick={() => navigate(`/edit-collection/${collectionId}`)}
+          onClick={() => navigate(`/questions`)}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
