@@ -4,11 +4,12 @@ import Countdown from "./Countdown";
 import "./MainStyles.css";
 
 const rules = [
-  "Now let's go through some ground rules. Take your time to read them carefully, as your game timer has not started yet.",
-  "Your game is a trail of 12 clues with scheduled break(s) in between. You will receive clues one at a time. Only one answer is accepted for each clue, so answer carefully!",
-  "Your game will be timed. Each incorrect answer adds a penalty of 5 minutes to your final timing, so answer carefully! Hints are available, but at a cost. The timer will be paused during breaks, so you can properly relax.",
-  "Stay in public spaces, blend into your environment, and be discreet in your discussions. You do not need to enter any fenced premises or private property unless specifically asked to. Send in your selfies during the game to earn bonus time deduction and have a chance to win our Selfie of the Month contest."
+  "Let's go through some quick ground rules. Take your time to read — the game timer hasn't started yet, so no rush.",
+  "You'll be solving 12 clues, one at a time. Once you submit an answer, you can't change it — so think carefully before hitting submit!",
+  "Your game is timed. Each wrong answer adds a 5-minute penalty. Skipping a question adds 10 minutes, and using a hint adds 2 minutes. Hints are optional — use them wisely.",
+  "Stick to public areas and stay discreet. You won’t need to enter any restricted or private zones unless clearly instructed. Keep your eyes peeled and have fun!"
 ];
+
 
 export default function RulesPage() {
   const navigate = useNavigate();

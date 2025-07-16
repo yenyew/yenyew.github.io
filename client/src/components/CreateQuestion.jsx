@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LoginScreen.css";
-
+import "./MainStyles.css";
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
   const [collectionId, setCollectionId] = useState("");
@@ -54,7 +53,7 @@ const CreateQuestion = () => {
       collectionId,
       question,
       hint,
-      answer,
+      answer: answer.split(",").map(ans => ans.trim()), // Split the answer by commas and trim whitespace
     };
 
     const response = await fetch("http://localhost:5000/questions", {
@@ -84,7 +83,7 @@ const CreateQuestion = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header">
         <button
@@ -163,6 +162,9 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+          <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
+            Enter multiple acceptable answers, separated by commas.
+          </p>
           <input
             type="text"
             placeholder="Answer"

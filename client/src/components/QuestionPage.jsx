@@ -9,35 +9,9 @@ const QuestionPage = () => {
   const [hintsUsed, setHintsUsed] = useState(0);
   const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
-  const [imagePreview, setImagePreview] = useState(null);
-  const fileInputRef = useRef();
   const wrongAnswers = useRef(0);
-
-  const handleCameraClick = () => fileInputRef.current.click();
-
-  const handleImageCapture = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result);
-    reader.readAsDataURL(file);
-
-    const formData = new FormData();
-    formData.append("photo", file);
-
-    try {
-      const response = await fetch("http://localhost:5000/upload-photo", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
-      if (!response.ok) alert("Upload failed: " + result.error);
-    } catch (err) {
-      console.error("Upload error:", err);
-      alert("An error occurred during upload.");
-    }
-  };
+  const questionsSkipped = useRef(0);
+  const timePenalty = useRef(0); 
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -61,7 +35,7 @@ const QuestionPage = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+      setElapsed(Math.floor((Date.now() - startTime) / 1000) + timePenalty.current);
     }, 1000);
     return () => clearInterval(interval);
   }, [startTime]);
@@ -74,56 +48,91 @@ const QuestionPage = () => {
 
   const handleHintClick = () => {
     if (questions[currentIndex]?.hint) {
+      const confirmHint = window.confirm("Are you sure you want to use a hint? A 2-minute penalty will be added to your time.");
+    if (!confirmHint) return;
+
       setHintsUsed((prev) => prev + 1);
+      timePenalty.current += 120;
       alert(`Hint: ${questions[currentIndex].hint}`);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!questions[currentIndex]) return;
+const handleSubmit = () => {
+  if (!questions[currentIndex]) return;
 
-    if (!userAnswer.trim()) {
-      alert("Please enter your answer.");
-      return;
-    }
+  if (!userAnswer.trim()) {
+    alert("Please enter your answer.");
+    return;
+  }
 
-    const input = userAnswer.toLowerCase().trim();
+  const confirmSubmit = window.confirm(
+    "Are you sure you want to submit? Wrong answers will incur a 5-minute penalty."
+  );
+  if (!confirmSubmit) return;
 
-    let acceptableAnswers = questions[currentIndex].answer;
-    if (!Array.isArray(acceptableAnswers)) {
-      acceptableAnswers = [acceptableAnswers];
-    }
+  const input = userAnswer.toLowerCase().trim();
+  let acceptableAnswers = questions[currentIndex].answer;
+  if (!Array.isArray(acceptableAnswers)) {
+    acceptableAnswers = [acceptableAnswers];
+  }
 
-    const isCorrect = acceptableAnswers.some(ans => ans.toLowerCase().trim() === input);
+  const isCorrect = acceptableAnswers.some(
+    (ans) => ans.toLowerCase().trim() === input
+  );
 
-    if (isCorrect) {
-      setCorrectAnswers((prev) => prev + 1);
-      alert("Correct!");
-    } else {
-      wrongAnswers.current += 1;
-      const answerDisplay = acceptableAnswers.join(" or ");
-      alert(`Incorrect. Accepted answers: ${answerDisplay}`);
-    }
+  const isLast = currentIndex === questions.length - 1;
 
+  if (isCorrect) {
+    alert("Correct!");
+    setCorrectAnswers((prev) => prev + 1);
     setUserAnswer("");
-    setImagePreview(null);
+
+    if (isLast) {
+      setTimeout(() => handleFinish(true), 100); // Show alert first, then finish
+    } else {
+      setCurrentIndex((prev) => prev + 1);
+    }
+
+  } else {
+    alert("Incorrect."); // no answer suggestions shown
+    wrongAnswers.current += 1;
+    timePenalty.current += 300; // Add 5-minute penalty
+    setUserAnswer("");
+
+    if (isLast) {
+      setTimeout(() => handleFinish(false), 100);
+    }
+  }
+};
+
+
+
+  const handleSkip = () => {
+    const confirmSkip = window.confirm("Are you sure you want to skip this question? A 10-minute penalty will be added.");
+    if (!confirmSkip) return;
+
+    timePenalty.current += 600; // Add 10 minutes
+    questionsSkipped.current += 1;
+    setUserAnswer("");
 
     const isLast = currentIndex === questions.length - 1;
 
-    if (!isLast) {
+    if (isLast) {
+      handleFinish(false); // skipped final question
+    } else {
       setCurrentIndex((prev) => prev + 1);
-      return;
     }
+  };
 
-    const finalCorrect = correctAnswers + (isCorrect ? 1 : 0);
-    const finalScore = finalCorrect * 500;
+  const handleFinish = async (answeredLast) => {
+    const finalCorrect = correctAnswers + (answeredLast ? 1 : 0);
+    const finalScore = finalCorrect;
     const rawTime = Math.floor((Date.now() - startTime) / 1000);
-    const finalWrongCount = wrongAnswers.current + (!isCorrect ? 1 : 0);
-    const finalTime = rawTime + finalWrongCount * 300;
+    const finalWrongCount = wrongAnswers.current;
+    const finalTime = rawTime + finalWrongCount * 300 + timePenalty.current;
     const finalHintsUsed = hintsUsed;
 
-    alert(`Quiz complete! Final score: ${finalScore}`);
-
+    alert("Quiz complete!");
     const playerId = sessionStorage.getItem("playerId");
     const collectionId = sessionStorage.getItem("collectionId");
 
@@ -137,11 +146,13 @@ const QuestionPage = () => {
           hintsUsed: finalHintsUsed,
           finishedAt: new Date(),
           collectionId,
+          wrongAnswers: finalWrongCount,
+          questionsSkipped: questionsSkipped.current
         }),
       });
     }
 
-    window.location.href = "/share";
+    window.location.href = "/results";
   };
 
   if (questions.length === 0) return <div>Loading questions...</div>;
@@ -154,10 +165,9 @@ const QuestionPage = () => {
         <div className="header">
           <div className="left-header">
             <img src="/images/ces.jpg" alt="Changi Experience Studio" className="ces-header" />
-            <div className="team-box">Team 1</div>
+            {/* <div className="team-box">Team 1</div> */}
           </div>
           <div className="right-header">
-            <div className="score-box">Score: {correctAnswers * 500}</div>
             <div className="time-box">Time: {formatTime(elapsed)}</div>
           </div>
         </div>
@@ -172,12 +182,6 @@ const QuestionPage = () => {
           <button onClick={handleHintClick}>💡 Show Hint</button>
         </div>
 
-        {imagePreview && (
-          <div className="image-preview-container">
-            <img src={imagePreview} alt="Captured" className="image-preview" />
-          </div>
-        )}
-
         <div className="answer-input">
           <input
             type="text"
@@ -186,18 +190,12 @@ const QuestionPage = () => {
             onChange={(e) => setUserAnswer(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           />
-          <button className="camera-button" onClick={handleCameraClick}>📷</button>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: "none" }}
-            ref={fileInputRef}
-            onChange={handleImageCapture}
-          />
         </div>
 
-        <button className="submit-button" onClick={handleSubmit}>Submit</button>
+        <div className="button-container">
+          <button className="submit-button" onClick={handleSkip}>Skip Question</button>
+          <button className="submit-button" onClick={handleSubmit}>Submit</button>
+        </div>
       </div>
     </div>
   );

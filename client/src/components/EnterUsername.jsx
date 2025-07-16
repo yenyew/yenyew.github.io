@@ -5,6 +5,7 @@ import "./MainStyles.css";
 export default function EnterUsername() {
   const [form, setForm] = useState({ username: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,16 +19,56 @@ export default function EnterUsername() {
     setForm((prev) => ({ ...prev, ...value }));
   };
 
-  const onSubmit = (e) => {
+  const checkBadUsername = async (username) => {
+    try {
+      const response = await fetch(`http://localhost:5000/bad-usernames/check/${username.trim()}`);
+      const data = await response.json();
+      return data.isBad;
+    } catch (error) {
+      console.error("Error checking bad username:", error);
+      return false; // If there's an error, allow the username
+    }
+  };
+
+  const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
+    // Frontend validation
     if (!form.username.trim()) {
       setError("Please enter your name.");
+      setLoading(false);
       return;
     }
 
-    sessionStorage.setItem("username", form.username);
+    const cleanUsername = form.username.trim();
+
+    // Basic validation - check length
+    if (cleanUsername.length < 2) {
+      setError("Username must be at least 2 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    // Basic validation - check for special characters (optional)
+    const hasSpecialChars = /[^a-zA-Z0-9\s]/.test(cleanUsername);
+    if (hasSpecialChars) {
+      setError("Username can only contain letters, numbers, and spaces.");
+      setLoading(false);
+      return;
+    }
+
+    // Check if username is prohibited
+    const isBad = await checkBadUsername(cleanUsername);
+    if (isBad) {
+      setError("This username is not allowed. Please choose a different one.");
+      setLoading(false);
+      return;
+    }
+
+    // Save and proceed
+    sessionStorage.setItem("username", cleanUsername);
     navigate("/getcode");
   };
 
@@ -81,8 +122,13 @@ export default function EnterUsername() {
             }}
           />
           <br />
-          <button type="submit" className="share-button" style={{ maxWidth: "200px", width: "100%" }}>
-            Let's Go
+          <button 
+            type="submit" 
+            className="share-button" 
+            style={{ maxWidth: "200px", width: "100%" }}
+            disabled={loading}
+          >
+            {loading ? "Checking..." : "Let's Go"}
           </button>
           {error && <div style={{ color: "red", marginTop: "12px" }}>{error}</div>}
         </form>
