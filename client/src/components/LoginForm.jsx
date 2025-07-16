@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./MainStyles.css"; // Use MainStyles instead of LoginScreen
 
+import "./MainStyles.css"; // Use MainStyles instead of LoginScreen
 const LoginScreen = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

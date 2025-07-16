@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import "./Questions.css";
 import "./MainStyles.css";
 
 const QuestionsPage = () => {
@@ -29,7 +30,7 @@ const QuestionsPage = () => {
         setCollections(data);
 
         if (data.length > 0 && !collectionCode) {
-          const codeToSet = passedCode || "all"; 
+          const codeToSet = passedCode || "all";
           setCollectionCode(codeToSet);
           // Set the selected collection object
           const selectedCol = data.find(col => col.code === codeToSet);
@@ -135,9 +136,9 @@ const QuestionsPage = () => {
               setSelectedCollection(selectedCol);
               navigate(`/questions?collection=${selected}`);
             }}
-            style={{ padding: "8px", fontSize: "16px", marginBottom: "16px" }}
+            style={{ padding: "8px", fontSize: "16px", marginTop: "100px" }}
           >
-            <option value="all">All Questions</option> 
+            <option value="all">All Questions</option>
             {collections.map((col) => (
               <option key={col._id} value={col.code}>
                 {col.name} Collection
@@ -155,10 +156,10 @@ const QuestionsPage = () => {
             ) : (
               <ul style={{ listStyleType: "none", padding: 0 }}>
                 {questions.map((q) => (
-                  <li 
-                    key={q._id} 
+                  <li
+                    key={q._id}
                     style={{ background: "#fff", borderRadius: "8px", padding: "10px", marginBottom: "8px", cursor: "pointer" }}
-                    onClick={() => navigate(`/edit-question/${q.number}/${q.collectionId}`)} 
+                    onClick={() => navigate(`/edit-question/${q.number}/${q.collectionId}`)}
                   >
                     <strong>Q{q.number}:</strong> {q.question}
                     <div style={{ marginTop: "8px", display: "flex", gap: "8px" }}>
@@ -189,15 +190,15 @@ const QuestionsPage = () => {
           </div>
 
           <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
-            <button 
-              onClick={() => navigate("/add-question")} 
-              className="add-question"  
+            <button
+              onClick={() => navigate("/add-question")}
+              className="add-question"
             >
               Add New Question
             </button>
-            <button 
-              onClick={() => navigate("/add-collection")} 
-              className="add-collection" 
+            <button
+              onClick={() => navigate("/add-collection")}
+              className="add-collection"
             >
               Add New Collection
             </button>
@@ -206,7 +207,16 @@ const QuestionsPage = () => {
           <button onClick={() => navigate("/admin")} className="login-btn" style={{ backgroundColor: "#17C4C4" }}>
             Back
           </button>
-          <a href="/" style={{ marginTop: "16px", color: "#17C4C4" }}>Return to Home Screen</a>
+          <button
+            onClick={() => {
+              localStorage.removeItem("jwtToken");
+              navigate("/login");
+            }}
+            className="login-btn"
+            style={{ marginTop: "16px", width: "100%", maxWidth: "300px" }}
+          >
+            Log Out
+          </button>
         </div>
       </div>
     </div>

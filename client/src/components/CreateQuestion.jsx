@@ -7,17 +7,18 @@ const CreateQuestion = () => {
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
+  const [funFact, setFunFact] = useState("");
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-      const token = localStorage.getItem("jwtToken");
-      if (!token) {
-        alert("You must be logged in to access this page.");
-        navigate("/login");
-                  return;
-      }
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      alert("You must be logged in to access this page.");
+      navigate("/login");
+      return;
+    }
     const fetchCollections = async () => {
       try {
         const response = await fetch("http://localhost:5000/collections/");
@@ -32,52 +33,54 @@ const CreateQuestion = () => {
   }, []);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setMessage("");
+    e.preventDefault();
+    setMessage("");
 
-  try {
-    const allRes = await fetch("http://localhost:5000/questions");
-    const allQuestions = await allRes.json();
+    try {
+      const allRes = await fetch("http://localhost:5000/questions");
+      const allQuestions = await allRes.json();
 
-    const exists = allQuestions.some(
-      (q) => q.number === parseInt(number) && q.collectionId === collectionId
-    );
+      const exists = allQuestions.some(
+        (q) => q.number === parseInt(number) && q.collectionId === collectionId
+      );
 
-    if (exists) {
-      alert("A question with that number already exists in the selected collection.");
-      return;
+      if (exists) {
+        alert("A question with that number already exists in the selected collection.");
+        return;
+      }
+
+      const newQuestion = {
+        number: parseInt(number),
+        collectionId,
+        question,
+        hint,
+        answer: answer.split(",").map(ans => ans.trim()), // Split the answer by commas and trim 
+        funFact
+      };
+
+      const response = await fetch("http://localhost:5000/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newQuestion),
+      });
+
+      if (response.ok) {
+        alert("Question added successfully!");
+        setCollectionId("");
+        setQuestion("");
+        setHint("");
+        setAnswer("");
+        setNumber("");
+        setFunFact("");
+      } else {
+        const data = await response.json();
+        setMessage(`Error: ${data.message || "Could not add question."}`);
+      }
+    } catch (err) {
+      console.error("Error submitting question:", err);
+      setMessage("Something went wrong. Please try again.");
     }
-
-    const newQuestion = {
-      number: parseInt(number),
-      collectionId,
-      question,
-      hint,
-      answer: answer.split(",").map(ans => ans.trim()), // Split the answer by commas and trim whitespace
-    };
-
-    const response = await fetch("http://localhost:5000/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newQuestion),
-    });
-
-    if (response.ok) {
-      alert("Question added successfully!");
-      setCollectionId("");
-      setQuestion("");
-      setHint("");
-      setAnswer("");
-      setNumber("");
-    } else {
-      const data = await response.json();
-      setMessage(`Error: ${data.message || "Could not add question."}`);
-    }
-  } catch (err) {
-    console.error("Error submitting question:", err);
-    setMessage("Something went wrong. Please try again.");
-  }
-};
+  };
 
 
   return (
@@ -87,7 +90,7 @@ const CreateQuestion = () => {
 
       <div className="header">
         <button
-          onClick={() => navigate("/admin")}
+          onClick={() => navigate("/questions")}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
@@ -170,6 +173,14 @@ const CreateQuestion = () => {
             placeholder="Answer"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+          <input
+            type="text"
+            placeholder="Fun Fact"
+            value={funFact}
+            onChange={(e) => setFunFact(e.target.value)}
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />

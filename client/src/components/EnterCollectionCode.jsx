@@ -17,7 +17,7 @@ export default function EnterCollCode() {
   }
 
   try {
-    const res = await fetch(`http://172.20.10.2:5000/collections/${code.trim()}`);
+    const res = await fetch(`http://localhost:5000/collections/${code.trim()}`);
 
     if (!res.ok) {
       setError("Invalid code. Please check with the staff.");
