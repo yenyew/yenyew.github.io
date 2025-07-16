@@ -27,6 +27,10 @@ const questionSchema = new mongoose.Schema({
   funFact: {
     type: String,
     required: true,
+  },
+  sortOrder: {
+    type: Number,
+    default: 0,  
   }
 });
 
