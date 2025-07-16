@@ -22,7 +22,7 @@ const QuestionPage = () => {
       }
 
       try {
-        const res = await fetch(`http://172.20.10.2:5000/questions?collectionId=${collectionId}`);
+        const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
         const data = await res.json();
         setQuestions(data);
       } catch (error) {
@@ -137,7 +137,7 @@ const handleSubmit = () => {
     const collectionId = sessionStorage.getItem("collectionId");
 
     if (playerId) {
-      await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
+      await fetch(`http://localhost:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
