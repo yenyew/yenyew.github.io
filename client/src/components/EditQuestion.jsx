@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "./MainStyles.css";
+
 const EditQuestion = () => {
   const { number, collectionId } = useParams();
   const navigate = useNavigate();
@@ -62,6 +63,12 @@ const EditQuestion = () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, hint, answer: answer.split(",").map(ans => ans.trim()), funFact, collectionId }),
+        body: JSON.stringify({ 
+          question, 
+          hint, 
+          answer: answer.split(",").map(ans => ans.trim()), 
+          collectionId 
+        }),
       });
 
       if (res.ok) {

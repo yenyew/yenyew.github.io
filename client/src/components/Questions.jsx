@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Questions.css";
+import "./MainStyles.css";
 
 const QuestionsPage = () => {
   const [questions, setQuestions] = useState([]);
   const [collections, setCollections] = useState([]);
-  const [collectionCode, setCollectionCode] = useState("all");
+  const [collectionCode, setCollectionCode] = useState("");
+  const [selectedCollection, setSelectedCollection] = useState(null); 
   const [collectionId, setCollectionId] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,6 +32,9 @@ const QuestionsPage = () => {
         if (data.length > 0 && !collectionCode) {
           const codeToSet = passedCode || "all";
           setCollectionCode(codeToSet);
+          // Set the selected collection object
+          const selectedCol = data.find(col => col.code === codeToSet);
+          setSelectedCollection(selectedCol);
         }
       } catch (err) {
         console.error("Error fetching collections:", err);
@@ -76,6 +81,15 @@ const QuestionsPage = () => {
     }
   };
 
+  const handleEdit = (number) => {
+    if (!selectedCollection) {
+      alert("Collection not selected");
+      return;
+    }
+    // Use the same navigation pattern as EditCollection
+    navigate(`/edit-question/${number}/${selectedCollection._id}`);
+  };
+
   const handleDelete = async (number, questionCollectionId) => {
     if (!window.confirm("Are you sure you want to delete this question?")) return;
 
@@ -106,7 +120,7 @@ const QuestionsPage = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header"><h1>GoChangi!</h1></div>
 
@@ -117,6 +131,9 @@ const QuestionsPage = () => {
             onChange={(e) => {
               const selected = e.target.value;
               setCollectionCode(selected);
+              // Update selected collection when changing
+              const selectedCol = collections.find(col => col.code === selected);
+              setSelectedCollection(selectedCol);
               navigate(`/questions?collection=${selected}`);
             }}
             style={{ padding: "8px", fontSize: "16px", marginTop: "100px" }}
@@ -147,11 +164,21 @@ const QuestionsPage = () => {
                     <strong>Q{q.number}:</strong> {q.question}
                     <div style={{ marginTop: "8px", display: "flex", gap: "8px" }}>
                       <button
+                        className="login-btn"
+                        style={{ backgroundColor: "#FFC107", color: "#000", fontSize: "14px", padding: "5px 10px" }}
+                        onClick={(e) => {
+                          e.stopPropagation(); // prevent navigation
+                          handleEdit(q.number);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
                         onClick={(e) => {
                           e.stopPropagation(); // prevent navigation
                           handleDelete(q.number, q.collectionId);
                         }}
-                        style={{ background: "#DC3545", color: "#fff" }}
+                        style={{ background: "#DC3545", color: "#fff", fontSize: "14px", padding: "5px 10px" }}
                       >
                         Delete
                       </button>
