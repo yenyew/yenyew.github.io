@@ -11,7 +11,7 @@ const QuestionPage = () => {
   const [elapsed, setElapsed] = useState(0);
   const wrongAnswers = useRef(0);
   const questionsSkipped = useRef(0);
-  const timePenalty = useRef(0); 
+  const timePenalty = useRef(0);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -49,7 +49,7 @@ const QuestionPage = () => {
   const handleHintClick = () => {
     if (questions[currentIndex]?.hint) {
       const confirmHint = window.confirm("Are you sure you want to use a hint? A 2-minute penalty will be added to your time.");
-    if (!confirmHint) return;
+      if (!confirmHint) return;
 
       setHintsUsed((prev) => prev + 1);
       timePenalty.current += 120;
@@ -57,68 +57,70 @@ const QuestionPage = () => {
     }
   };
 
-const handleSubmit = () => {
-  if (!questions[currentIndex]) return;
+  const handleSubmit = () => {
+    if (!questions[currentIndex]) return;
 
-  if (!userAnswer.trim()) {
-    alert("Please enter your answer.");
-    return;
-  }
+    if (!userAnswer.trim()) {
+      alert("Please enter your answer.");
+      return;
+    }
 
-  const confirmSubmit = window.confirm(
-    "Are you sure you want to submit? Wrong answers will incur a 5-minute penalty."
-  );
-  if (!confirmSubmit) return;
+    const confirmSubmit = window.confirm(
+      "Are you sure you want to submit? Wrong answers will incur a 5-minute penalty."
+    );
+    if (!confirmSubmit) return;
 
-  const input = userAnswer.toLowerCase().trim();
-  let acceptableAnswers = questions[currentIndex].answer;
-  if (!Array.isArray(acceptableAnswers)) {
-    acceptableAnswers = [acceptableAnswers];
-  }
+    const input = userAnswer.toLowerCase().trim();
+    let acceptableAnswers = questions[currentIndex].answer;
+    if (!Array.isArray(acceptableAnswers)) {
+      acceptableAnswers = [acceptableAnswers];
+    }
 
-  const isCorrect = acceptableAnswers.some(
-    (ans) => ans.toLowerCase().trim() === input
-  );
+    const isCorrect = acceptableAnswers.some(
+      (ans) => ans.toLowerCase().trim() === input
+    );
 
-  const isLast = currentIndex === questions.length - 1;
+    const isLast = currentIndex === questions.length - 1;
 
-  if (isCorrect) {
-    alert("Correct!");
-    setCorrectAnswers((prev) => prev + 1);
-    setUserAnswer("");
+    if (isCorrect) {
+      alert("Correct!");
+      setCorrectAnswers((prev) => prev + 1);
+      setUserAnswer("");
 
-    if (isLast) {
-      setTimeout(() => handleFinish(true), 100); // Show alert first, then finish
+      const funFact = questions[currentIndex].funFact || "No fun fact available.";
+      alert(`🎉 Fun Fact: ${funFact}`);
+
+      if (isLast) {
+        setTimeout(() => handleFinish(true), 100);
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
     } else {
-      setCurrentIndex((prev) => prev + 1);
+      alert("Incorrect.");
+      wrongAnswers.current += 1;
+      timePenalty.current += 300;
+      setUserAnswer("");
+
+      if (isLast) {
+        setTimeout(() => handleFinish(false), 100);
+      }
     }
-
-  } else {
-    alert("Incorrect."); // no answer suggestions shown
-    wrongAnswers.current += 1;
-    timePenalty.current += 300; // Add 5-minute penalty
-    setUserAnswer("");
-
-    if (isLast) {
-      setTimeout(() => handleFinish(false), 100);
-    }
-  }
-};
-
-
+  };
 
   const handleSkip = () => {
     const confirmSkip = window.confirm("Are you sure you want to skip this question? A 10-minute penalty will be added.");
     if (!confirmSkip) return;
 
-    timePenalty.current += 600; // Add 10 minutes
+    timePenalty.current += 600;
     questionsSkipped.current += 1;
     setUserAnswer("");
 
-    const isLast = currentIndex === questions.length - 1;
+    const funFact = questions[currentIndex].funFact || "No fun fact available.";
+    alert(`🎉 Fun Fact: ${funFact}`);
 
+    const isLast = currentIndex === questions.length - 1;
     if (isLast) {
-      handleFinish(false); // skipped final question
+      handleFinish(false);
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
@@ -165,7 +167,6 @@ const handleSubmit = () => {
         <div className="header">
           <div className="left-header">
             <img src="/images/ces.jpg" alt="Changi Experience Studio" className="ces-header" />
-            {/* <div className="team-box">Team 1</div> */}
           </div>
           <div className="right-header">
             <div className="time-box">Time: {formatTime(elapsed)}</div>

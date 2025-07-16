@@ -12,6 +12,13 @@ const EditCollection = () => {
   const pageSize = 6;
 
   useEffect(() => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      alert("You must be logged in to access this page.");
+      navigate("/login");
+      return;
+    }
+    
     const fetchCollection = async () => {
       try {
         const res = await fetch(`http://localhost:5000/collections`);

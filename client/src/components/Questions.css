@@ -173,20 +173,22 @@ button.login-btn {
 
 /* Gradient button styling for Add Question and Add Collection */
 button {
-  padding: 10px 20px;
+  padding: 1px 20px;
   font-size: 16px;
   border-radius: 8px;
   cursor: pointer;
   border: none;
   background: linear-gradient(90deg, #C4EB22, #00b8b8); /* Gradient */
   color: #fff;
+  margin-top: 1px
 }
 
 button.add-question, button.add-collection {
   background: linear-gradient(90deg, #C4EB22, #00b8b8); /* Same gradient as login-btn */
   color: white;
   width: 100%;
-  margin-bottom: 20px; /* Space below the buttons */
+  margin-top: 1px;
+  margin-bottom: 0px; /* Space below the buttons */
 }
 
 button.add-question:hover, button.add-collection:hover {

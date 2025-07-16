@@ -9,14 +9,21 @@ const EditQuestion = () => {
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
+  const [funFact, setFunFact] = useState("");
 
   useEffect(() => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      alert("You must be logged in to access this page.");
+      navigate("/login");
+      return;
+    }
+    
     if (!collectionId) {
       alert("Missing collection ID.");
       navigate("/questions");
       return;
     }
-
     const fetchCollectionName = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
@@ -36,6 +43,7 @@ const EditQuestion = () => {
         setQuestion(data.data.question);
         setHint(data.data.hint);
         setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer); // Join array answers into a string
+        setFunFact(data.data.funFact || "");
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -53,7 +61,7 @@ const EditQuestion = () => {
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, hint, answer: answer.split(",").map(ans => ans.trim()), collectionId }),
+        body: JSON.stringify({ question, hint, answer: answer.split(",").map(ans => ans.trim()), funFact, collectionId }),
       });
 
       if (res.ok) {
@@ -124,6 +132,14 @@ const EditQuestion = () => {
             placeholder="Answer"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+          <input
+            type="text"
+            placeholder="Fun fact"
+            value={funFact}
+            onChange={(e) => setFunFact(e.target.value)}
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
