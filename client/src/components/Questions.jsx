@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./MainStyles.css";
+
 const QuestionsPage = () => {
   const [questions, setQuestions] = useState([]);
   const [collections, setCollections] = useState([]);
@@ -86,7 +87,7 @@ const QuestionsPage = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header">
         <h1 style={{ fontSize: "48px", fontFamily: "serif", fontWeight: "bold", margin: 0 }}>
