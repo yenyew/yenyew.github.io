@@ -12,7 +12,7 @@ import LoginForm from './components/LoginForm.jsx';
 import AdminScreen from './components/AdminScreen.jsx';
 import CreateQuestion from "./components/CreateQuestion.jsx";
 import EditQuestion from "./components/EditQuestion.jsx";
-import Questions from "./components/Questions.jsx";
+import Questions from "./components/QuestionsBank.jsx";
 import CreateCollection from "./components/CreateCollection.jsx";
 import EditCollection from "./components/EditCollection.jsx";
 import AdminLeaderboard from "./components/LeaderboardAdmin.jsx";

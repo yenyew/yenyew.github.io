@@ -13,7 +13,7 @@ const generateRandomCode = () => {
   return result;
 };
 
-const QuestionsPage = () => {
+const QuestionsBank = () => {
   const [questions, setQuestions] = useState([]);
   const [collections, setCollections] = useState([]);
   const [collectionCode, setCollectionCode] = useState("");
@@ -192,7 +192,7 @@ const QuestionsPage = () => {
       alert("Please enter a collection code.");
       return;
     }
-
+  
     try {
       const res = await fetch(`http://localhost:5000/collections/${editCollection._id}`, {
         method: "PATCH",
@@ -202,7 +202,7 @@ const QuestionsPage = () => {
           code: collectionCodeInput.trim()
         }),
       });
-
+  
       if (res.ok) {
         alert("Collection updated successfully!");
         setShowCollectionModal(false);
@@ -213,11 +213,20 @@ const QuestionsPage = () => {
         const data = await response.json();
         setCollections(data);
         
-        // Update current selection if needed
+        // Update selectedCollection with the new data
+        const updatedCollection = data.find(col => col._id === editCollection._id);
+        setSelectedCollection(updatedCollection);
+        
+        // Update current selection if code changed
         if (collectionCode === editCollection.code) {
           setCollectionCode(collectionCodeInput.trim());
-          navigate(`/questions?collection=${collectionCodeInput.trim()}`);
+          // Navigate to the new code but don't add to history
+          window.history.replaceState(null, '', `/questions?collection=${collectionCodeInput.trim()}`);
         }
+        
+        // Clear form
+        setCollectionName("");
+        setCollectionCodeInput("");
       } else {
         const data = await res.json();
         alert(`Failed to update collection: ${data.message}`);
@@ -519,4 +528,4 @@ const QuestionsPage = () => {
   );
 };
 
-export default QuestionsPage;
+export default QuestionsBank;
