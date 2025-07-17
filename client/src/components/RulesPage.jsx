@@ -7,9 +7,8 @@ const rules = [
   "Let's go through some quick ground rules. Take your time to read — the game timer hasn't started yet, so no rush.",
   "You'll be solving 12 clues, one at a time. Once you submit an answer, you can't change it — so think carefully before hitting submit!",
   "Your game is timed. Each wrong answer adds a 5-minute penalty. Skipping a question adds 10 minutes, and using a hint adds 2 minutes. Hints are optional — use them wisely.",
-  "Stick to public areas and stay discreet. You won’t need to enter any restricted or private zones unless clearly instructed. Keep your eyes peeled and have fun!"
+  "Stick to public areas and stay discreet. You won't need to enter any restricted or private zones unless clearly instructed. Keep your eyes peeled and have fun!"
 ];
-
 
 export default function RulesPage() {
   const navigate = useNavigate();
@@ -148,14 +147,25 @@ export default function RulesPage() {
 
             {current === rules.length - 1 && (
               <>
-                <div className="rules-checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={agreed}
-                      onChange={(e) => setAgreed(e.target.checked)}
-                      style={{ marginRight: 8 }}
-                    />
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "center", 
+                  alignItems: "center", 
+                  gap: "8px",
+                  marginBottom: "20px",
+                  fontSize: "1rem"
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                    style={{ 
+                      width: "18px", 
+                      height: "18px",
+                      cursor: "pointer"
+                    }}
+                  />
+                  <label style={{ cursor: "pointer" }}>
                     I have read and agree to the rules.
                   </label>
                 </div>
@@ -179,18 +189,18 @@ export default function RulesPage() {
               </button>
             )}
 
+            {error && <div style={{ color: "red", marginTop: "16px" }}>{error}</div>}
+
             <button
               onClick={() => navigate("/getname")}
               className="rules-start-button"
               style={{
-                marginTop: "12px",
+                marginTop: "40px",
                 background: "linear-gradient(to right, #00c4cc, #4e9cff)"
               }}
             >
-              Back
+              Return
             </button>
-
-            {error && <div style={{ color: "red", marginTop: "16px" }}>{error}</div>}
           </>
         )}
       </div>
