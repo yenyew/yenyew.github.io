@@ -20,9 +20,22 @@ const QuestionPage = () => {
       if (!collectionId) return;
 
       try {
-        const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
-        const data = await res.json();
-        setQuestions(data);
+        // Try to get collection first to check if it has custom order
+        const collections = await fetch("http://localhost:5000/collections/");
+        const collectionsData = await collections.json();
+        const collection = collectionsData.find(c => c._id === collectionId);
+        
+        if (collection && collection.questionOrder && collection.questionOrder.length > 0) {
+          // Use the custom order from collection
+          const response = await fetch(`http://localhost:5000/collections/${collection.code}/questions`);
+          const data = await response.json();
+          setQuestions(Array.isArray(data) ? data : data.questions || []);
+        } else {
+          // Fallback to regular order
+          const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
+          const data = await res.json();
+          setQuestions(data);
+        }
       } catch (error) {
         console.error("Failed to fetch questions:", error);
       }
