@@ -17,6 +17,8 @@ import CreateCollection from "./components/CreateCollection.jsx";
 import EditCollection from "./components/EditCollection.jsx";
 import AdminLeaderboard from "./components/LeaderboardAdmin.jsx";
 import BadUsernames from "./components/BadUsernames.jsx";
+import GlobalSettings from "./components/GlobalSettings.jsx";
+
 
 export default function App() {
   return (
@@ -38,6 +40,7 @@ export default function App() {
         <Route path="/edit-collection/:id" element={<EditCollection />} />
         <Route path="/admin-leaderboard" element={<AdminLeaderboard />} />
         <Route path="/bad-usernames" element={<BadUsernames />} />
+        <Route path="/global-game-settings" element={<GlobalSettings />} />
       </Routes>
     </div>
   );

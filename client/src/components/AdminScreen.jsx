@@ -48,6 +48,14 @@ const AdminScreen = () => {
         </button>
 
         <button
+            onClick={() => navigate("/global-game-settings")}
+            className="login-btn"
+            style={{ marginTop: "16px", width: "100%", maxWidth: "300px", backgroundColor: "#6f42c1" }}
+          >
+            Default Game Settings
+        </button>
+
+        <button
           onClick={handleViewLeaderboard}
           className="login-btn"
           style={{ marginTop: "16px", width: "100%", maxWidth: "300px", backgroundColor: "#007b8a" }}

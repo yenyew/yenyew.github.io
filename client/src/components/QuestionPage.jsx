@@ -8,6 +8,7 @@ const QuestionPage = () => {
   const [userAnswer, setUserAnswer] = useState("");
   const [hintsUsed, setHintsUsed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [gameSettings, setGameSettings] = useState(null);
 
   const startTime = useRef(Date.now());
   const wrongAnswers = useRef(0);
@@ -15,33 +16,36 @@ const QuestionPage = () => {
   const timePenalty = useRef(0);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const fetchQuestionsAndSettings = async () => {
       const collectionId = sessionStorage.getItem("collectionId");
       if (!collectionId) return;
 
       try {
-        // Try to get collection first to check if it has custom order
+        // Fetch effective settings for this collection
+        const settingsResponse = await fetch(`http://localhost:5000/collections/${collectionId}/effective-settings`);
+        const settingsData = await settingsResponse.json();
+        setGameSettings(settingsData);
+
+        // Fetch questions (existing logic)
         const collections = await fetch("http://localhost:5000/collections/");
         const collectionsData = await collections.json();
         const collection = collectionsData.find(c => c._id === collectionId);
         
         if (collection && collection.questionOrder && collection.questionOrder.length > 0) {
-          // Use the custom order from collection
           const response = await fetch(`http://localhost:5000/collections/${collection.code}/questions`);
           const data = await response.json();
           setQuestions(Array.isArray(data) ? data : data.questions || []);
         } else {
-          // Fallback to regular order
           const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
           const data = await res.json();
           setQuestions(data);
         }
       } catch (error) {
-        console.error("Failed to fetch questions:", error);
+        console.error("Failed to fetch questions and settings:", error);
       }
     };
 
-    fetchQuestions();
+    fetchQuestionsAndSettings();
   }, []);
 
   useEffect(() => {
@@ -58,28 +62,40 @@ const QuestionPage = () => {
     return `00:${mins}:${secs}`;
   };
 
+  const formatPenaltyTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return secs > 0 ? `${mins} minute${mins > 1 ? 's' : ''} and ${secs} second${secs > 1 ? 's' : ''}` : `${mins} minute${mins > 1 ? 's' : ''}`;
+    }
+    return `${secs} second${secs > 1 ? 's' : ''}`;
+  };
+
+
   const handleHintClick = () => {
     const hint = questions[currentIndex]?.hint;
-    if (!hint) return;
+    if (!hint || !gameSettings) return;
 
-    const confirmed = window.confirm("Use a hint? A 2-minute penalty will be added.");
+    const penaltyText = formatPenaltyTime(gameSettings.hintPenalty);
+    const confirmed = window.confirm(`Use a hint? A ${penaltyText} penalty will be added.`);
     if (confirmed) {
       setHintsUsed((prev) => prev + 1);
-      timePenalty.current += 120;
+      timePenalty.current += gameSettings.hintPenalty;
       alert(`Hint: ${hint}`);
     }
   };
 
   const handleSubmit = () => {
     const currentQuestion = questions[currentIndex];
-    if (!currentQuestion) return;
+    if (!currentQuestion || !gameSettings) return;
 
     if (!userAnswer.trim()) {
       alert("Please enter your answer.");
       return;
     }
 
-    const confirmed = window.confirm("Submit answer? Wrong answers add 5-minute penalty.");
+    const penaltyText = formatPenaltyTime(gameSettings.wrongAnswerPenalty);
+    const confirmed = window.confirm(`Submit answer? Wrong answers add ${penaltyText} penalty.`);
     if (!confirmed) return;
 
     const input = userAnswer.toLowerCase().trim();
@@ -109,7 +125,7 @@ const QuestionPage = () => {
     } else {
       alert("Incorrect.");
       wrongAnswers.current += 1;
-      timePenalty.current += 300;
+      timePenalty.current += gameSettings.wrongAnswerPenalty;
       setUserAnswer("");
 
       if (isLast) {
@@ -119,10 +135,13 @@ const QuestionPage = () => {
   };
 
   const handleSkip = () => {
-    const confirmed = window.confirm("Skip this question? A 10-minute penalty will be added.");
+    if (!gameSettings) return;
+    
+    const penaltyText = formatPenaltyTime(gameSettings.skipPenalty);
+    const confirmed = window.confirm(`Skip this question? A ${penaltyText} penalty will be added.`);
     if (!confirmed) return;
 
-    timePenalty.current += 600;
+    timePenalty.current += gameSettings.skipPenalty;
     questionsSkipped.current += 1;
     setUserAnswer("");
 
@@ -140,7 +159,7 @@ const QuestionPage = () => {
   const handleFinish = async (answeredLast) => {
     const finalCorrect = correctAnswers + (answeredLast ? 1 : 0);
     const rawTime = Math.floor((Date.now() - startTime.current) / 1000);
-    const finalTime = rawTime + wrongAnswers.current * 300 + timePenalty.current;
+    const finalTime = rawTime + timePenalty.current;
 
     alert("Quiz complete!");
 
@@ -171,7 +190,7 @@ const QuestionPage = () => {
   };
 
   const currentQuestion = questions[currentIndex];
-  if (questions.length === 0) return <div>Loading questions...</div>;
+  if (questions.length === 0 || !gameSettings) return <div>Loading questions...</div>;
   if (!currentQuestion) return <div>Loading question...</div>;
 
   return (

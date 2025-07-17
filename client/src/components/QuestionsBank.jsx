@@ -21,14 +21,24 @@ const QuestionsBank = () => {
   const [, setCollectionId] = useState(null);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showGameSettingsModal, setShowGameSettingsModal] = useState(false);
   const [editCollection, setEditCollection] = useState(null);
   const [collectionName, setCollectionName] = useState("");
   const [collectionCodeInput, setCollectionCodeInput] = useState("");
   const [orderedQuestions, setOrderedQuestions] = useState([]);
+  const [useGlobalSettings, setUseGlobalSettings] = useState(true);
+  const [customSettings, setCustomSettings] = useState({
+    gameMode: 'default',
+    wrongAnswerPenalty: 300,
+    hintPenalty: 120,
+    skipPenalty: 600
+  });
+  const [globalSettings, setGlobalSettings] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const passedCode = queryParams.get("collection");
+  
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
@@ -311,6 +321,88 @@ const QuestionsBank = () => {
     setOrderedQuestions(newQuestions);
   };
 
+  // Game Settings functions
+  const fetchGlobalSettings = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/global-settings");
+      const data = await response.json();
+      setGlobalSettings(data);
+    } catch (error) {
+      console.error("Error fetching global settings:", error);
+    }
+  };
+
+  const handleGameSettings = async () => {
+    if (!selectedCollection) return;
+    
+    // Fetch global settings first
+    await fetchGlobalSettings();
+    
+    // Set current collection settings
+    setUseGlobalSettings(selectedCollection.useGlobalSettings ?? true);
+    setCustomSettings(selectedCollection.customSettings || {
+      gameMode: 'default',
+      wrongAnswerPenalty: 300,
+      hintPenalty: 120,
+      skipPenalty: 600
+    });
+    
+    setShowGameSettingsModal(true);
+  };
+
+  const handleSaveGameSettings = async () => {
+    if (!selectedCollection) return;
+
+    try {
+      const payload = {
+        useGlobalSettings,
+        customSettings: useGlobalSettings ? null : customSettings
+      };
+
+      const res = await fetch(`http://localhost:5000/collections/${selectedCollection._id}/game-settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        alert("Game settings updated successfully!");
+        setShowGameSettingsModal(false);
+        
+        // Refresh collections
+        const response = await fetch("http://localhost:5000/collections/");
+        const data = await response.json();
+        setCollections(data);
+        
+        const updatedCollection = data.find(col => col._id === selectedCollection._id);
+        setSelectedCollection(updatedCollection);
+      } else {
+        const data = await res.json();
+        alert(`Failed to update game settings: ${data.message}`);
+      }
+    } catch (err) {
+      console.error("Error updating game settings:", err);
+      alert("Error updating game settings. Please try again.");
+    }
+  };
+
+  const closeGameSettingsModal = () => {
+    setShowGameSettingsModal(false);
+    setUseGlobalSettings(true);
+    setCustomSettings({
+      gameMode: 'default',
+      wrongAnswerPenalty: 300,
+      hintPenalty: 120,
+      skipPenalty: 600
+    });
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
   // Generate random code function
   const handleGenerateCode = () => {
     const newCode = generateRandomCode();
@@ -390,6 +482,20 @@ const QuestionsBank = () => {
                   }}
                 >
                   Order Questions
+                </button>
+                <button
+                  onClick={handleGameSettings}
+                  style={{ 
+                    backgroundColor: "#6f42c1", 
+                    color: "#fff", 
+                    fontSize: "12px", 
+                    padding: "4px 8px",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Game Settings
                 </button>
                 <button
                   onClick={() => handleEditCollection(selectedCollection)}
@@ -794,6 +900,170 @@ const QuestionsBank = () => {
               </button>
               <button
                 onClick={closeOrderModal}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  backgroundColor: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontSize: "16px"
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Settings Modal */}
+      {showGameSettingsModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: "white",
+            padding: "25px",
+            borderRadius: "10px",
+            width: "90%",
+            maxWidth: "600px",
+            maxHeight: "80vh",
+            overflowY: "auto"
+          }}>
+            <h3 style={{ marginBottom: "20px", textAlign: "center" }}>
+              Game Settings - {selectedCollection?.name}
+            </h3>
+            
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px" }}>
+                <input
+                  type="checkbox"
+                  checked={useGlobalSettings}
+                  onChange={(e) => setUseGlobalSettings(e.target.checked)}
+                />
+                <span style={{ fontWeight: "bold" }}>Use Global Default Settings</span>
+              </label>
+              
+              {globalSettings && (
+                <div style={{ 
+                  backgroundColor: "#f8f9fa", 
+                  padding: "12px", 
+                  borderRadius: "5px", 
+                  marginBottom: "15px" 
+                }}>
+                  <h4 style={{ margin: "0 0 8px 0", fontSize: "14px" }}>Global Defaults:</h4>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    <p style={{ margin: "2px 0" }}>• Game Mode: {globalSettings.defaultGameMode}</p>
+                    <p style={{ margin: "2px 0" }}>• Wrong Answer: +{formatTime(globalSettings.defaultWrongAnswerPenalty)}</p>
+                    <p style={{ margin: "2px 0" }}>• Hint: +{formatTime(globalSettings.defaultHintPenalty)}</p>
+                    <p style={{ margin: "2px 0" }}>• Skip: +{formatTime(globalSettings.defaultSkipPenalty)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!useGlobalSettings && (
+              <div style={{ marginBottom: "20px" }}>
+                <h4 style={{ marginBottom: "15px", color: "#333" }}>Custom Settings:</h4>
+                
+                <div style={{ marginBottom: "15px" }}>
+                  <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>
+                    Game Mode:
+                  </label>
+                  <select
+                    value={customSettings.gameMode}
+                    onChange={(e) => setCustomSettings({...customSettings, gameMode: e.target.value})}
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "5px",
+                      border: "1px solid #ccc"
+                    }}
+                  >
+                    <option value="default">Default</option>
+                    <option value="random">Random</option>
+                    <option value="rotating">Rotating</option>
+                    <option value="rotating-reverse">Rotating Reverse</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: "15px" }}>
+                  <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>
+                    Wrong Answer Penalty: {formatTime(customSettings.wrongAnswerPenalty)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="600"
+                    step="30"
+                    value={customSettings.wrongAnswerPenalty}
+                    onChange={(e) => setCustomSettings({...customSettings, wrongAnswerPenalty: parseInt(e.target.value)})}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "15px" }}>
+                  <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>
+                    Hint Penalty: {formatTime(customSettings.hintPenalty)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="300"
+                    step="15"
+                    value={customSettings.hintPenalty}
+                    onChange={(e) => setCustomSettings({...customSettings, hintPenalty: parseInt(e.target.value)})}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "15px" }}>
+                  <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>
+                    Skip Penalty: {formatTime(customSettings.skipPenalty)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1200"
+                    step="60"
+                    value={customSettings.skipPenalty}
+                    onChange={(e) => setCustomSettings({...customSettings, skipPenalty: parseInt(e.target.value)})}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={handleSaveGameSettings}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  backgroundColor: "#6f42c1",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "bold"
+                }}
+              >
+                Save Settings
+              </button>
+              <button
+                onClick={closeGameSettingsModal}
                 style={{
                   flex: 1,
                   padding: "12px",
