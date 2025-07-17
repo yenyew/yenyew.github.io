@@ -10,6 +10,11 @@ const collectionSchema = new mongoose.Schema({
     required: true,
     unique: true, // So each collection can be uniquely identified by code
   },
+  questionOrder: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Question",
+    default: []
+  },
 }, {
   timestamps: true, // Adds createdAt and updatedAt
 });

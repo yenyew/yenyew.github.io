@@ -34,16 +34,22 @@ router.get("/with-questions", async (req, res) => {
   }
 });
 
-// Get questions by collection code
+// Get questions by collection code 
 router.get('/:code/questions', async (req, res) => {
   try {
-    const collection = await Collection.findOne({ code: req.params.code });
+    const collection = await Collection.findOne({ code: req.params.code }).populate('questionOrder');
 
     if (!collection) {
       return res.status(404).json({ message: 'Collection not found' });
     }
 
-    const questions = await Question.find({ collectionId: collection._id });
+    // If questionOrder is empty or not set, return questions in default order
+    let questions;
+    if (collection.questionOrder && collection.questionOrder.length > 0) {
+      questions = collection.questionOrder; // Already populated
+    } else {
+      questions = await Question.find({ collectionId: collection._id });
+    }
 
     res.status(200).json({
       collection: collection.name,
@@ -58,14 +64,14 @@ router.get('/:code/questions', async (req, res) => {
 // Create a new collection
 router.post('/', async (req, res) => {
   try {
-    const { name, code } = req.body;
+    const { name, code, questionOrder = [] } = req.body;
 
     const existing = await Collection.findOne({ code });
     if (existing) {
       return res.status(400).json({ message: "Collection code must be unique" });
     }
 
-    const newCollection = await Collection.create({ name, code });
+    const newCollection = await Collection.create({ name, code, questionOrder });
     res.status(201).json(newCollection);
   } catch (error) {
     res.status(400).json({ message: "Failed to create collection", error: error.message });
@@ -75,11 +81,16 @@ router.post('/', async (req, res) => {
 // Update an existing collection
 router.patch('/:id', async (req, res) => {
   try {
-    const { name, code } = req.body;
+    const { name, code, questionOrder } = req.body;
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (code) updateData.code = code;
+    if (questionOrder) updateData.questionOrder = questionOrder;
 
     const updated = await Collection.findByIdAndUpdate(
       req.params.id,
-      { name, code },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -90,6 +101,31 @@ router.patch('/:id', async (req, res) => {
     res.status(200).json(updated);
   } catch (error) {
     res.status(400).json({ message: "Failed to update collection", error: error.message });
+  }
+});
+
+// Update question order for a collection
+router.patch('/:id/question-order', async (req, res) => {
+  try {
+    const { questionOrder } = req.body;
+
+    if (!Array.isArray(questionOrder)) {
+      return res.status(400).json({ message: "questionOrder must be an array" });
+    }
+
+    const updated = await Collection.findByIdAndUpdate(
+      req.params.id,
+      { questionOrder },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Collection not found" });
+    }
+
+    res.status(200).json({ message: "Question order updated successfully", collection: updated });
+  } catch (error) {
+    res.status(400).json({ message: "Failed to update question order", error: error.message });
   }
 });
 

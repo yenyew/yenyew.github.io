@@ -4,25 +4,13 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
-// Get all questions (optionally filtered by collectionId) with sorting
+// Get all questions (optionally filtered by collectionId)
 router.get("/", async (req, res) => {
   try {
-    const { collectionId, sortBy = 'number', sortOrder = 'asc' } = req.query;
+    const { collectionId } = req.query;
     const filter = collectionId ? { collectionId } : {};
     
-    // Determine sort direction
-    const sortDirection = sortOrder === 'desc' ? -1 : 1;
-    
-    // Create sort object
-    const sortObj = {};
-    if (sortBy === 'custom') {
-      sortObj.sortOrder = sortDirection;
-      sortObj.number = 1; // Secondary sort by number
-    } else {
-      sortObj[sortBy] = sortDirection;
-    }
-    
-    const questions = await Question.find(filter).sort(sortObj);
+    const questions = await Question.find(filter);
     res.status(200).json(questions);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -52,7 +40,7 @@ router.get("/:number/:collectionId", async (req, res) => {
 // Create a new question (now checks for uniqueness within the same collection)
 router.post("/", async (req, res) => {
   try {
-    const { number, collectionId, question, hint, answer, funFact, sortOrder = 0 } = req.body;
+    const { number, collectionId, question, hint, answer, funFact } = req.body;
 
     const existing = await Question.findOne({ number, collectionId });
     if (existing) {
@@ -65,8 +53,7 @@ router.post("/", async (req, res) => {
       question,
       hint,
       answer,
-      funFact,
-      sortOrder
+      funFact
     };
 
     const result = await Question.create(newQuestion);
@@ -81,15 +68,10 @@ router.post("/", async (req, res) => {
 router.patch("/:number/:collectionId", async (req, res) => {
   try {
     const { number, collectionId } = req.params;
-    const { question, hint, answer, funFact, sortOrder } = req.body;
+    const { question, hint, answer, funFact } = req.body;
 
     const query = { number: parseInt(number), collectionId };
     const updates = { $set: { question, hint, answer, funFact } };
-    
-    // Only update sortOrder if provided
-    if (sortOrder !== undefined) {
-      updates.$set.sortOrder = sortOrder;
-    }
 
     const result = await Question.updateOne(query, updates);
 
@@ -100,31 +82,6 @@ router.patch("/:number/:collectionId", async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ message: "Error updating question", error: err.message });
-  }
-});
-
-// Bulk update sort order for questions in a collection
-router.patch("/bulk-sort/:collectionId", async (req, res) => {
-  try {
-    const { collectionId } = req.params;
-    const { questions } = req.body; // Array of {number, sortOrder}
-
-    if (!Array.isArray(questions)) {
-      return res.status(400).json({ message: "Questions must be an array" });
-    }
-
-    // Update each question's sort order
-    const updatePromises = questions.map(({ number, sortOrder }) => 
-      Question.updateOne(
-        { number: parseInt(number), collectionId },
-        { $set: { sortOrder } }
-      )
-    );
-
-    await Promise.all(updatePromises);
-    res.status(200).json({ message: "Sort order updated successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating sort order", error: error.message });
   }
 });
 
