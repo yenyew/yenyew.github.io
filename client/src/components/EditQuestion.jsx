@@ -10,6 +10,9 @@ const EditQuestion = () => {
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
+  const [image, setImage] = useState(null);
+  const [existingImage, setExistingImage] = useState(null);
+  const [deleteImage, setDeleteImage] = useState(false);
   const [funFact, setFunFact] = useState("");
 
   useEffect(() => {
@@ -25,6 +28,7 @@ const EditQuestion = () => {
       navigate("/questions");
       return;
     }
+    
     const fetchCollectionName = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
@@ -43,7 +47,9 @@ const EditQuestion = () => {
         const data = await res.json();
         setQuestion(data.data.question);
         setHint(data.data.hint);
-        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer); // Join array answers into a string
+        setExistingImage(data.data.image);
+        // Fixed: Only set answer once, handle array properly
+        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer);
         setFunFact(data.data.funFact || "");
       } catch (err) {
         console.error("Error fetching question:", err);
@@ -59,16 +65,25 @@ const EditQuestion = () => {
     e.preventDefault();
 
     try {
+      const formData = new FormData();
+      formData.append("question", question);
+      formData.append("hint", hint);
+      formData.append("answer", JSON.stringify(answer.split(",").map(ans => ans.trim())));
+      formData.append("funFact", funFact);
+      formData.append("collectionId", collectionId);
+      
+      if (image) {
+        formData.append("image", image);
+      }
+      
+      if (deleteImage) {
+        formData.append("deleteImage", "true");
+      }
+
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          question, 
-          hint, 
-          answer: answer.split(",").map(ans => ans.trim()), 
-          funFact,
-          collectionId 
-        }),
+        body: formData, // Only FormData body - no duplicate!
+        // Note: Don't set Content-Type header when using FormData
       });
 
       if (res.ok) {
@@ -123,6 +138,7 @@ const EditQuestion = () => {
               backgroundColor: "white",
             }}
           />
+          
           <input
             type="text"
             placeholder="Hint"
@@ -131,6 +147,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+          
           <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
             Enter multiple acceptable answers, separated by commas.
           </p>
@@ -139,9 +156,52 @@ const EditQuestion = () => {
             placeholder="Answer"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
+            required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
+          {existingImage && !deleteImage && (
+            <div style={{ marginBottom: "10px" }}>
+              <img
+                src={`http://localhost:5000/${existingImage}`}
+                alt="Current question"
+                style={{ 
+                  width: "100%", 
+                  maxHeight: "200px", 
+                  objectFit: "contain", 
+                  borderRadius: "10px" 
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setExistingImage(null);
+                  setDeleteImage(true);
+                }}
+                style={{ 
+                  marginTop: "5px", 
+                  backgroundColor: "red", 
+                  color: "white", 
+                  border: "none", 
+                  borderRadius: "5px", 
+                  padding: "5px 10px",
+                  cursor: "pointer"
+                }}
+              >
+                Delete Image
+              </button>
+            </div>
+          )}
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+
           <input
             type="text"
             placeholder="Fun fact"
@@ -150,6 +210,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+          
           <button
             type="submit"
             className="login-btn"

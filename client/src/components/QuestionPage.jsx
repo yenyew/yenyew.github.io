@@ -52,7 +52,6 @@ const QuestionPage = () => {
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
           setQuestions(shuffled);
-          console.log("🎲 Questions randomized for this game session!");
         } else {
           setQuestions(fetchedQuestions);
         }
@@ -113,7 +112,7 @@ const QuestionPage = () => {
     }
   };
 
-   const handleSubmit = () => {
+  const handleSubmit = () => {
     const currentQuestion = questions[currentIndex];
     if (!currentQuestion || !gameSettings) return;
 
@@ -291,6 +290,22 @@ const QuestionPage = () => {
         <div className="game-question-text">
           {currentQuestion.question}
         </div>
+        
+        {/* Image support from main branch */}
+        {questions[currentIndex].image && (
+          <img
+            src={`http://localhost:5000/${questions[currentIndex].image}`}
+            alt={`Question ${currentIndex + 1}`}
+            style={{
+              maxWidth: "90%",
+              maxHeight: "300px",
+              marginTop: "15px",
+              borderRadius: "12px",
+              display: "block",
+              margin: "15px auto 0 auto"
+            }}
+          />
+        )}
       </div>
 
       {/* Answer input */}
