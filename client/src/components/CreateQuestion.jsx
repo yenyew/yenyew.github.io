@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MainStyles.css";
+
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
   const [collectionId, setCollectionId] = useState("");
@@ -8,6 +9,8 @@ const CreateQuestion = () => {
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [funFact, setFunFact] = useState("");
+  const [type, setType] = useState("open"); // 'mcq' or 'open'
+  const [options, setOptions] = useState(""); // comma-separated options
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
   const navigate = useNavigate();
@@ -53,9 +56,11 @@ const CreateQuestion = () => {
         number: parseInt(number),
         collectionId,
         question,
+        type,
         hint,
-        answer: answer.split(",").map(ans => ans.trim()), // Split the answer by commas and trim 
-        funFact
+        answer: answer.split(",").map(ans => ans.trim()),
+        funFact,
+        ...(type === "mcq" && { options: options.split(",").map(opt => opt.trim()) }),
       };
 
       const response = await fetch("http://localhost:5000/questions", {
@@ -72,6 +77,8 @@ const CreateQuestion = () => {
         setAnswer("");
         setNumber("");
         setFunFact("");
+        setOptions("");
+        setType("open");
       } else {
         const data = await response.json();
         setMessage(`Error: ${data.message || "Could not add question."}`);
@@ -81,7 +88,6 @@ const CreateQuestion = () => {
       setMessage("Something went wrong. Please try again.");
     }
   };
-
 
   return (
     <div className="login-container">
@@ -109,6 +115,28 @@ const CreateQuestion = () => {
         </h2>
 
         <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
+          {/* Question Type Selector */}
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            required
+            className="dropdown-select"
+            style={{
+              marginBottom: "10px",
+              height: "50px",
+              borderRadius: "20px",
+              backgroundColor: "white",
+              color: "#000",
+              fontSize: "16px",
+              padding: "0 10px",
+              width: "100%",
+              outline: "none",
+            }}
+          >
+            <option value="open">Open-Ended Question</option>
+            <option value="mcq">Multiple Choice Question</option>
+          </select>
+
           <input
             type="number"
             value={number}
@@ -157,6 +185,7 @@ const CreateQuestion = () => {
               backgroundColor: "white",
             }}
           />
+
           <input
             type="text"
             placeholder="Hint"
@@ -165,8 +194,26 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
+          {type === "mcq" && (
+            <>
+              <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
+                Enter MCQ options, separated by commas (e.g., A,B,C,D).
+              </p>
+              <input
+                type="text"
+                placeholder="MCQ Options"
+                value={options}
+                onChange={(e) => setOptions(e.target.value)}
+                className="login-btn"
+                style={{ marginBottom: "10px", backgroundColor: "white" }}
+                required={type === "mcq"}
+              />
+            </>
+          )}
+
           <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
-            Enter multiple acceptable answers, separated by commas.
+            Enter {type === "mcq" ? "correct options" : "acceptable answers"}, separated by commas.
           </p>
           <input
             type="text"
@@ -176,6 +223,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
           <input
             type="text"
             placeholder="Fun Fact"
@@ -184,6 +232,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
           <button
             type="submit"
             className="login-btn"
@@ -201,7 +250,6 @@ const CreateQuestion = () => {
         {message && (
           <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
         )}
-
       </div>
     </div>
   );

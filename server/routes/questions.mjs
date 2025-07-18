@@ -10,7 +10,7 @@ router.get("/", async (req, res) => {
   try {
     const { collectionId } = req.query;
     const filter = collectionId ? { collectionId } : {};
-    const questions = await Question.find(filter).sort({ number: 1 });  
+    const questions = await Question.find(filter).sort({ number: 1 });
     res.status(200).json(questions);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -42,19 +42,25 @@ router.get("/:number/:collectionId", async (req, res) => {
 // Create a new question (now checks for uniqueness within the same collection)
 router.post("/", async (req, res) => {
   try {
-    const { number, collectionId, question, hint, answer, funFact } = req.body;
+    // router.post("/", ...)
+    const { number, collectionId, question, hint, answer, funFact, type, options } = req.body;
 
-    const existing = await Question.findOne({ number, collectionId });
-    if (existing) {
-      return res.status(400).json({ message: `Question ${number} already exists in this collection.` });
+    if (!['mcq', 'open'].includes(type)) {
+      return res.status(400).json({ message: "Invalid question type." });
+    }
+
+    if (type === 'mcq' && (!options || options.length < 2)) {
+      return res.status(400).json({ message: "MCQ questions must have at least two options." });
     }
 
     const newQuestion = {
       number,
       collectionId,
       question,
-      hint,
+      type,
+      options: type === 'mcq' ? options : undefined,
       answer,
+      hint,
       funFact
     };
 
@@ -67,13 +73,24 @@ router.post("/", async (req, res) => {
 });
 
 // Update a question (scoped by number + collectionId)
+// PATCH /questions/:number/:collectionId
 router.patch("/:number/:collectionId", async (req, res) => {
   try {
     const { number, collectionId } = req.params;
-    const { question, hint, answer, funFact } = req.body;
+    const { question, hint, answer, funFact, type, options } = req.body;
 
     const query = { number: parseInt(number), collectionId };
-    const updates = { $set: { question, hint, answer, funFact } };
+    const updates = {
+      $set: {
+        question,
+        hint,
+        answer,
+        funFact,
+        type,
+        ...(type === "mcq" && { options }),
+        ...(type === "open" && { options: undefined }), // clear options for open-ended
+      },
+    };
 
     const result = await Question.updateOne(query, updates);
 

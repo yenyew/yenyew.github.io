@@ -11,6 +11,8 @@ const EditQuestion = () => {
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [funFact, setFunFact] = useState("");
+  const [type, setType] = useState("open");
+  const [options, setOptions] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
@@ -19,12 +21,13 @@ const EditQuestion = () => {
       navigate("/login");
       return;
     }
-    
+
     if (!collectionId) {
       alert("Missing collection ID.");
       navigate("/questions");
       return;
     }
+
     const fetchCollectionName = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
@@ -41,10 +44,13 @@ const EditQuestion = () => {
         const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`);
         if (!res.ok) throw new Error("Question not found");
         const data = await res.json();
-        setQuestion(data.data.question);
-        setHint(data.data.hint);
-        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer); // Join array answers into a string
-        setFunFact(data.data.funFact || "");
+        const q = data.data;
+        setQuestion(q.question);
+        setHint(q.hint);
+        setAnswer(Array.isArray(q.answer) ? q.answer.join(", ") : q.answer);
+        setFunFact(q.funFact || "");
+        setType(q.type || "open");
+        setOptions(Array.isArray(q.options) ? q.options.join(", ") : "");
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -59,16 +65,19 @@ const EditQuestion = () => {
     e.preventDefault();
 
     try {
+      const updatedQuestion = {
+        question,
+        hint,
+        funFact,
+        answer: answer.split(",").map(ans => ans.trim()),
+        type,
+        ...(type === "mcq" && { options: options.split(",").map(opt => opt.trim()) }),
+      };
+
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, hint, answer: answer.split(",").map(ans => ans.trim()), funFact, collectionId }),
-        body: JSON.stringify({ 
-          question, 
-          hint, 
-          answer: answer.split(",").map(ans => ans.trim()), 
-          collectionId 
-        }),
+        body: JSON.stringify(updatedQuestion),
       });
 
       if (res.ok) {
@@ -131,8 +140,25 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
+          {type === "mcq" && (
+            <>
+              <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
+                Edit MCQ options (comma-separated):
+              </p>
+              <input
+                type="text"
+                placeholder="Options (e.g., A,B,C,D)"
+                value={options}
+                onChange={(e) => setOptions(e.target.value)}
+                className="login-btn"
+                style={{ marginBottom: "10px", backgroundColor: "white" }}
+              />
+            </>
+          )}
+
           <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
-            Enter multiple acceptable answers, separated by commas.
+            {type === "mcq" ? "Correct options (comma-separated):" : "Acceptable answers (comma-separated):"}
           </p>
           <input
             type="text"
@@ -142,6 +168,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
           <input
             type="text"
             placeholder="Fun fact"
@@ -150,6 +177,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
           <button
             type="submit"
             className="login-btn"
