@@ -10,7 +10,7 @@ const QuestionPage = () => {
   const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
   const wrongAnswers = useRef(0);
-  const timePenalty = useRef(0); 
+  const timePenalty = useRef(0);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -21,7 +21,7 @@ const QuestionPage = () => {
       }
 
       try {
-        const res = await fetch(`http://172.20.10.2:5000/questions?collectionId=${collectionId}`);
+        const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
         const data = await res.json();
         setQuestions(data);
       } catch (error) {
@@ -48,7 +48,7 @@ const QuestionPage = () => {
   const handleHintClick = () => {
     if (questions[currentIndex]?.hint) {
       const confirmHint = window.confirm("Are you sure you want to use a hint? A 2-minute penalty will be added to your time.");
-    if (!confirmHint) return;
+      if (!confirmHint) return;
 
       setHintsUsed((prev) => prev + 1);
       timePenalty.current += 120;
@@ -82,7 +82,7 @@ const QuestionPage = () => {
       alert("Correct!");
     } else {
       wrongAnswers.current += 1;
-      alert(`Incorrect. Try again!`);
+      alert("Incorrect. Try again!");
     }
   };
 
@@ -90,13 +90,12 @@ const QuestionPage = () => {
     const confirmSkip = window.confirm("Are you sure you want to skip this question? A 10-minute penalty will be added.");
     if (!confirmSkip) return;
 
-    timePenalty.current += 600; // Add 10 minutes
+    timePenalty.current += 600;
     setUserAnswer("");
-
     const isLast = currentIndex === questions.length - 1;
 
     if (isLast) {
-      handleFinish(false); // skipped final question
+      handleFinish(false);
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
@@ -116,7 +115,7 @@ const QuestionPage = () => {
     const collectionId = sessionStorage.getItem("collectionId");
 
     if (playerId) {
-      await fetch(`http://172.20.10.2:5000/players/${playerId}`, {
+      await fetch(`http://localhost:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -154,6 +153,19 @@ const QuestionPage = () => {
           <div className="question-box">
             Q{currentIndex + 1}: {questions[currentIndex].question}
           </div>
+
+          {questions[currentIndex].image && (
+            <img
+              src={`http://localhost:5000/${questions[currentIndex].image}`}
+              alt={`Question ${currentIndex + 1}`}
+              style={{
+                maxWidth: "90%",
+                maxHeight: "300px",
+                marginTop: "10px",
+                borderRadius: "12px"
+              }}
+            />
+          )}
         </div>
 
         <div className="hint-box">

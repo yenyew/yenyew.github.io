@@ -12,6 +12,9 @@ const EditQuestion = () => {
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
+  const [image, setImage] = useState(null);
+  const [existingImage, setExistingImage] = useState(null);
+  const [deleteImage, setDeleteImage] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -44,6 +47,7 @@ const EditQuestion = () => {
         setQuestion(data.data.question);
         setHint(data.data.hint);
         setAnswer(data.data.answer);
+        setExistingImage(data.data.image);
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -58,10 +62,17 @@ const EditQuestion = () => {
     e.preventDefault();
 
     try {
+      const formData = new FormData();
+      formData.append("question", question);
+      formData.append("hint", hint);
+      formData.append("answer", answer);
+      formData.append("collectionId", collectionId);
+      if (image) formData.append("image", image);
+      if (deleteImage) formData.append("deleteImage", "true");
+
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, hint, answer, collectionId }),
+        body: formData,
       });
 
       if (res.ok) {
@@ -132,6 +143,35 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
+          {existingImage && !deleteImage && (
+            <div style={{ marginBottom: "10px" }}>
+              <img
+                src={`http://localhost:5000/${existingImage}`}
+                alt="Current"
+                style={{ width: "100%", maxHeight: "200px", objectFit: "contain", borderRadius: "10px" }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setExistingImage(null);
+                  setDeleteImage(true);
+                }}
+                style={{ marginTop: "5px", backgroundColor: "red", color: "white", border: "none", borderRadius: "5px", padding: "5px 10px" }}
+              >
+                Delete Image
+              </button>
+            </div>
+          )}
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+
           <button
             type="submit"
             className="login-btn"

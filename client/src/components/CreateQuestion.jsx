@@ -10,6 +10,7 @@ const CreateQuestion = () => {
   const [answer, setAnswer] = useState("");
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
+  const [image, setImage] = useState(null); // ✅ ADDED
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,53 +28,55 @@ const CreateQuestion = () => {
   }, []);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setMessage("");
+    e.preventDefault();
+    setMessage("");
 
-  try {
-    const allRes = await fetch("http://localhost:5000/questions");
-    const allQuestions = await allRes.json();
+    try {
+      const allRes = await fetch("http://localhost:5000/questions");
+      const allQuestions = await allRes.json();
 
-    const exists = allQuestions.some(
-      (q) => q.number === parseInt(number) && q.collectionId === collectionId
-    );
+      const exists = allQuestions.some(
+        (q) => q.number === parseInt(number) && q.collectionId === collectionId
+      );
 
-    if (exists) {
-      alert("A question with that number already exists in the selected collection.");
-      return;
+      if (exists) {
+        alert("A question with that number already exists in the selected collection.");
+        return;
+      }
+
+      // ✅ Use FormData for image upload
+      const formData = new FormData();
+      formData.append("number", number);
+      formData.append("collectionId", collectionId);
+      formData.append("question", question);
+      formData.append("hint", hint);
+      formData.append("answer", answer);
+      if (image) {
+        formData.append("image", image);
+      }
+
+      const response = await fetch("http://localhost:5000/questions", {
+        method: "POST",
+        body: formData, 
+      });
+
+      if (response.ok) {
+        alert("Question added successfully!");
+        setCollectionId("");
+        setQuestion("");
+        setHint("");
+        setAnswer("");
+        setNumber("");
+        setImage(null);
+      } else {
+        const data = await response.json();
+        setMessage(`Error: ${data.message || "Could not add question."}`);
+      }
+    } catch (err) {
+      console.error("Error submitting question:", err);
+      setMessage("Something went wrong. Please try again.");
     }
-
-    const newQuestion = {
-      number: parseInt(number),
-      collectionId,
-      question,
-      hint,
-      answer,
-    };
-
-    const response = await fetch("http://localhost:5000/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newQuestion),
-    });
-
-    if (response.ok) {
-      alert("Question added successfully!");
-      setCollectionId("");
-      setQuestion("");
-      setHint("");
-      setAnswer("");
-      setNumber("");
-    } else {
-      const data = await response.json();
-      setMessage(`Error: ${data.message || "Could not add question."}`);
-    }
-  } catch (err) {
-    console.error("Error submitting question:", err);
-    setMessage("Something went wrong. Please try again.");
-  }
-};
-
+  };
 
   return (
     <div className="login-container">
@@ -149,6 +152,7 @@ const CreateQuestion = () => {
               backgroundColor: "white",
             }}
           />
+
           <input
             type="text"
             placeholder="Hint"
@@ -157,6 +161,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
           <input
             type="text"
             placeholder="Answer"
@@ -165,6 +170,16 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
+          {/* ✅ Image Upload Input */}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+
           <button
             type="submit"
             className="login-btn"
@@ -182,7 +197,6 @@ const CreateQuestion = () => {
         {message && (
           <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
         )}
-
       </div>
     </div>
   );
