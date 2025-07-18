@@ -31,15 +31,32 @@ const QuestionPage = () => {
         const collectionsData = await collections.json();
         const collection = collectionsData.find(c => c._id === collectionId);
         
+        let fetchedQuestions = [];
+        
         if (collection && collection.questionOrder && collection.questionOrder.length > 0) {
           const response = await fetch(`http://localhost:5000/collections/${collection.code}/questions`);
           const data = await response.json();
-          setQuestions(Array.isArray(data) ? data : data.questions || []);
+          fetchedQuestions = Array.isArray(data) ? data : data.questions || [];
         } else {
           const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
           const data = await res.json();
-          setQuestions(data);
+          fetchedQuestions = data;
         }
+
+        // Apply game mode randomization per-game
+        if (settingsData && settingsData.gameMode === 'random') {
+          // Fisher-Yates shuffle algorithm for true randomization each game
+          const shuffled = [...fetchedQuestions];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          setQuestions(shuffled);
+          console.log("🎲 Questions randomized for this game session!");
+        } else {
+          setQuestions(fetchedQuestions);
+        }
+        
       } catch (error) {
         console.error("Failed to fetch questions and settings:", error);
       }
@@ -57,9 +74,10 @@ const QuestionPage = () => {
   }, []);
 
   const formatTime = (seconds) => {
-    const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const hours = String(Math.floor(seconds / 3600)).padStart(2, "0");
+    const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
     const secs = String(seconds % 60).padStart(2, "0");
-    return `00:${mins}:${secs}`;
+    return `${hours}:${mins}:${secs}`;
   };
 
   const formatPenaltyTime = (seconds) => {
@@ -71,6 +89,16 @@ const QuestionPage = () => {
     return `${secs} second${secs > 1 ? 's' : ''}`;
   };
 
+  // Add airplane animation function
+  const animateAirplaneMovement = () => {
+    const airplane = document.querySelector('.game-airplane-current');
+    if (airplane) {
+      airplane.classList.add('game-airplane-moving');
+      setTimeout(() => {
+        airplane.classList.remove('game-airplane-moving');
+      }, 1200); // Duration matches the CSS animation
+    }
+  };
 
   const handleHintClick = () => {
     const hint = questions[currentIndex]?.hint;
@@ -85,7 +113,7 @@ const QuestionPage = () => {
     }
   };
 
-  const handleSubmit = () => {
+   const handleSubmit = () => {
     const currentQuestion = questions[currentIndex];
     if (!currentQuestion || !gameSettings) return;
 
@@ -95,7 +123,7 @@ const QuestionPage = () => {
     }
 
     const penaltyText = formatPenaltyTime(gameSettings.wrongAnswerPenalty);
-    const confirmed = window.confirm(`Submit answer? Wrong answers add ${penaltyText} penalty.`);
+    const confirmed = window.confirm(`Submit answer? Wrong answers add a ${penaltyText} penalty.`);
     if (!confirmed) return;
 
     const input = userAnswer.toLowerCase().trim();
@@ -120,7 +148,11 @@ const QuestionPage = () => {
       if (isLast) {
         setTimeout(() => handleFinish(true), 100);
       } else {
-        setCurrentIndex((prev) => prev + 1);
+        // Animate airplane movement before going to next question
+        animateAirplaneMovement();
+        setTimeout(() => {
+          setCurrentIndex((prev) => prev + 1);
+        }, 600); // Wait for half the animation to complete
       }
     } else {
       alert("Incorrect.");
@@ -128,9 +160,7 @@ const QuestionPage = () => {
       timePenalty.current += gameSettings.wrongAnswerPenalty;
       setUserAnswer("");
 
-      if (isLast) {
-        setTimeout(() => handleFinish(false), 100);
-      }
+      // Don't finish quiz, don't move to next question - let them try again
     }
   };
 
@@ -145,14 +175,26 @@ const QuestionPage = () => {
     questionsSkipped.current += 1;
     setUserAnswer("");
 
-    const funFact = questions[currentIndex].funFact || "No fun fact available.";
+    // Show correct answer first, then fun fact
+    const currentQuestion = questions[currentIndex];
+    const correctAnswer = Array.isArray(currentQuestion.answer) 
+      ? currentQuestion.answer[0] 
+      : currentQuestion.answer;
+    
+    alert(`The correct answer was: ${correctAnswer}`);
+    
+    const funFact = currentQuestion.funFact || "No fun fact available.";
     alert(`🎉 Fun Fact: ${funFact}`);
 
     const isLast = currentIndex === questions.length - 1;
     if (isLast) {
       handleFinish(false);
     } else {
-      setCurrentIndex((prev) => prev + 1);
+      // Animate airplane movement before going to next question
+      animateAirplaneMovement();
+      setTimeout(() => {
+        setCurrentIndex((prev) => prev + 1);
+      }, 600); // Wait for half the animation to complete
     }
   };
 
@@ -186,57 +228,108 @@ const QuestionPage = () => {
       }
     }
 
+    // Store correct answers count in sessionStorage for ResultPage
+    sessionStorage.setItem("correctAnswers", finalCorrect.toString());
+    sessionStorage.setItem("totalQuestions", questions.length.toString());
+
     window.location.href = "/results";
   };
 
   const currentQuestion = questions[currentIndex];
-  if (questions.length === 0 || !gameSettings) return <div>Loading questions...</div>;
-  if (!currentQuestion) return <div>Loading question...</div>;
+  if (questions.length === 0 || !gameSettings) return (
+    <div className="game-page-wrapper">
+      <div className="game-loading">Loading questions...</div>
+    </div>
+  );
+  if (!currentQuestion) return (
+    <div className="game-page-wrapper">
+      <div className="game-loading">Loading question...</div>
+    </div>
+  );
 
   return (
-    <div className="question-page">
-      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay">
-        <div className="centered-content">
-          <div className="left-header">
-            <img src="/images/ces.jpg" alt="Changi Experience Studio" className="ces-header" />
+    <div className="game-page-wrapper">
+      {/* Header with logo and time */}
+      <div className="game-header">
+        <div className="game-logo-container">
+          <img src="/images/ces.jpg" alt="Changi Experience Studio" className="game-ces-logo" />
+        </div>
+        <div className="game-time-display">
+          Time: {formatTime(elapsed)}
+        </div>
+      </div>
+
+      {/* Progress section */}
+      <div className="game-progress-section">
+        <div className="game-progress-text">
+          Progress: {currentIndex + 1}/{questions.length}
+        </div>
+        <div className="game-progress-bar-container">
+          <div className="game-progress-line"></div>
+          <div className="game-progress-track">
+            {questions.map((_, index) => (
+              <div key={index} className="game-progress-item">
+                {index === currentIndex ? (
+                  <span className="game-airplane-current">✈️</span>
+                ) : (
+                  <div
+                    className={`game-progress-dot ${index < currentIndex ? 'game-progress-completed' : 'game-progress-pending'}`}
+                  />
+                )}
+              </div>
+            ))}
           </div>
-          <div className="right-header">
-            <div className="time-box">Time: {formatTime(elapsed)}</div>
-          </div>
         </div>
+      </div>
 
-        <div className="question-container">
-          <div className="question-box">
-            <strong>
-              Question {currentIndex + 1} of {questions.length}:
-            </strong>{" "}
-            {currentQuestion.question}
-          </div>
+      {/* Question section */}
+      <div className="game-question-section">
+        <div className="game-question-header">
+          <span className="game-airplane-small">✈️</span>
+          Stop {currentIndex + 1}: {currentQuestion.title || `Question ${currentIndex + 1}`}
         </div>
+        <div className="game-question-text">
+          {currentQuestion.question}
+        </div>
+      </div>
 
-        <div className="hint-box">
-          <button onClick={handleHintClick}>💡 Show Hint</button>
-        </div>
+      {/* Answer input */}
+      <div className="game-answer-section">
+        <input
+          type="text"
+          placeholder="Type your answer here"
+          value={userAnswer}
+          onChange={(e) => setUserAnswer(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          className="game-answer-input"
+          autoFocus
+        />
+      </div>
 
-        <div className="answer-input">
-          <input
-            type="text"
-            placeholder="Type your answer here..."
-            value={userAnswer}
-            onChange={(e) => setUserAnswer(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          />
-        </div>
+      {/* Top Action buttons - Hint and Skip */}
+      <div className="game-top-actions-section">
+        <button 
+          onClick={handleHintClick}
+          className="game-hint-button"
+        >
+          Hint (-{Math.floor(gameSettings.hintPenalty / 60)} min)
+        </button>
+        <button 
+          onClick={handleSkip}
+          className="game-skip-button"
+        >
+          Skip (-{Math.floor(gameSettings.skipPenalty / 60)} min)
+        </button>
+      </div>
 
-        <div className="button-container">
-          <button className="submit-button" onClick={handleSkip}>
-            Skip Question
-          </button>
-          <button className="submit-button" onClick={handleSubmit}>
-            Submit
-          </button>
-        </div>
+      {/* Submit button - separated at bottom */}
+      <div className="game-submit-section">
+        <button 
+          onClick={handleSubmit}
+          className="game-submit-button"
+        >
+          Submit Answer
+        </button>
       </div>
     </div>
   );

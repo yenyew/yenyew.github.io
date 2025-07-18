@@ -473,7 +473,7 @@ const QuestionsBank = () => {
                   onClick={handleOrderQuestions}
                   style={{ 
                     backgroundColor: "#28a745", 
-                    color: "#fff", 
+                    color: "#000", 
                     fontSize: "12px", 
                     padding: "4px 8px",
                     border: "none",
@@ -487,7 +487,7 @@ const QuestionsBank = () => {
                   onClick={handleGameSettings}
                   style={{ 
                     backgroundColor: "#6f42c1", 
-                    color: "#fff", 
+                    color: "#000", 
                     fontSize: "12px", 
                     padding: "4px 8px",
                     border: "none",
@@ -515,7 +515,7 @@ const QuestionsBank = () => {
                   onClick={() => handleDeleteCollection(selectedCollection)}
                   style={{ 
                     backgroundColor: "#DC3545", 
-                    color: "#fff", 
+                    color: "#000",
                     fontSize: "12px", 
                     padding: "4px 8px",
                     border: "none",
@@ -669,6 +669,7 @@ const QuestionsBank = () => {
                     style={{
                       padding: "10px 12px",
                       backgroundColor: "#17C4C4",
+                      width: "100px",
                       color: "white",
                       border: "none",
                       borderRadius: "5px",
@@ -936,7 +937,7 @@ const QuestionsBank = () => {
             backgroundColor: "white",
             padding: "25px",
             borderRadius: "10px",
-            width: "90%",
+            width: "80%",
             maxWidth: "600px",
             maxHeight: "80vh",
             overflowY: "auto"
@@ -991,11 +992,22 @@ const QuestionsBank = () => {
                       border: "1px solid #ccc"
                     }}
                   >
-                    <option value="default">Default</option>
-                    <option value="random">Random</option>
-                    <option value="rotating">Rotating</option>
-                    <option value="rotating-reverse">Rotating Reverse</option>
+                    <option value="default">📋 Default (Follow Question Order)</option>
+                    <option value="random">🎲 Random (Each Game Different)</option>
+                    <option value="rotating">🔄 Rotating</option>
+                    <option value="rotating-reverse">🔄 Rotating Reverse</option>
                   </select>
+                  <p style={{ 
+                    fontSize: "12px", 
+                    color: "#666", 
+                    margin: "5px 0 0 0",
+                    fontStyle: "italic"
+                  }}>
+                    {customSettings.gameMode === 'random' && "🎲 Questions will be randomized differently for each player/game session"}
+                    {customSettings.gameMode === 'default' && "📋 Questions follow the order you set in 'Order Questions'"}
+                    {customSettings.gameMode === 'rotating' && "🔄 Questions rotate in sequence for different players"}
+                    {customSettings.gameMode === 'rotating-reverse' && "🔄 Questions rotate in reverse sequence for different players"}
+                  </p>
                 </div>
 
                 <div style={{ marginBottom: "15px" }}>
