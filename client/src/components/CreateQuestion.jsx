@@ -11,7 +11,7 @@ const CreateQuestion = () => {
   const [funFact, setFunFact] = useState("");
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
-  const [image, setImage] = useState(null); // ✅ ADDED
+  const [image, setImage] = useState(null); 
   const navigate = useNavigate();
 
   useEffect(() => {

@@ -28,10 +28,6 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  sortOrder: {
-    type: Number,
-    default: 0,  
-  }
 });
 
 // Ensure that the combination of number and collectionId is unique

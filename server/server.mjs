@@ -12,6 +12,7 @@ import autoClearRoutes from './routes/autoClear.mjs';
 import AutoClearConfig from './models/autoCleardb.mjs'; 
 import Player from './models/playerdb.mjs'; 
 import BadUsername from './routes/badUsername.mjs';
+import globalSettingsRoutes from "./routes/globalSettings.mjs";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use("/collections", collections);
 app.use("/upload-photo", photoUpload);
 app.use("/auto-clear-config", autoClearRoutes);
 app.use("/bad-usernames", BadUsername);
+app.use("/global-settings", globalSettingsRoutes);
 
 // MongoDB connection
 mongoose.set('strictQuery', true);
