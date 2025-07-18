@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import './MainStyles.css';
+import './LeaderboardStyles.css'; 
 
 const FILTERS = [
   { label: "Today", value: "day" },

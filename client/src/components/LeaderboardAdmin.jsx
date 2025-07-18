@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import './MainStyles.css';
+import './LeaderboardStyles.css'; 
 
 const FILTERS = [
   { label: "Today", value: "day" },
@@ -37,9 +39,10 @@ export default function LeaderboardAdmin() {
   const [manualRange, setManualRange] = useState("day");
   const [manualCol, setManualCol] = useState("all");
   const [showAutoModal, setShowAutoModal] = useState(false);
+  const navigate = useNavigate();
 
   const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
-  const pageSize = 10;
+  const pageSize = 5; // ✅ Reduced from 10 to 8
 
   useEffect(() => {
     async function fetchData() {
@@ -199,7 +202,7 @@ export default function LeaderboardAdmin() {
       <div className="page-content leaderboard-page">
         <h1 className="leaderboard-title">Admin Leaderboard</h1>
 
-        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, justifyContent: "center" }}>
           <select className="filter-select" value={filter} onChange={e => setFilter(e.target.value)}>
             {FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
@@ -215,54 +218,128 @@ export default function LeaderboardAdmin() {
           <p className="no-results">No completed players.</p>
         ) : (
           <>
-            <table className="leaderboard-table small-text">
+            <table className="leaderboard-table">
               <thead>
                 <tr>
                   <th>Rank</th><th>Name</th><th>Time</th><th>Collection</th><th>Date</th><th>Redeemed</th>
                 </tr>
               </thead>
               <tbody>
-                {paged.map((p, i) => (
-                  <tr
-                    key={p._id}
-                    onMouseEnter={() => setHoveredPlayerId(p._id)}
-                    onMouseLeave={() => setHoveredPlayerId(null)}
-                  >
-                    <td>{i + 1 + page * pageSize}</td>
-                    <td>
-                      {p.username}
-                      {hoveredPlayerId === p._id && (
-                        <div className="player-tooltip">
-                          <div><strong>Collection:</strong> {collections[p.collectionId] || "Unknown"}</div>
-                          <div><strong>Finished:</strong> {formatDate(p.finishedAt)}</div>
-                          {p.redeemed && <div><strong>Redeemed:</strong> {formatDate(p.redeemedAt)}</div>}
-                        </div>
-                      )}
-                    </td>
-                    <td>{formatTime(p.totalTimeInSeconds)}</td>
-                    <td>{collections[p.collectionId] || "Unknown"}</td>
-                    <td>{formatDate(p.finishedAt)}</td>
-                    <td>{p.redeemed ? "✓" : "✗"}</td>
-                  </tr>
-                ))}
+                {paged.map((p, i) => {
+                  const rank = i + 1 + page * pageSize;
+                  
+                  // ✅ Add subtle background for better readability
+                  const getRowStyle = () => {
+                    return { backgroundColor: "rgba(255, 255, 255, 0.35)" };
+                  };
+
+                  return (
+                    <tr
+                      key={p._id}
+                      style={getRowStyle()}
+                      onMouseEnter={() => setHoveredPlayerId(p._id)}
+                      onMouseLeave={() => setHoveredPlayerId(null)}
+                    >
+                      <td>{rank}</td>
+                      <td style={{ position: "relative" }}>
+                        {p.username}
+                        {hoveredPlayerId === p._id && (
+                          <div className="player-tooltip">
+                            <div><strong>Collection:</strong> {collections[p.collectionId] || "Unknown"}</div>
+                            <div><strong>Finished:</strong> {formatDate(p.finishedAt)}</div>
+                            {p.redeemed && <div><strong>Redeemed:</strong> {formatDate(p.redeemedAt)}</div>}
+                          </div>
+                        )}
+                      </td>
+                      <td>{formatTime(p.totalTimeInSeconds)}</td>
+                      <td>{collections[p.collectionId] || "Unknown"}</td>
+                      <td>{formatDate(p.finishedAt)}</td>
+                      <td>{p.redeemed ? "✓" : "✗"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 
-            <div className="pagination">
-              <button onClick={() => setPage(x => Math.max(0, x - 1))} disabled={page === 0}>← Prev</button>
-              <span>Page {page + 1} of {totalPages}</span>
-              <button onClick={() => setPage(x => Math.min(totalPages - 1, x + 1))} disabled={page >= totalPages - 1}>Next →</button>
-            </div>
+            {/* ✅ Improved pagination with better spacing */}
+            {totalPages > 1 && (
+              <div className="pagination" style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                gap: "20px", 
+                margin: "20px 0",
+                maxWidth: "300px",
+                marginLeft: "auto",
+                marginRight: "auto"
+              }}>
+                <button 
+                  onClick={() => setPage(x => Math.max(0, x - 1))} 
+                  disabled={page === 0}
+                  style={{ minWidth: "80px" }}
+                >
+                  ← Prev
+                </button>
+                <span style={{ textAlign: "center", minWidth: "100px" }}>
+                  Page {page + 1} of {totalPages}
+                </span>
+                <button 
+                  onClick={() => setPage(x => Math.min(totalPages - 1, x + 1))} 
+                  disabled={page >= totalPages - 1}
+                  style={{ minWidth: "80px" }}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </>
         )}
 
-        <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
-          <button onClick={openManual}>Manual Clear</button>
-          <button onClick={openAuto}>Auto-Clear</button>
-          <button className="return-button" onClick={() => window.history.back()}>Return</button>
+        {/* ✅ Better button layout */}
+        <div style={{ 
+          marginTop: 30, 
+          display: "flex", 
+          gap: 12, 
+          justifyContent: "center",
+          flexWrap: "wrap"
+        }}>
+          <button 
+            onClick={openManual}
+            style={{
+              padding: "10px 20px",
+              fontSize: "14px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#ff6b6b",
+              color: "white",
+              cursor: "pointer",
+              minWidth: "120px"
+            }}
+          >
+            Manual Clear
+          </button>
+          <button 
+            onClick={openAuto}
+            style={{
+              padding: "10px 20px", 
+              fontSize: "14px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#4ecdc4",
+              color: "white",
+              cursor: "pointer",
+              minWidth: "120px"
+            }}
+          >
+            Auto-Clear
+          </button>
+          <button className="return-button" style={{ minWidth: "120px" }} onClick={() => navigate("/admin")}>
+            Return
+          </button>
         </div>
       </div>
 
+      {/* Modals unchanged */}
       {showAutoModal && (
         <div className="modal-overlay">
           <div className="modal-content">
