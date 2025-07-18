@@ -13,6 +13,7 @@ const QuestionPage = () => {
   const wrongAnswers = useRef(0);
   const questionsSkipped = useRef(0);
   const timePenalty = useRef(0);
+}
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -46,6 +47,9 @@ const QuestionPage = () => {
   };
 
   const handleHintClick = () => {
+    if (questions[currentIndex]?.hint) {
+      const confirmHint = window.confirm("Are you sure you want to use a hint? A 2-minute penalty will be added to your time.");
+      if (!confirmHint) return;
     const hint = questions[currentIndex]?.hint;
     if (!hint) return;
 
@@ -96,6 +100,7 @@ const QuestionPage = () => {
     } else {
       alert("Incorrect.");
       wrongAnswers.current += 1;
+      alert("Incorrect. Try again!");
       timePenalty.current += 300;
       setUserAnswer("");
 
@@ -110,13 +115,14 @@ const QuestionPage = () => {
     if (!confirmed) return;
 
     timePenalty.current += 600;
+    setUserAnswer("");
+    const isLast = currentIndex === questions.length - 1;
     questionsSkipped.current += 1;
     setUserAnswer("");
 
     const funFact = questions[currentIndex].funFact || "No fun fact available.";
     alert(`🎉 Fun Fact: ${funFact}`);
-
-    const isLast = currentIndex === questions.length - 1;
+    
     if (isLast) {
       handleFinish(false);
     } else {
@@ -135,6 +141,17 @@ const QuestionPage = () => {
     const collectionId = sessionStorage.getItem("collectionId");
 
     if (playerId) {
+      await fetch(`http://localhost:5000/players/${playerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          score: finalScore,
+          totalTimeInSeconds: finalTime,
+          hintsUsed: finalHintsUsed,
+          finishedAt: new Date(),
+          collectionId,
+        }),
+      });
       try {
         await fetch(`http://localhost:5000/players/${playerId}`, {
           method: "PATCH",
@@ -181,6 +198,19 @@ const QuestionPage = () => {
             </strong>{" "}
             {currentQuestion.question}
           </div>
+
+          {questions[currentIndex].image && (
+            <img
+              src={`http://localhost:5000/${questions[currentIndex].image}`}
+              alt={`Question ${currentIndex + 1}`}
+              style={{
+                maxWidth: "90%",
+                maxHeight: "300px",
+                marginTop: "10px",
+                borderRadius: "12px"
+              }}
+            />
+          )}
         </div>
 
         <div className="hint-box">

@@ -11,6 +11,7 @@ const CreateQuestion = () => {
   const [funFact, setFunFact] = useState("");
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
+  const [image, setImage] = useState(null); // ✅ ADDED
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +38,51 @@ const CreateQuestion = () => {
     e.preventDefault();
     setMessage("");
 
+    try {
+      const allRes = await fetch("http://localhost:5000/questions");
+      const allQuestions = await allRes.json();
+
+      const exists = allQuestions.some(
+        (q) => q.number === parseInt(number) && q.collectionId === collectionId
+      );
+
+      if (exists) {
+        alert("A question with that number already exists in the selected collection.");
+        return;
+      }
+
+      // ✅ Use FormData for image upload
+      const formData = new FormData();
+      formData.append("number", number);
+      formData.append("collectionId", collectionId);
+      formData.append("question", question);
+      formData.append("hint", hint);
+      formData.append("answer", answer);
+      if (image) {
+        formData.append("image", image);
+      }
+
+      const response = await fetch("http://localhost:5000/questions", {
+        method: "POST",
+        body: formData, 
+      });
+
+      if (response.ok) {
+        alert("Question added successfully!");
+        setCollectionId("");
+        setQuestion("");
+        setHint("");
+        setAnswer("");
+        setNumber("");
+        setImage(null);
+      } else {
+        const data = await response.json();
+        setMessage(`Error: ${data.message || "Could not add question."}`);
+      }
+    } catch (err) {
+      console.error("Error submitting question:", err);
+      setMessage("Something went wrong. Please try again.");
+    }
     // Validation for empty fields
     if (!number || number.trim() === "") {
       alert("Please enter a question number.");
@@ -193,6 +239,7 @@ const CreateQuestion = () => {
               backgroundColor: "white",
             }}
           />
+
           <input
             type="text"
             placeholder="Hint (Optional)"
@@ -201,6 +248,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
           <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
             Enter multiple acceptable answers, separated by commas.
           </p>
@@ -212,6 +260,16 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
+          {/* ✅ Image Upload Input */}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+
           <input
             type="text"
             placeholder="Fun Fact (Optional)"

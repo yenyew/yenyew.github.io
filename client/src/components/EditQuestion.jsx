@@ -10,7 +10,13 @@ const EditQuestion = () => {
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
+<<<<<<< HEAD:client/src/components/EditQns.jsx
+  const [image, setImage] = useState(null);
+  const [existingImage, setExistingImage] = useState(null);
+  const [deleteImage, setDeleteImage] = useState(false);
+=======
   const [funFact, setFunFact] = useState("");
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
@@ -43,8 +49,13 @@ const EditQuestion = () => {
         const data = await res.json();
         setQuestion(data.data.question);
         setHint(data.data.hint);
+<<<<<<< HEAD:client/src/components/EditQns.jsx
+        setAnswer(data.data.answer);
+        setExistingImage(data.data.image);
+=======
         setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer); // Join array answers into a string
         setFunFact(data.data.funFact || "");
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -59,8 +70,19 @@ const EditQuestion = () => {
     e.preventDefault();
 
     try {
+      const formData = new FormData();
+      formData.append("question", question);
+      formData.append("hint", hint);
+      formData.append("answer", answer);
+      formData.append("collectionId", collectionId);
+      if (image) formData.append("image", image);
+      if (deleteImage) formData.append("deleteImage", "true");
+
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
+<<<<<<< HEAD:client/src/components/EditQns.jsx
+        body: formData,
+=======
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           question, 
@@ -69,6 +91,7 @@ const EditQuestion = () => {
           funFact,
           collectionId 
         }),
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
       });
 
       if (res.ok) {
@@ -142,6 +165,37 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+<<<<<<< HEAD:client/src/components/EditQns.jsx
+
+          {existingImage && !deleteImage && (
+            <div style={{ marginBottom: "10px" }}>
+              <img
+                src={`http://localhost:5000/${existingImage}`}
+                alt="Current"
+                style={{ width: "100%", maxHeight: "200px", objectFit: "contain", borderRadius: "10px" }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setExistingImage(null);
+                  setDeleteImage(true);
+                }}
+                style={{ marginTop: "5px", backgroundColor: "red", color: "white", border: "none", borderRadius: "5px", padding: "5px 10px" }}
+              >
+                Delete Image
+              </button>
+            </div>
+          )}
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+
+=======
           <input
             type="text"
             placeholder="Fun fact"
@@ -150,6 +204,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
           <button
             type="submit"
             className="login-btn"
