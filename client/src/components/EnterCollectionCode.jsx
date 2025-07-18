@@ -1,38 +1,43 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from './AlertModal';
 import "./MainStyles.css";
 
 export default function EnterCollCode() {
   const [code, setCode] = useState("");
-  const [error, setError] = useState("");
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
 
-  if (!code.trim()) {
-    setError("Please enter a code.");
-    return;
-  }
-
-  try {
-    const res = await fetch(`http://localhost:5000/collections/${code.trim()}`);
-
-    if (!res.ok) {
-      setError("Invalid code. Please check with the staff.");
+    if (!code.trim()) {
+      showError("Please enter a code.");
       return;
     }
 
-    const data = await res.json();
-    sessionStorage.setItem("collectionId", data._id);
-    navigate("/rules");
-  } catch (err) {
-    console.error("Code validation failed:", err);
-    setError("Something went wrong. Please try again later.");
-  }
-};
+    try {
+      const res = await fetch(`http://localhost:5000/collections/${code.trim()}`);
 
+      if (!res.ok) {
+        showError("Invalid code. Please check with the staff.");
+        return;
+      }
+
+      const data = await res.json();
+      sessionStorage.setItem("collectionId", data._id);
+      navigate("/rules");
+    } catch (err) {
+      console.error("Code validation failed:", err);
+      showError("Something went wrong. Please try again later.");
+    }
+  };
 
   return (
     <div className="home-container">
@@ -74,9 +79,19 @@ export default function EnterCollCode() {
           <button type="submit" className="share-button" style={{ maxWidth: "200px", width: "100%" }}>
             Continue
           </button>
-          {error && <div style={{ color: "red", marginTop: "12px" }}>{error}</div>}
         </form>
       </div>
+
+      {/* ❌ Error Modal for validation issues */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Invalid Code"
+        message={errorMessage}
+        confirmText="Try Again"
+        type="error"
+        showCancel={false}
+      />
     </div>
   );
 }

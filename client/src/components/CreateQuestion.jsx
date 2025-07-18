@@ -11,7 +11,7 @@ const CreateQuestion = () => {
   const [funFact, setFunFact] = useState("");
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
-  const [image, setImage] = useState(null); 
+  const [image, setImage] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,6 +21,7 @@ const CreateQuestion = () => {
       navigate("/login");
       return;
     }
+    
     const fetchCollections = async () => {
       try {
         const response = await fetch("http://localhost:5000/collections/");
@@ -32,58 +33,13 @@ const CreateQuestion = () => {
     };
 
     fetchCollections();
-  }, []);
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
-    try {
-      const allRes = await fetch("http://localhost:5000/questions");
-      const allQuestions = await allRes.json();
-
-      const exists = allQuestions.some(
-        (q) => q.number === parseInt(number) && q.collectionId === collectionId
-      );
-
-      if (exists) {
-        alert("A question with that number already exists in the selected collection.");
-        return;
-      }
-
-      // ✅ Use FormData for image upload
-      const formData = new FormData();
-      formData.append("number", number);
-      formData.append("collectionId", collectionId);
-      formData.append("question", question);
-      formData.append("hint", hint);
-      formData.append("answer", answer);
-      if (image) {
-        formData.append("image", image);
-      }
-
-      const response = await fetch("http://localhost:5000/questions", {
-        method: "POST",
-        body: formData, 
-      });
-
-      if (response.ok) {
-        alert("Question added successfully!");
-        setCollectionId("");
-        setQuestion("");
-        setHint("");
-        setAnswer("");
-        setNumber("");
-        setImage(null);
-      } else {
-        const data = await response.json();
-        setMessage(`Error: ${data.message || "Could not add question."}`);
-      }
-    } catch (err) {
-      console.error("Error submitting question:", err);
-      setMessage("Something went wrong. Please try again.");
-    }
-    // Validation for empty fields
+    // ✅ Add validation at the TOP
     if (!number || number.trim() === "") {
       alert("Please enter a question number.");
       return;
@@ -104,14 +60,12 @@ const CreateQuestion = () => {
       return;
     }
 
-    // Optional: Validate that question number is a positive integer
     const questionNumber = parseInt(number);
     if (isNaN(questionNumber) || questionNumber <= 0) {
       alert("Please enter a valid positive question number.");
       return;
     }
 
-    // Optional: Validate that answer is not just commas
     const trimmedAnswers = answer.split(",").map(ans => ans.trim()).filter(ans => ans.length > 0);
     if (trimmedAnswers.length === 0) {
       alert("Please enter at least one valid answer.");
@@ -119,6 +73,7 @@ const CreateQuestion = () => {
     }
 
     try {
+      // Check for duplicates
       const allRes = await fetch("http://localhost:5000/questions");
       const allQuestions = await allRes.json();
 
@@ -131,36 +86,42 @@ const CreateQuestion = () => {
         return;
       }
 
-      const newQuestion = {
-        number: parseInt(number),
-        collectionId,
-        question: question.trim(),
-        hint: hint.trim(),
-        answer: trimmedAnswers, // Use the filtered answers
-        funFact: funFact.trim()
-      };
+      // ✅ Use FormData for image upload (ONLY ONCE!)
+      const formData = new FormData();
+      formData.append("number", questionNumber);
+      formData.append("collectionId", collectionId);
+      formData.append("question", question.trim());
+      formData.append("hint", hint.trim());
+      formData.append("answer", JSON.stringify(trimmedAnswers));
+      formData.append("funFact", funFact.trim());
+      
+      if (image) {
+        formData.append("image", image);
+      }
 
       const response = await fetch("http://localhost:5000/questions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQuestion),
+        body: formData,
       });
 
       if (response.ok) {
         alert("Question added successfully!");
+        // Clear form
+        setNumber("");
         setCollectionId("");
         setQuestion("");
         setHint("");
         setAnswer("");
-        setNumber("");
         setFunFact("");
+        setImage(null);
+        setMessage("");
       } else {
         const data = await response.json();
-        alert(`Error: ${data.message || "Could not add question."}`);
+        setMessage(`Error: ${data.message || "Could not add question."}`);
       }
     } catch (err) {
       console.error("Error submitting question:", err);
-      alert("Something went wrong. Please try again.");
+      setMessage("Something went wrong. Please try again.");
     }
   };
 
@@ -199,6 +160,7 @@ const CreateQuestion = () => {
             value={number}
             onChange={(e) => setNumber(e.target.value)}
             placeholder="Question Number"
+            required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
@@ -206,6 +168,7 @@ const CreateQuestion = () => {
           <select
             value={collectionId}
             onChange={(e) => setCollectionId(e.target.value)}
+            required
             className="dropdown-select"
             style={{
               marginBottom: "10px",
@@ -231,6 +194,7 @@ const CreateQuestion = () => {
             placeholder="Question Description"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
+            required
             className="login-btn"
             style={{
               marginBottom: "10px",
@@ -257,11 +221,11 @@ const CreateQuestion = () => {
             placeholder="Answer"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
+            required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
 
-          {/* ✅ Image Upload Input */}
           <input
             type="file"
             accept="image/*"
@@ -278,6 +242,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+          
           <button
             type="submit"
             className="login-btn"

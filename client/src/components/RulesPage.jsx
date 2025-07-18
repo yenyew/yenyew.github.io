@@ -160,6 +160,7 @@ export default function RulesPage() {
                     checked={agreed}
                     onChange={(e) => setAgreed(e.target.checked)}
                     style={{ 
+                      marginTop: "15px",
                       width: "18px", 
                       height: "18px",
                       cursor: "pointer"

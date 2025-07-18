@@ -64,12 +64,30 @@ const EditQuestion = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ✅ Validation first
+    if (!question.trim()) {
+      alert("Please enter a question description.");
+      return;
+    }
+
+    if (!answer.trim()) {
+      alert("Please enter an answer.");
+      return;
+    }
+
+    const trimmedAnswers = answer.split(",").map(ans => ans.trim()).filter(ans => ans.length > 0);
+    if (trimmedAnswers.length === 0) {
+      alert("Please enter at least one valid answer.");
+      return;
+    }
+
     try {
+      // ✅ Use FormData for image support
       const formData = new FormData();
-      formData.append("question", question);
-      formData.append("hint", hint);
-      formData.append("answer", JSON.stringify(answer.split(",").map(ans => ans.trim())));
-      formData.append("funFact", funFact);
+      formData.append("question", question.trim());
+      formData.append("hint", hint.trim());
+      formData.append("answer", JSON.stringify(trimmedAnswers));
+      formData.append("funFact", funFact.trim());
       formData.append("collectionId", collectionId);
       
       if (image) {
@@ -82,8 +100,7 @@ const EditQuestion = () => {
 
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
-        body: formData, // Only FormData body - no duplicate!
-        // Note: Don't set Content-Type header when using FormData
+        body: formData, // Only FormData - no Content-Type header!
       });
 
       if (res.ok) {

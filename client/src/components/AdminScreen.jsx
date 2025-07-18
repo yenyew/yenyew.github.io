@@ -48,6 +48,14 @@ const AdminScreen = () => {
         </button>
 
         <button
+          onClick={() => navigate("/landing-customisation")}
+          className="login-btn"
+          style={{ marginTop: "16px", width: "100%", maxWidth: "300px", backgroundColor: "#e67e22" }}
+        >
+          Customise Landing Page
+        </button>
+
+        <button
             onClick={() => navigate("/global-game-settings")}
             className="login-btn"
             style={{ marginTop: "16px", width: "100%", maxWidth: "300px", backgroundColor: "#6f42c1" }}
