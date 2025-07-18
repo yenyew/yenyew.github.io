@@ -32,11 +32,11 @@ const CreateCollection = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header">
         <button
-          onClick={() => navigate("/admin")}
+          onClick={() => navigate("/questions")}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",

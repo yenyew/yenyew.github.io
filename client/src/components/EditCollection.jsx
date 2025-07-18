@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "./LoginScreen.css";
-
+import "./MainStyles.css";
 const EditCollection = () => {
   const { id } = useParams();
   const [name, setName] = useState("");
@@ -13,6 +12,13 @@ const EditCollection = () => {
   const pageSize = 6;
 
   useEffect(() => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      alert("You must be logged in to access this page.");
+      navigate("/login");
+      return;
+    }
+    
     const fetchCollection = async () => {
       try {
         const res = await fetch(`http://localhost:5000/collections`);
@@ -36,7 +42,7 @@ const EditCollection = () => {
 
         const withCollectionId = (data.questions || []).map((q) => ({
           ...q,
-          collectionId: collectionId, // ✅ needed for edit navigation
+          collectionId: collectionId, 
         }));
 
         setQuestions(withCollectionId);
@@ -111,7 +117,7 @@ const EditCollection = () => {
   };
 
   const handleQuestionClick = (number, collectionId) => {
-    navigate(`/edit-question/${number}?collectionId=${collectionId}`);
+    navigate(`/edit-question/${number}/${collectionId}`);
   };
 
   const sortedQuestions = [...questions];
@@ -125,7 +131,7 @@ const EditCollection = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header">
         <button

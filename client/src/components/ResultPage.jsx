@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import './MainStyles.css';
 
-export default function SharePage() {
+export default function ResultPage() {
   const [player, setPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,9 +18,8 @@ export default function SharePage() {
 
     const fetchPlayer = async () => {
       try {
-        const res = await fetch(`http://172.20.10.2:5000/players/${playerId}`);
+        const res = await fetch(`http://localhost:5000/players/${playerId}`);
         if (!res.ok) throw new Error("Player not found");
-
         const data = await res.json();
         setPlayer(data);
         setLoading(false);
@@ -57,17 +56,25 @@ export default function SharePage() {
     return { formattedDate, formattedTime };
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: "GoChangi Challenge Completed!",
-          text: `I just finished the GoChangi quest with a score of ${player.score}! Try it yourself!`,
-          url: window.location.origin,
-        })
-        .catch((err) => console.error("Share failed:", err));
-    } else {
-      alert("Sharing is not supported on this device/browser.");
+    const handleRedeem = async () => {
+    const confirm = window.confirm(
+      "🎁 Once you click this, please claim your reward at the booth immediately!"
+    );
+    if (!confirm) return;
+  
+    try {
+      const res = await fetch(`http://localhost:5000/players/${player._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...player, redeemed: true }),
+      });
+  
+      if (res.ok) {
+        setPlayer({ ...player, redeemed: true, redeemedAt: new Date() });
+        alert("✅ Marked as redeemed!");
+      }
+    } catch {
+      alert("❌ Error redeeming gift.");
     }
   };
 
@@ -97,38 +104,49 @@ export default function SharePage() {
   }
 
   const { formattedDate, formattedTime } = getCurrentDateTime();
+  const totalTime = player.totalTimeInSeconds || 0;
 
   return (
     <div className="page-container">
       <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
       <div className="page-overlay" />
+
       <div className="page-content" style={{ textAlign: "center" }}>
         <h2>🎉 Congratulations {player.username}!</h2>
         <p>You have completed the quest with these stats:</p>
 
         <div style={{ margin: "1.5rem 0", lineHeight: "1.8" }}>
-          <div>
-            <strong>Total Time:</strong> {formatTime(player.totalTimeInSeconds)} (includes penalties)
-          </div>
-          <div><strong>Correct Answers:</strong> {player.score / 500}</div>
+          <div><strong>Total Time (with penalties):</strong> {formatTime(totalTime)}</div>
           <div><strong>Hints Used:</strong> {player.hintsUsed || 0}</div>
-          <div><strong>Final Score:</strong> {player.score}</div>
+          <div><strong>Questions Skipped:</strong> {player.questionsSkipped || 0}</div>
+          <div><strong>Wrong Answers:</strong> {player.wrongAnswers || 0}</div>
         </div>
 
         <div className="button-group">
-          <button className="share-button" onClick={handleShare}>Share</button>
-          <button className="leaderboard-button" onClick={() => navigate("/leaderboard")}>Leaderboard</button>
+          <button className="leaderboard-button" onClick={() => navigate("/leaderboard")}>
+            Leaderboard
+          </button>
         </div>
 
         <p style={{ fontWeight: "bold", marginTop: "2rem" }}>
-          🎁 Redeem your gifts at the redemption booth now!
+          🎁 Redeem your gift at the booth now!
         </p>
-        <p>{formattedDate}, {formattedTime}</p>
 
-        <div style={{ marginTop: "1rem", fontSize: "18px" }}>
-          <strong>Your Reward Code:</strong><br />
-          <span style={{ fontSize: "24px", letterSpacing: "2px" }}>{player.rewardCode}</span>
-        </div>
+        {!player.redeemed ? (
+          <button
+            onClick={handleRedeem}
+            className="login-btn"
+            style={{ marginTop: "1rem" }}
+          >
+            🎁 Click here to redeem
+          </button>
+        ) : (
+          <p style={{ color: "green", fontWeight: "bold", marginTop: "1rem" }}>
+            ✅ Already Redeemed at {new Date(player.redeemedAt).toLocaleString("en-SG")}
+          </p>
+        )}
+
+        <p style={{ marginTop: "2rem" }}>{formattedDate}, {formattedTime}</p>
       </div>
     </div>
   );

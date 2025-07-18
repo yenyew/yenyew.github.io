@@ -1,38 +1,41 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import "./LoginScreen.css";
+import { useNavigate, useParams } from "react-router-dom";
+import "./MainStyles.css";
 
 const EditQuestion = () => {
-  const { number } = useParams();
-  const location = useLocation();
+  const { number, collectionId } = useParams();
   const navigate = useNavigate();
 
-  const [collectionId, setCollectionId] = useState("");
   const [collectionName, setCollectionName] = useState("");
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
+<<<<<<< HEAD:client/src/components/EditQns.jsx
   const [image, setImage] = useState(null);
   const [existingImage, setExistingImage] = useState(null);
   const [deleteImage, setDeleteImage] = useState(false);
+=======
+  const [funFact, setFunFact] = useState("");
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const colId = params.get("collectionId");
-
-    if (!colId) {
-      alert("Missing collection ID.");
-      navigate("/admin");
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      alert("You must be logged in to access this page.");
+      navigate("/login");
       return;
     }
-
-    setCollectionId(colId);
-
+    
+    if (!collectionId) {
+      alert("Missing collection ID.");
+      navigate("/questions");
+      return;
+    }
     const fetchCollectionName = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
         const data = await res.json();
-        const target = data.find((col) => col._id === colId);
+        const target = data.find((col) => col._id === collectionId);
         if (target) setCollectionName(target.name || "");
       } catch (err) {
         console.error("Error fetching collections:", err);
@@ -41,13 +44,18 @@ const EditQuestion = () => {
 
     const fetchQuestion = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/questions/${number}/${colId}`);
+        const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`);
         if (!res.ok) throw new Error("Question not found");
         const data = await res.json();
         setQuestion(data.data.question);
         setHint(data.data.hint);
+<<<<<<< HEAD:client/src/components/EditQns.jsx
         setAnswer(data.data.answer);
         setExistingImage(data.data.image);
+=======
+        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer); // Join array answers into a string
+        setFunFact(data.data.funFact || "");
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -56,7 +64,7 @@ const EditQuestion = () => {
 
     fetchCollectionName();
     fetchQuestion();
-  }, [number, location.search, navigate]);
+  }, [number, collectionId, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,12 +80,23 @@ const EditQuestion = () => {
 
       const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
         method: "PATCH",
+<<<<<<< HEAD:client/src/components/EditQns.jsx
         body: formData,
+=======
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          question, 
+          hint, 
+          answer: answer.split(",").map(ans => ans.trim()), 
+          funFact,
+          collectionId 
+        }),
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
       });
 
       if (res.ok) {
         alert("Question updated successfully!");
-        navigate(`/edit-collection/${collectionId}`);
+        navigate(`/questions`);
       } else {
         const data = await res.json();
         alert(`Error: ${data.message || "Update failed"}`);
@@ -91,11 +110,11 @@ const EditQuestion = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="overlay"></div>
+      <div className="page-overlay"></div>
 
       <div className="header">
         <button
-          onClick={() => navigate(`/edit-collection/${collectionId}`)}
+          onClick={() => navigate(`/questions`)}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
@@ -135,6 +154,9 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+          <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
+            Enter multiple acceptable answers, separated by commas.
+          </p>
           <input
             type="text"
             placeholder="Answer"
@@ -143,6 +165,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+<<<<<<< HEAD:client/src/components/EditQns.jsx
 
           {existingImage && !deleteImage && (
             <div style={{ marginBottom: "10px" }}>
@@ -172,6 +195,16 @@ const EditQuestion = () => {
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
 
+=======
+          <input
+            type="text"
+            placeholder="Fun fact"
+            value={funFact}
+            onChange={(e) => setFunFact(e.target.value)}
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+>>>>>>> 9bc97a54237b1f514706351299a7e0a731737b51:client/src/components/EditQuestion.jsx
           <button
             type="submit"
             className="login-btn"

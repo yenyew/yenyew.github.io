@@ -17,12 +17,20 @@ const questionSchema = new mongoose.Schema({
     required: true,
   },
   answer: {
-    type: String,
+    type: [String],
     required: true,
   },  
   hint: {
     type: String,
     required: true,
+  },
+  funFact: {
+    type: String,
+    required: true,
+  },
+  sortOrder: {
+    type: Number,
+    default: 0,  
   }
 });
 
