@@ -230,10 +230,8 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: "Collection not found" });
     }
 
-    // Optional: Also delete questions in the collection
-    await Question.deleteMany({ collectionId: deleted._id });
-
-    res.status(200).json({ message: "Collection and related questions deleted." });
+    // Removed Question.deleteMany to preserve questions
+    res.status(200).json({ message: "Collection deleted successfully." });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete collection", error: error.message });
   }

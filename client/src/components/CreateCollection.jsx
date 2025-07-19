@@ -36,7 +36,7 @@ const CreateCollection = () => {
 
       <div className="header">
         <button
-          onClick={() => navigate("/questions")}
+          onClick={() => navigate("/collections")}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",

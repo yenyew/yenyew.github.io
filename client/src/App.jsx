@@ -13,12 +13,13 @@ import AdminScreen from './components/AdminScreen.jsx';
 import CreateQuestion from "./components/CreateQuestion.jsx";
 import EditQuestion from "./components/EditQuestion.jsx";
 import Questions from "./components/QuestionsBank.jsx";
+import Collections from "./components/CollectionsBank.jsx";
 import CreateCollection from "./components/CreateCollection.jsx";
-import EditCollection from "./components/EditCollection.jsx";
 import AdminLeaderboard from "./components/LeaderboardAdmin.jsx";
 import BadUsernames from "./components/BadUsernames.jsx";
 import GlobalSettings from "./components/GlobalSettings.jsx";
 import LandingCustomiser from './components/LandingCustomisation';
+import EditCollection from "./components/EditCollection.jsx";
 
 
 export default function App() {
@@ -38,11 +39,12 @@ export default function App() {
         <Route path="/questions" element={<Questions />} />
         <Route path="/edit-question/:number/:collectionId" element={<EditQuestion />} />
         <Route path="/add-collection" element={<CreateCollection />} />
-        <Route path="/edit-collection/:id" element={<EditCollection />} />
         <Route path="/admin-leaderboard" element={<AdminLeaderboard />} />
         <Route path="/bad-usernames" element={<BadUsernames />} />
         <Route path="/global-game-settings" element={<GlobalSettings />} />
         <Route path="/landing-customisation" element={<LandingCustomiser />} />
+        <Route path="/collections" element={<Collections />} />
+        <Route path="/collections/:code" element={<EditCollection />} />
       </Routes>
     </div>
   );
