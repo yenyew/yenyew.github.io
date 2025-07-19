@@ -76,26 +76,25 @@ const HomePage = () => {
       </div>
 
       <div className="home-content">
-        <div className="title-block">
-          <h1 style={{ color: customisation?.titleColor || '#000000' }}>
-            {customisation?.welcomeMessage || 'Welcome To GoChangi!'}
-          </h1>
-        </div>
+  <div className="title-block">
+    <h1 style={{ color: customisation?.titleColor || '#000000' }}>
+      {customisation?.welcomeMessage || 'Welcome To GoChangi!'}
+    </h1>
+    <p style={{ color: customisation?.descriptionColor || '#000000', marginTop: '12px', textAlign: 'center' }}>
+      {customisation?.description || 'Discover Changi, One Clue at a Time!'}
+    </p>
+  </div>
 
-        <div className="description-block">
-          <p style={{ color: customisation?.descriptionColor || '#000000' }}>
-            {customisation?.description || 'Discover Changi, One Clue at a Time!'}
-          </p>
-          <div className="home-buttons">
-            <button onClick={handlePlayClick}>Play</button>
-            <button onClick={handleAdminLoginClick}>Admin Login</button>
-          </div>
-
-          <div className="jewel-logo-wrapper">
-            <img src="/images/jewel.png" alt="Jewel Logo" />
-          </div>
-        </div>
-      </div>
+  <div className="description-block">
+    <div className="home-buttons">
+      <button onClick={handlePlayClick}>Play</button>
+      <button onClick={handleAdminLoginClick}>Admin Login</button>
+    </div>
+    <div className="jewel-logo-wrapper" style={{ marginTop: '20px' }}>
+      <img src="/images/jewel.png" alt="Jewel Logo" />
+    </div>
+  </div>
+</div>
     </div>
   );
 };

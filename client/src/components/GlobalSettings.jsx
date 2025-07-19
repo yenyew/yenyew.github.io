@@ -15,6 +15,7 @@ const GlobalSettings = () => {
   // Modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
@@ -36,15 +37,42 @@ const GlobalSettings = () => {
       const response = await fetch("http://localhost:5000/global-settings");
       const data = await response.json();
       setSettings(data);
-    } catch (error) {
+    } catch {
       setModalTitle("Error");
       setModalMessage("Error fetching global settings.");
       setShowErrorModal(true);
     }
   };
 
-  const handleSave = async (e) => {
+  // Format preview details for modal
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
+  const handleSave = (e) => {
     e.preventDefault();
+    setModalTitle("Confirm Save");
+    setModalMessage(
+      <>
+        <div>
+          <strong>Preview:</strong>
+          <div style={{ fontSize: "14px", marginTop: "8px" }}>
+            <p>• Mode: <strong>{settings.defaultGameMode}</strong></p>
+            <p>• Wrong Answer: <strong>+{formatTime(settings.defaultWrongAnswerPenalty)}</strong></p>
+            <p>• Hint: <strong>+{formatTime(settings.defaultHintPenalty)}</strong></p>
+            <p>• Skip: <strong>+{formatTime(settings.defaultSkipPenalty)}</strong></p>
+          </div>
+        </div>
+        <div style={{ marginTop: "10px" }}>Do you want to save these global settings?</div>
+      </>
+    );
+    setShowConfirmModal(true);
+  };
+
+  // Actually save after confirmation
+  const confirmSave = async () => {
     try {
       const response = await fetch("http://localhost:5000/global-settings", {
         method: "PATCH",
@@ -62,25 +90,19 @@ const GlobalSettings = () => {
         setModalMessage(`Failed to update settings: ${data.message}`);
         setShowErrorModal(true);
       }
-    } catch (error) {
+    } catch {
       setModalTitle("Error");
       setModalMessage("Error updating settings. Please try again.");
       setShowErrorModal(true);
     }
+    setShowConfirmModal(false);
   };
 
   const handleModalClose = () => {
     setShowSuccessModal(false);
     setShowErrorModal(false);
+    setShowConfirmModal(false);
   };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-  };
-
-
 
   return (
     <>
@@ -88,6 +110,9 @@ const GlobalSettings = () => {
         <img src="/images/changihome.jpg" alt="Background" className="background-image" />
         <div className="page-overlay"></div>
         <div className="global-settings-content">
+          <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "20px", padding: "0 12px" }}>
+            Manage Default Settings
+          </h2>
           <form onSubmit={handleSave} style={{ width: "100%", maxWidth: "500px" }}>
             {/* Game Mode Section */}
             <div style={{ marginTop: "10px", marginBottom: "8px"  }}>
@@ -173,21 +198,6 @@ const GlobalSettings = () => {
               </div>
             </div>
 
-            {/* Preview Section */}
-            <div style={{ 
-              backgroundColor: "#f8f9fa", 
-              padding: "12px", 
-              borderRadius: "5px", 
-              marginBottom: "15px" 
-            }}>
-              <h4 style={{ margin: "0 0 8px 0", color: "#333", fontSize: "14px" }}>Preview:</h4>
-              <div style={{ fontSize: "12px", color: "#666" }}>
-                <p style={{ margin: "3px 0" }}>• Mode: <strong>{settings.defaultGameMode}</strong></p>
-                <p style={{ margin: "3px 0" }}>• Wrong Answer: <strong>+{formatTime(settings.defaultWrongAnswerPenalty)}</strong></p>
-                <p style={{ margin: "3px 0" }}>• Hint: <strong>+{formatTime(settings.defaultHintPenalty)}</strong></p>
-                <p style={{ margin: "3px 0" }}>• Skip: <strong>+{formatTime(settings.defaultSkipPenalty)}</strong></p>
-              </div>
-            </div>
             {/* Buttons Row */}
             <div className="button-row">
               <button
@@ -230,7 +240,20 @@ const GlobalSettings = () => {
         </div>
       </div>
 
-      {/* Alert Modals - OUTSIDE CONTAINER */}
+      {/* Confirmation Modal for Preview */}
+      <AlertModal
+        isOpen={showConfirmModal}
+        onClose={handleModalClose}
+        onConfirm={confirmSave}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Save"
+        cancelText="Cancel"
+        type="info"
+        showCancel={true}
+      />
+
+      {/* Success/Error Modals */}
       <AlertModal
         isOpen={showSuccessModal}
         onClose={handleModalClose}

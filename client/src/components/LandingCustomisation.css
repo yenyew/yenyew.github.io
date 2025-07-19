@@ -1,0 +1,73 @@
+.landing-customisation-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 55px 20px;
+}
+
+.landing-customisation-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh; /* or 100vh for full viewport */
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 2;
+  color: #222;
+}
+
+
+.custom-label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: bold;
+  color: #333;
+  font-size: 14px;
+}
+
+.button-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.button-row button {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* LandingCustomisation.css */
+
+.login-btn[type="color"] {
+  /* make the swatch big enough to notice */
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+/* Webkit (Chrome, Safari) */
+.login-btn[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.login-btn[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;    /* rounded corners if you like */
+}
+
+/* Firefox */
+.login-btn[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 4px;
+}

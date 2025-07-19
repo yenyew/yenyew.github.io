@@ -247,9 +247,11 @@ button.login-btn,
 }
 
 .jewel-logo-wrapper {
-  margin-top: 2rem;
-  display: flex;
-  justify-content: center;
+  position: absolute;
+  bottom: 32px;
+  left: 0;
+  right: 0;
+  text-align: center;
 }
 
 .jewel-logo-wrapper img {
