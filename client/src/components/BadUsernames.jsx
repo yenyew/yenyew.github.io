@@ -294,8 +294,8 @@ const BadUsernames = () => {
       {/* Custom Bulk Update Modal - OUTSIDE CONTAINER */}
       {showBulkModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Bulk Update Prohibited List</h3>
+          <div className="modal-content" >
+            <h3 style={{ color: "#000" }}>Update Prohibited List</h3>
             <form onSubmit={handleBulkUpdate}>
               <textarea
                 placeholder="Enter all prohibited usernames"
@@ -325,7 +325,7 @@ const BadUsernames = () => {
                   marginBottom: "6px"
                 }}
               >
-                Replace Entire List
+                Update Entire List
               </button>
               <button
                 type="button"

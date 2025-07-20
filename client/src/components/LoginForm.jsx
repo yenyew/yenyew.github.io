@@ -1,16 +1,32 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from "./AlertModal";
+import "./MainStyles.css";
 
-import "./MainStyles.css"; // Use MainStyles instead of LoginScreen
 const LoginScreen = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+
+  // modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+
   const navigate = useNavigate();
+
+  const handleModalClose = () => {
+    setShowErrorModal(false);
+    setShowSuccessModal(false);
+  };
+
+  const handleSuccessConfirm = () => {
+    setShowSuccessModal(false);
+    navigate("/admin");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     try {
       const response = await fetch("http://localhost:5000/admins/login", {
@@ -18,24 +34,24 @@ const LoginScreen = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-
       const data = await response.json();
 
       if (response.ok) {
         localStorage.setItem("jwtToken", data.token);
-        alert("Login successful!");
-        navigate("/admin");
+        setModalTitle("Login Successful");
+        setModalMessage("Welcome back! Redirecting to admin…");
+        setShowSuccessModal(true);
       } else {
-        setError(data.message || "Invalid credentials");
+        setModalTitle("Login Failed");
+        setModalMessage(data.message || "Invalid credentials.");
+        setShowErrorModal(true);
       }
     } catch (err) {
       console.error("Error during login:", err);
-      setError("Something went wrong. Please try again.");
+      setModalTitle("Error");
+      setModalMessage("Something went wrong. Please try again.");
+      setShowErrorModal(true);
     }
-  };
-
-  const handleGoHome = () => {
-    navigate("/");
   };
 
   return (
@@ -44,7 +60,7 @@ const LoginScreen = () => {
       <div className="home-overlay"></div>
 
       <div className="top-left-logo">
-        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
+        <img src="/images/ces.jpg" alt="CES Logo" />
       </div>
 
       <div className="home-content">
@@ -54,11 +70,6 @@ const LoginScreen = () => {
 
         <div className="description-block">
           <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px", margin: "0 auto" }}>
-            {error && (
-              <div style={{ color: "red", marginBottom: "15px", textAlign: "center" }}>
-                {error}
-              </div>
-            )}
             <input
               type="text"
               placeholder="Username"
@@ -93,7 +104,7 @@ const LoginScreen = () => {
             />
             <div className="home-buttons">
               <button type="submit">Log In</button>
-              <button type="button" onClick={handleGoHome}>Go to Home</button>
+              <button type="button" onClick={() => navigate("/")}>Go to Home</button>
             </div>
           </form>
 
@@ -103,14 +114,27 @@ const LoginScreen = () => {
         </div>
       </div>
 
-      {/* Commented out for now
-      <div className="footer">
-        <div className="language">
-          <img src="/images/globe.png" alt="Globe Icon" className="globe-icon" />
-          <span>English</span>
-        </div>
-      </div>
-      */}
+      {/* Success Modal */}
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessConfirm}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
+
+      {/* Error Modal */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
     </div>
   );
 };

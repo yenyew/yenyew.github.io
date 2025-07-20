@@ -1,5 +1,7 @@
+// QuestionsBank.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import AlertModal from "./AlertModal";
 import "./Questions.css";
 import "./MainStyles.css";
 
@@ -7,233 +9,319 @@ const QuestionsBank = () => {
   const [questions, setQuestions] = useState([]);
   const [collections, setCollections] = useState([]);
   const [collectionCode, setCollectionCode] = useState("");
+  
+  // Modal state
+  const [showError, setShowError] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  
+  // remember which question to delete
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
   const navigate = useNavigate();
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const passedCode = queryParams.get("collection");
+  const passedCode = new URLSearchParams(location.search).get("collection");
 
+  // Auth check
   useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+    if (!localStorage.getItem("jwtToken")) {
+      setModalTitle("Not Logged In");
+      setModalMessage("You must be logged in to access this page.");
+      setShowError(true);
     }
-  }, [navigate]);
+  }, []);
 
+  // Fetch collections
   useEffect(() => {
-    const fetchCollections = async () => {
+    (async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
         const data = await res.json();
         setCollections(data);
-
-        if (data.length > 0 && !collectionCode) {
-          const codeToSet = passedCode || "all";
-          setCollectionCode(codeToSet);
+        if (data.length && !collectionCode) {
+          setCollectionCode(passedCode || "all");
         }
       } catch (err) {
-        console.error("Error fetching collections:", err);
+        console.error(err);
       }
-    };
-    fetchCollections();
+    })();
   }, [passedCode, collectionCode]);
 
+  // Fetch questions whenever collectionCode changes
   useEffect(() => {
     if (!collectionCode) return;
-    if (collectionCode === "all") {
-      fetchAllQuestions();
-    } else {
-      fetchQuestions(collectionCode);
-    }
+    const url =
+      collectionCode === "all"
+        ? "http://localhost:5000/questions"
+        : `http://localhost:5000/collections/${collectionCode}/questions`;
+    (async () => {
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        setQuestions(Array.isArray(data) ? data : data.questions || []);
+      } catch (err) {
+        console.error(err);
+        setQuestions([]);
+      }
+    })();
   }, [collectionCode]);
 
-  const fetchQuestions = async (code) => {
-    try {
-      const response = await fetch(`http://localhost:5000/collections/${code}/questions`);
-      const data = await response.json();
-      setQuestions(Array.isArray(data) ? data : data.questions || []);
-    } catch (err) {
-      console.error("Error fetching questions:", err);
-      setQuestions([]);
-    }
+  const getCollectionName = (id) => {
+    const col = collections.find((c) => c._id === id);
+    return col ? col.name : "Unknown Collection";
   };
 
-  const fetchAllQuestions = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/questions");
-      const data = await response.json();
-      setQuestions(Array.isArray(data) ? data : data.questions || []);
-    } catch (err) {
-      console.error("Error fetching all questions:", err);
-      setQuestions([]);
-    }
-  };
-
-  const getCollectionName = (collectionId) => {
-    const collection = collections.find((col) => col._id === collectionId);
-    return collection ? collection.name : "Unknown Collection";
-  };
-
-  const handleEdit = (number, questionCollectionId) => {
-    if (collectionCode === "all") {
-      if (!questionCollectionId) {
-        alert("Cannot edit: Question collection ID not found.");
-        return;
-      }
-      navigate(`/edit-question/${number}/${questionCollectionId}`);
-    } else {
-      const selectedCollection = collections.find((col) => col.code === collectionCode);
-      if (!selectedCollection) {
-        alert("Collection not selected");
-        return;
-      }
-      navigate(`/edit-question/${number}/${selectedCollection._id}`);
-    }
-  };
-
-  const handleDelete = async (number, questionCollectionId) => {
-    if (!window.confirm("Are you sure you want to delete this question?")) return;
-
-    if (!questionCollectionId) {
-      alert("Collection ID not found for this question.");
+  // Edit handler unchanged
+  const handleEdit = (number, colId) => {
+    if (collectionCode === "all" && !colId) {
+      setModalTitle("Error");
+      setModalMessage("Cannot edit: Question collection ID not found.");
+      setShowError(true);
       return;
     }
+    const targetId =
+      collectionCode === "all"
+        ? colId
+        : collections.find((c) => c.code === collectionCode)?._id;
+    if (!targetId) {
+      setModalTitle("Error");
+      setModalMessage("Collection not selected.");
+      setShowError(true);
+      return;
+    }
+    navigate(`/edit-question/${number}/${targetId}`);
+  };
 
-    try {
-      const res = await fetch(`http://localhost:5000/questions/${number}/${questionCollectionId}`, {
-        method: "DELETE",
-      });
+  // Schedule delete-confirm
+  const handleDeleteClick = (q) => {
+    setDeleteTarget(q);
+    setModalTitle("Confirm Delete");
+    setModalMessage("Are you sure you want to delete this question?");
+    setShowConfirmDelete(true);
+  };
 
-      if (res.ok) {
-        alert("Question deleted.");
-        setQuestions((prev) =>
-          prev.filter((q) => !(q.number === number && q.collectionId === questionCollectionId))
+  // Actually delete
+  const confirmDelete = async () => {
+    const { number, collectionId } = deleteTarget || {};
+    if (!collectionId) {
+      setModalTitle("Error");
+      setModalMessage("Collection ID not found for this question.");
+      setShowError(true);
+    } else {
+      try {
+        const res = await fetch(
+          `http://localhost:5000/questions/${number}/${collectionId}`,
+          { method: "DELETE" }
         );
-      } else {
-        const data = await res.json();
-        alert(`Failed to delete the question: ${data.message}`);
+        if (res.ok) {
+          setQuestions((prev) =>
+            prev.filter((q) => !(q.number === number && q.collectionId === collectionId))
+          );
+          setModalTitle("Deleted");
+          setModalMessage("Question deleted.");
+          setShowDeleteSuccess(true);
+        } else {
+          const data = await res.json();
+          setModalTitle("Error");
+          setModalMessage(data.message || "Failed to delete question.");
+          setShowError(true);
+        }
+      } catch (err) {
+        console.error(err);
+        setModalTitle("Error");
+        setModalMessage("Error deleting question.");
+        setShowError(true);
       }
-    } catch (err) {
-      console.error("Error deleting question:", err);
+    }
+    setShowConfirmDelete(false);
+    setDeleteTarget(null);
+  };
+
+  // Close any modal
+  const closeModal = () => {
+    setShowError(false);
+    setShowConfirmDelete(false);
+    setShowDeleteSuccess(false);
+    // redirect if not logged in
+    if (modalTitle === "Not Logged In") {
+      navigate("/login");
     }
   };
 
   return (
     <div className="login-container">
-      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay"></div>
+      <img src="/images/changihome.jpg" alt="BG" className="background-image" />
+      <div className="page-overlay" />
       <div className="top-left-logo">
-        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
+        <img src="/images/ces.jpg" alt="Logo" />
       </div>
-
       <div className="scroll-wrapper">
-        <div className="buttons" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <select
-            value={collectionCode}
-            onChange={(e) => {
-              const selected = e.target.value;
-              if (selected === "all") {
-                navigate("/questions?collection=all");
-              } else {
-                navigate(`/collections/${selected}`, { state: { from: "questions" } });
-              }
-            }}
-            style={{ padding: "6px", fontSize: "15px" }}
-          >
-            <option value="all">All Questions</option>
-            {collections.map((col) => (
-              <option key={col._id} value={col.code}>
-                {col.name} Collection
-              </option>
-            ))}
-          </select>
+        <div className="buttons" style={{ gap: "12px" }}>
+          {/* Collection selector */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <select
+              value={collectionCode}
+              onChange={(e) => {
+                const val = e.target.value;
+                navigate(
+                  val === "all"
+                    ? "/questions?collection=all"
+                    : `/collections/${val}?collection=${val}`
+                );
+              }}
+              style={{ padding: "6px", fontSize: "15px" }}
+            >
+              <option value="all">All Questions</option>
+              {collections.map((c) => (
+                <option key={c._id} value={c.code}>
+                  {c.name} Collection
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: "16px", fontWeight: "bold", margin: 0 }}>
+              Viewing "{collectionCode === "all"
+                ? "All Collections"
+                : collections.find((c) => c.code === collectionCode)?.name ||
+                  collectionCode}"
+            </p>
+          </div>
 
-          <p style={{ fontSize: "16px", fontWeight: "bold", color: "#000", margin: 0 }}>
-            Viewing questions in "{collectionCode === "all" ? "All Collections" : collections.find((col) => col.code === collectionCode)?.name || collectionCode}"
-          </p>
-        </div>
-
-        <div style={{ maxHeight: "65vh", overflowY: "auto", width: "100%" }}>
-          {questions.length === 0 ? (
-            <p>No questions found.</p>
-          ) : (
-            <ul style={{ listStyleType: "none", padding: 0 }}>
-              {questions.map((q, index) => (
-                <li
-                  key={q._id}
-                  onClick={() => navigate(`/edit-question/${q.number}/${q.collectionId}`)}
-                  style={{
-                    background: "#fff",
-                    borderRadius: "8px",
-                    padding: "10px",
-                    marginBottom: "8px",
-                    cursor: "pointer"
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                    <strong>
-                      {collectionCode !== "all" &&
-                      collections.find((col) => col.code === collectionCode)?.questionOrder?.length > 0
-                        ? `Game Q${index + 1}: (Original Q${q.number})`
-                        : `Q${q.number}`}
-                    </strong>
-                    {collectionCode === "all" && (
-                      <span
-                        style={{
+          {/* Question list */}
+          <div style={{ maxHeight: "65vh", overflowY: "auto" }}>
+            {questions.length === 0 ? (
+              <p>No questions found.</p>
+            ) : (
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {questions.map((q, idx) => (
+                  <li
+                    key={q._id}
+                    onClick={() => handleEdit(q.number, q.collectionId)}
+                    style={{
+                      background: "#fff",
+                      borderRadius: "8px",
+                      padding: "10px",
+                      marginBottom: "8px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", justifyContent: "space-between" }}
+                    >
+                      <strong>
+                        {collectionCode !== "all" &&
+                        collections.find((c) => c.code === collectionCode)
+                          ?.questionOrder?.length > 0
+                          ? `Game Q${idx + 1}: (Original Q${q.number})`
+                          : `Q${q.number}`}
+                      </strong>
+                      {collectionCode === "all" && (
+                        <span style={{
                           fontSize: "12px",
                           color: "#666",
-                          backgroundColor: "#f0f0f0",
+                          background: "#f0f0f0",
                           padding: "2px 6px",
                           borderRadius: "4px"
+                        }}>
+                          {getCollectionName(q.collectionId)}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ margin: "8px 0" }}>{q.question}</p>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        className="login-btn"
+                        style={{
+                          backgroundColor: "#FFC107",
+                          color: "#000",
+                          padding: "5px 10px",
+                          fontSize: "14px"
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(q.number, q.collectionId);
                         }}
                       >
-                        {getCollectionName(q.collectionId)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ marginBottom: "8px" }}>{q.question}</div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      className="login-btn"
-                      style={{ backgroundColor: "#FFC107", color: "#000", fontSize: "14px", padding: "5px 10px" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(q.number, q.collectionId);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="login-btn"
-                      style={{ backgroundColor: "#DC3545", color: "#fff", fontSize: "14px", padding: "5px 10px" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(q.number, q.collectionId);
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                        Edit
+                      </button>
+                      <button
+                        className="login-btn"
+                        style={{
+                          backgroundColor: "#DC3545",
+                          color: "#fff",
+                          padding: "5px 10px",
+                          fontSize: "14px"
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(q);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <button onClick={() => navigate("/add-question")} className="login-btn">
-            Add New Question
-          </button>
-          <button onClick={() => navigate("/admin")} className="login-btn" style={{ backgroundColor: "#17C4C4" }}>
-            Return
-          </button>
+          {/* Actions */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <button
+              onClick={() => navigate("/add-question")}
+              className="login-btn"
+            >
+              Add New Question
+            </button>
+            <button
+              onClick={() => navigate("/admin")}
+              className="login-btn"
+              style={{ backgroundColor: "#17C4C4" }}
+            >
+              Return
+            </button>
+          </div>
         </div>
       </div>
-      </div>
+
+      {/* Error Modal */}
+      <AlertModal
+        isOpen={showError}
+        onClose={closeModal}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type={modalTitle === "Not Logged In" ? "error" : "info"}
+        showCancel={false}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertModal
+        isOpen={showConfirmDelete}
+        onClose={closeModal}
+        onConfirm={confirmDelete}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="warning"
+        showCancel={true}
+      />
+
+      {/* Delete Success */}
+      <AlertModal
+        isOpen={showDeleteSuccess}
+        onClose={closeModal}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
     </div>
   );
 };
-
 
 export default QuestionsBank;

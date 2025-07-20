@@ -1,20 +1,34 @@
+// CollectionsBank.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from "./AlertModal";
 import "./Questions.css";
 import "./MainStyles.css";
 
 const CollectionsBank = () => {
   const [collections, setCollections] = useState([]);
+  const [deleteId, setDeleteId] = useState(null);
+
+  // modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+
   const navigate = useNavigate();
 
+  // auth check
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setModalTitle("Not Logged In");
+      setModalMessage("You must be logged in to access this page.");
+      setShowErrorModal(true);
     }
   }, [navigate]);
 
+  // fetch collections
   useEffect(() => {
     const fetchCollections = async () => {
       try {
@@ -29,35 +43,65 @@ const CollectionsBank = () => {
     fetchCollections();
   }, []);
 
+  // delete logic
+  const confirmDelete = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/collections/${deleteId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setCollections(prev => prev.filter(col => col._id !== deleteId));
+        setModalTitle("Deleted");
+        setModalMessage("Collection deleted successfully. Questions remain in the database.");
+        setShowSuccessModal(true);
+      } else {
+        const data = await res.json();
+        setModalTitle("Error");
+        setModalMessage(data.message || "Failed to delete the collection.");
+        setShowErrorModal(true);
+      }
+    } catch (err) {
+      console.error("Error deleting collection:", err);
+      setModalTitle("Server Error");
+      setModalMessage("Error deleting collection.");
+      setShowErrorModal(true);
+    }
+    setShowConfirmModal(false);
+    setDeleteId(null);
+  };
+
+  // handlers
   const handleEdit = (code) => {
     navigate(`/collections/${code}`, { state: { from: "collections" } });
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this collection? Associated questions will remain in the database.")) return;
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setModalTitle("Confirm Delete");
+    setModalMessage(
+      "Are you sure you want to delete this collection? Associated questions will remain in the database."
+    );
+    setShowConfirmModal(true);
+  };
 
-    try {
-      const res = await fetch(`http://localhost:5000/collections/${id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        alert("Collection deleted successfully. Questions remain in the database.");
-        setCollections((prev) => prev.filter((col) => col._id !== id));
-      } else {
-        const data = await res.json();
-        alert(`Failed to delete the collection: ${data.message}`);
-      }
-    } catch (err) {
-      console.error("Error deleting collection:", err);
-      alert("Error deleting collection.");
+  const handleModalClose = () => {
+    setShowConfirmModal(false);
+    setShowSuccessModal(false);
+    setShowErrorModal(false);
+    // redirect on not-logged-in
+    if (modalTitle === "Not Logged In") {
+      navigate("/login");
     }
   };
 
   return (
     <div className="login-container">
-      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay"></div>
+      <img
+        src="/images/changihome.jpg"
+        alt="Background"
+        className="background-image"
+      />
+      <div className="page-overlay" />
       <div className="top-left-logo">
         <img src="/images/ces.jpg" alt="Changi Experience Studio" />
       </div>
@@ -118,7 +162,7 @@ const CollectionsBank = () => {
                         style={{ backgroundColor: "#DC3545", color: "#fff", fontSize: "14px", padding: "5px 10px" }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(col._id);
+                          handleDeleteClick(col._id);
                         }}
                       >
                         Delete
@@ -148,6 +192,41 @@ const CollectionsBank = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirm Delete */}
+      <AlertModal
+        isOpen={showConfirmModal}
+        onClose={handleModalClose}
+        onConfirm={confirmDelete}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="warning"
+        showCancel={true}
+      />
+
+      {/* Success */}
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
+
+      {/* Error */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
     </div>
   );
 };

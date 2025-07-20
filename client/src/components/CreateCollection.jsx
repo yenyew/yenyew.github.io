@@ -1,14 +1,27 @@
+// CreateCollection.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from "./AlertModal";
+import "./MainStyles.css";
 
 const CreateCollection = () => {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const navigate = useNavigate();
 
+  // modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+    setShowErrorModal(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const res = await fetch("http://localhost:5000/collections", {
         method: "POST",
@@ -17,23 +30,35 @@ const CreateCollection = () => {
       });
 
       if (res.ok) {
-        alert("Collection created successfully!");
-        navigate("/admin");
+        setModalTitle("Success");
+        setModalMessage("Collection created successfully!");
+        setShowSuccessModal(true);
       } else {
         const data = await res.json();
-        alert(data.message || "Failed to create collection.");
+        setModalTitle("Error");
+        setModalMessage(data.message || "Failed to create collection.");
+        setShowErrorModal(true);
       }
-    } catch (err) {
-      console.error("Error creating collection:", err);
-      alert("Server error");
+    } catch {
+      setModalTitle("Server Error");
+      setModalMessage("Please try again later.");
+      setShowErrorModal(true);
     }
+  };
+
+  const handleSuccessConfirm = () => {
+    handleModalClose();
+    navigate("/admin");
   };
 
   return (
     <div className="login-container">
-      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay"></div>
-
+      <img
+        src="/images/changihome.jpg"
+        alt="Background"
+        className="background-image"
+      />
+      <div className="page-overlay" />
       <div className="header">
         <button
           onClick={() => navigate("/collections")}
@@ -54,7 +79,10 @@ const CreateCollection = () => {
           Create New Collection
         </h2>
 
-        <form onSubmit={handleSubmit} style={{ maxWidth: "300px", width: "100%" }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ maxWidth: "300px", width: "100%" }}
+        >
           <input
             type="text"
             placeholder="Collection Name"
@@ -86,6 +114,28 @@ const CreateCollection = () => {
           </button>
         </form>
       </div>
+
+      {/* Success */}
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessConfirm}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
+
+      {/* Error */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
     </div>
   );
 };

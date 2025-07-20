@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Countdown from "./Countdown";
+import AlertModal from "./AlertModal";
 import "./MainStyles.css";
 
 const rules = [
@@ -16,8 +17,12 @@ export default function RulesPage() {
   const [agreed, setAgreed] = useState(false);
   const [username, setUsername] = useState("");
   const [collectionName, setCollectionName] = useState("");
-  const [error, setError] = useState("");
   const [showCountdown, setShowCountdown] = useState(false);
+
+  // Modal state for errors
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
 
   useEffect(() => {
     const storedUsername = sessionStorage.getItem("username");
@@ -25,60 +30,57 @@ export default function RulesPage() {
 
     if (!storedUsername) {
       navigate("/getname");
+      return;
     } else {
       setUsername(storedUsername);
     }
 
     if (collectionId) {
-      fetch(`http://localhost:5000/collections`)
-        .then(res => res.json())
-        .then(data => {
-          const match = data.find(col => col._id === collectionId);
+      fetch("http://localhost:5000/collections")
+        .then((res) => res.json())
+        .then((data) => {
+          const match = data.find((col) => col._id === collectionId);
           if (match) setCollectionName(match.name);
         })
-        .catch(err => console.error("Error fetching collection name:", err));
+        .catch((err) => console.error("Error fetching collection name:", err));
     }
   }, [navigate]);
 
   const beginGame = async () => {
+    const collectionId = sessionStorage.getItem("collectionId");
+    if (!collectionId) {
+      setModalTitle("Missing Collection");
+      setModalMessage("Please enter your code again.");
+      setShowErrorModal(true);
+      return;
+    }
+
     try {
-      const startedAt = new Date();
-      const collectionId = sessionStorage.getItem("collectionId");
-
-      if (!collectionId) {
-        setError("Missing collection. Please enter your code again.");
-        return;
-      }
-
-      const createResponse = await fetch("http://localhost:5000/players", {
+      const startedAt = new Date().toISOString();
+      const createRes = await fetch("http://localhost:5000/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, collectionId }),
       });
-
-      if (!createResponse.ok) {
-        const msg = await createResponse.text();
-        throw new Error("Player creation failed: " + msg);
+      if (!createRes.ok) {
+        const msg = await createRes.text();
+        throw new Error(msg || "Player creation failed.");
       }
-
-      const playerData = await createResponse.json();
-      const playerId = playerData._id;
+      const { _id: playerId } = await createRes.json();
       sessionStorage.setItem("playerId", playerId);
 
       await fetch(`http://localhost:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          startedAt: startedAt.toISOString(),
-          totalTimeInSeconds: 0,
-          collectionId
-        }),
+        body: JSON.stringify({ startedAt, totalTimeInSeconds: 0, collectionId }),
       });
 
       navigate("/game");
     } catch (err) {
       console.error(err);
-      setError("There was an error starting the game. Please try again.");
+      setModalTitle("Error Starting Game");
+      setModalMessage("There was an error starting the game. Please try again.");
+      setShowErrorModal(true);
     }
   };
 
@@ -89,7 +91,7 @@ export default function RulesPage() {
   };
 
   const handleNext = () => {
-    setCurrent(prev => Math.min(rules.length - 1, prev + 1));
+    setCurrent((prev) => Math.min(rules.length - 1, prev + 1));
   };
 
   return (
@@ -129,28 +131,28 @@ export default function RulesPage() {
               gap: "8px",
               marginBottom: "24px"
             }}>
-              {rules.map((_, index) => (
+              {rules.map((_, idx) => (
                 <div
-                  key={index}
-                  onClick={() => setCurrent(index)}
+                  key={idx}
+                  onClick={() => setCurrent(idx)}
                   style={{
                     width: "12px",
                     height: "12px",
                     borderRadius: "50%",
-                    backgroundColor: index === current ? "#00c4cc" : "#ccc",
+                    backgroundColor: idx === current ? "#00c4cc" : "#ccc",
                     cursor: "pointer",
                     transition: "all 0.3s"
                   }}
-                ></div>
+                />
               ))}
             </div>
 
-            {current === rules.length - 1 && (
+            {current === rules.length - 1 ? (
               <>
-                <div style={{ 
-                  display: "flex", 
-                  justifyContent: "center", 
-                  alignItems: "center", 
+                <div style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
                   gap: "8px",
                   marginBottom: "20px",
                   fontSize: "1rem"
@@ -159,9 +161,9 @@ export default function RulesPage() {
                     type="checkbox"
                     checked={agreed}
                     onChange={(e) => setAgreed(e.target.checked)}
-                    style={{ 
+                    style={{
                       marginTop: "15px",
-                      width: "18px", 
+                      width: "18px",
                       height: "18px",
                       cursor: "pointer"
                     }}
@@ -170,7 +172,6 @@ export default function RulesPage() {
                     I have read and agree to the rules.
                   </label>
                 </div>
-
                 <button
                   onClick={handleStart}
                   disabled={!agreed}
@@ -179,9 +180,7 @@ export default function RulesPage() {
                   Start Game
                 </button>
               </>
-            )}
-
-            {current < rules.length - 1 && (
+            ) : (
               <button
                 onClick={handleNext}
                 className="rules-start-button"
@@ -189,8 +188,6 @@ export default function RulesPage() {
                 Continue →
               </button>
             )}
-
-            {error && <div style={{ color: "red", marginTop: "16px" }}>{error}</div>}
 
             <button
               onClick={() => navigate("/getname")}
@@ -205,6 +202,17 @@ export default function RulesPage() {
           </>
         )}
       </div>
+
+      {/* Error Modal */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
     </div>
   );
 }

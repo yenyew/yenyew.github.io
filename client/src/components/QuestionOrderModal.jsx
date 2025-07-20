@@ -1,77 +1,78 @@
+// QuestionOrderModal.jsx
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import AlertModal from "./AlertModal";
 
 const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
-  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [orderedQuestions, setOrderedQuestions] = useState([]);
 
+  // feedback modal state
+  const [showError, setShowError] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+
   useEffect(() => {
-    if (collection?.questionOrder?.length > 0) {
-      const collectionQuestions = questions.filter((q) => q.collectionId === collection._id);
-      setOrderedQuestions(collectionQuestions);
+    if (!collection) return;
+    const filtered = questions.filter((q) => q.collectionId === collection._id);
+    if (collection.questionOrder?.length) {
+      setOrderedQuestions(
+        collection.questionOrder
+          .map((id) => filtered.find((q) => q._id === id))
+          .filter(Boolean)
+      );
     } else {
-      const collectionQuestions = questions.filter((q) => q.collectionId === collection._id);
-      const sortedQuestions = [...collectionQuestions].sort((a, b) => a.number - b.number);
-      setOrderedQuestions(sortedQuestions);
+      setOrderedQuestions(filtered.sort((a, b) => a.number - b.number));
     }
   }, [collection, questions]);
 
-  const quickSortAscending = () => {
-    const sorted = [...orderedQuestions].sort((a, b) => a.number - b.number);
-    setOrderedQuestions(sorted);
+  const move = (from, to) => {
+    if (to < 0 || to >= orderedQuestions.length) return;
+    const arr = [...orderedQuestions];
+    const [item] = arr.splice(from, 1);
+    arr.splice(to, 0, item);
+    setOrderedQuestions(arr);
   };
 
-  const quickSortDescending = () => {
-    const sorted = [...orderedQuestions].sort((a, b) => b.number - a.number);
-    setOrderedQuestions(sorted);
-  };
-
-  const quickSortRandom = () => {
-    const shuffled = [...orderedQuestions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    setOrderedQuestions(shuffled);
-  };
-
-  const handleSaveOrder = async () => {
+  const handleSave = async () => {
     try {
-      const questionIds = orderedQuestions.map((q) => q._id);
-      const res = await fetch(`http://localhost:5000/collections/${collection._id}/question-order`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionOrder: questionIds }),
-      });
-
+      const ids = orderedQuestions.map((q) => q._id);
+      const res = await fetch(
+        `http://localhost:5000/collections/${collection._id}/question-order`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionOrder: ids }),
+        }
+      );
       if (res.ok) {
-        alert("Question order updated successfully!");
-        setShowOrderModal(false);
-        const response = await fetch(`http://localhost:5000/collections/${collection.code}/questions`);
-        const data = await response.json();
-        setQuestions(Array.isArray(data) ? data : data.questions || []);
+        setModalTitle("Success");
+        setModalMessage("Question order updated successfully!");
+        setShowSuccess(true);
       } else {
         const data = await res.json();
-        alert(`Failed to update question order: ${data.message}`);
+        setModalTitle("Error");
+        setModalMessage(data.message || "Failed to update question order.");
+        setShowError(true);
       }
     } catch (err) {
-      console.error("Error updating question order:", err);
-      alert("Error updating question order. Please try again.");
+      console.error(err);
+      setModalTitle("Server Error");
+      setModalMessage("Error updating question order. Please try again.");
+      setShowError(true);
     }
   };
 
-  const moveQuestion = (fromIndex, toIndex) => {
-    if (toIndex < 0 || toIndex >= orderedQuestions.length) return;
-    const newQuestions = [...orderedQuestions];
-    const movedQuestion = newQuestions.splice(fromIndex, 1)[0];
-    newQuestions.splice(toIndex, 0, movedQuestion);
-    setOrderedQuestions(newQuestions);
+  const closeAll = () => {
+    setShowError(false);
+    setShowSuccess(false);
   };
 
   return (
     <>
       <button
-        onClick={() => setShowOrderModal(true)}
+        onClick={() => setShowModal(true)}
         style={{
           backgroundColor: "#28a745",
           color: "#000",
@@ -79,12 +80,13 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
           padding: "4px 8px",
           border: "none",
           borderRadius: "4px",
-          cursor: "pointer"
+          cursor: "pointer",
         }}
       >
         Order Questions
       </button>
-      {showOrderModal &&
+
+      {showModal &&
         createPortal(
           <div
             className="modal-overlay"
@@ -100,9 +102,11 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
               alignItems: "center",
               zIndex: 10000,
             }}
+            onClick={() => setShowModal(false)}
           >
             <div
               className="modal-content"
+              onClick={(e) => e.stopPropagation()}
               style={{
                 backgroundColor: "white",
                 padding: "20px",
@@ -115,135 +119,94 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
                 color: "#000",
               }}
             >
-              <h3 style={{ marginBottom: "20px", textAlign: "center", color: "#000" }}>Reorder Questions</h3>
-              <div style={{ marginBottom: "20px", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "5px" }}>
-                <p style={{ margin: "0", fontSize: "14px", color: "#666" }}>
-                  <strong>Instructions:</strong> Use the Up/Down buttons to change question order in the game. The first question will be "Game Q1", second will be "Game Q2", etc.
-                </p>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <button
-                    onClick={quickSortAscending}
-                    style={{
-                      backgroundColor: "#17a2b8",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "4px",
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Sort Ascending
-                  </button>
-                  <button
-                    onClick={quickSortDescending}
-                    style={{
-                      backgroundColor: "#6c757d",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "4px",
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Sort Descending
-                  </button>
-                  <button
-                    onClick={quickSortRandom}
-                    style={{
-                      backgroundColor: "#fd7e14",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "4px",
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Random Shuffle
-                  </button>
-                </div>
+              <h3 style={{ marginBottom: "20px", textAlign: "center" }}>
+                Reorder Questions
+              </h3>
+              <div style={{ marginBottom: "20px", backgroundColor: "#f8f9fa", padding: "10px", borderRadius: "5px" }}>
+                {/* instructions */}
               </div>
+
               {orderedQuestions.length === 0 ? (
-                <p style={{ textAlign: "center", color: "#666" }}>No questions found in this collection.</p>
+                <p style={{ textAlign: "center", color: "#666" }}>
+                  No questions found.
+                </p>
               ) : (
-                <div style={{ marginBottom: "20px" }}>
-                  {orderedQuestions.map((q, index) => (
+                orderedQuestions.map((q, idx) => (
+                  <div
+                    key={q._id}
+                    style={{
+                      backgroundColor: "#f8f9fa",
+                      border: "1px solid #dee2e6",
+                      padding: "12px",
+                      marginBottom: "8px",
+                      borderRadius: "5px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
                     <div
-                      key={q._id}
                       style={{
-                        backgroundColor: "#f8f9fa",
-                        border: "1px solid #dee2e6",
-                        padding: "12px",
-                        marginBottom: "8px",
-                        borderRadius: "5px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
+                        backgroundColor: "#28a745",
+                        color: "#fff",
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        minWidth: "60px",
+                        textAlign: "center",
                       }}
                     >
-                      <div
+                      Game Q{idx + 1}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <strong>Original Q{q.number}</strong>
+                      <p style={{ margin: 0, fontSize: "14px", color: "#666" }}>
+                        {q.question.slice(0, 80)}...
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <button
+                        onClick={() => move(idx, idx - 1)}
+                        disabled={idx === 0}
                         style={{
-                          backgroundColor: "#28a745",
+                          backgroundColor: idx === 0 ? "#ccc" : "#007bff",
                           color: "#fff",
+                          border: "none",
+                          borderRadius: "3px",
                           padding: "4px 8px",
-                          borderRadius: "4px",
                           fontSize: "12px",
-                          fontWeight: "bold",
-                          minWidth: "60px",
-                          textAlign: "center",
+                          cursor: idx === 0 ? "not-allowed" : "pointer",
                         }}
                       >
-                        Game Q{index + 1}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: "bold", marginBottom: "4px", color: "#000" }}>
-                          Original Q{q.number}
-                        </div>
-                        <div style={{ fontSize: "14px", color: "#666" }}>{q.question.substring(0, 80)}...</div>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <button
-                          onClick={() => moveQuestion(index, index - 1)}
-                          disabled={index === 0}
-                          style={{
-                            backgroundColor: index === 0 ? "#ccc" : "#007bff",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "3px",
-                            padding: "4px 8px",
-                            fontSize: "12px",
-                            cursor: index === 0 ? "not-allowed" : "pointer",
-                            minWidth: "40px",
-                          }}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={() => moveQuestion(index, index + 1)}
-                          disabled={index === orderedQuestions.length - 1}
-                          style={{
-                            backgroundColor: index === orderedQuestions.length - 1 ? "#ccc" : "#007bff",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "3px",
-                            padding: "4px 8px",
-                            fontSize: "12px",
-                            cursor: index === orderedQuestions.length - 1 ? "not-allowed" : "pointer",
-                            minWidth: "40px",
-                          }}
-                        >
-                          ↓
-                        </button>
-                      </div>
+                        ↑
+                      </button>
+                      <button
+                        onClick={() => move(idx, idx + 1)}
+                        disabled={idx === orderedQuestions.length - 1}
+                        style={{
+                          backgroundColor:
+                            idx === orderedQuestions.length - 1 ? "#ccc" : "#007bff",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "3px",
+                          padding: "4px 8px",
+                          fontSize: "12px",
+                          cursor:
+                            idx === orderedQuestions.length - 1
+                              ? "not-allowed"
+                              : "pointer",
+                        }}
+                      >
+                        ↓
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
               )}
+
               <div style={{ display: "flex", gap: "10px" }}>
                 <button
-                  onClick={handleSaveOrder}
+                  onClick={handleSave}
                   style={{
                     flex: 1,
                     padding: "12px",
@@ -259,7 +222,7 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
                   Save Order
                 </button>
                 <button
-                  onClick={() => setShowOrderModal(false)}
+                  onClick={() => setShowModal(false)}
                   style={{
                     flex: 1,
                     padding: "12px",
@@ -278,6 +241,32 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
           </div>,
           document.body
         )}
+
+      <AlertModal
+        isOpen={showError}
+        onClose={closeAll}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
+      <AlertModal
+        isOpen={showSuccess}
+        onClose={() => {
+          closeAll();
+          setShowModal(false);
+          // refresh questions
+          fetch(`http://localhost:5000/collections/${collection.code}/questions`)
+            .then((r) => r.json())
+            .then((d) => setQuestions(Array.isArray(d) ? d : d.questions || []));
+        }}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
     </>
   );
 };

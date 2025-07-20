@@ -1,6 +1,9 @@
+// CreateQuestion.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from "./AlertModal";
 import "./MainStyles.css";
+import "./Questions.css";
 
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
@@ -12,101 +15,124 @@ const CreateQuestion = () => {
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
   const [image, setImage] = useState(null);
+
+  // modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+
   const navigate = useNavigate();
 
+  // auth + fetch collections
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setModalTitle("Not Logged In");
+      setModalMessage("You must be logged in to access this page.");
+      setShowErrorModal(true);
       return;
     }
-    
-    const fetchCollections = async () => {
+    (async () => {
       try {
-        const response = await fetch("http://localhost:5000/collections/");
-        const data = await response.json();
+        const res = await fetch("http://localhost:5000/collections/");
+        const data = await res.json();
         setCollections(data);
       } catch (err) {
         console.error("Failed to fetch collections:", err);
       }
-    };
-
-    fetchCollections();
+    })();
   }, [navigate]);
+
+  const handleModalClose = () => {
+    setShowErrorModal(false);
+    setShowSuccessModal(false);
+    if (modalTitle === "Not Logged In") {
+      navigate("/login");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
-    // ✅ Add validation at the TOP
-    if (!number || number.trim() === "") {
-      alert("Please enter a question number.");
+    // validations
+    if (!number.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter a question number.");
+      setShowErrorModal(true);
+      return;
+    }
+    if (!collectionId) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please select a collection.");
+      setShowErrorModal(true);
+      return;
+    }
+    if (!question.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter a question description.");
+      setShowErrorModal(true);
+      return;
+    }
+    if (!answer.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter at least one answer.");
+      setShowErrorModal(true);
       return;
     }
 
-    if (!collectionId || collectionId.trim() === "") {
-      alert("Please select a collection.");
+    const qNum = parseInt(number, 10);
+    if (isNaN(qNum) || qNum <= 0) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter a valid positive question number.");
+      setShowErrorModal(true);
       return;
     }
 
-    if (!question || question.trim() === "") {
-      alert("Please enter a question description.");
-      return;
-    }
-
-    if (!answer || answer.trim() === "") {
-      alert("Please enter an answer.");
-      return;
-    }
-
-    const questionNumber = parseInt(number);
-    if (isNaN(questionNumber) || questionNumber <= 0) {
-      alert("Please enter a valid positive question number.");
-      return;
-    }
-
-    const trimmedAnswers = answer.split(",").map(ans => ans.trim()).filter(ans => ans.length > 0);
-    if (trimmedAnswers.length === 0) {
-      alert("Please enter at least one valid answer.");
-      return;
-    }
-
+    // check duplicate
     try {
-      // Check for duplicates
       const allRes = await fetch("http://localhost:5000/questions");
-      const allQuestions = await allRes.json();
-
-      const exists = allQuestions.some(
-        (q) => q.number === parseInt(number) && q.collectionId === collectionId
-      );
-
-      if (exists) {
-        alert("A question with that number already exists in the selected collection.");
+      const allQs = await allRes.json();
+      if (
+        allQs.some((q) => q.number === qNum && q.collectionId === collectionId)
+      ) {
+        setModalTitle("Duplicate");
+        setModalMessage(
+          "A question with that number already exists in the selected collection."
+        );
+        setShowErrorModal(true);
         return;
       }
+    } catch {
+      // ignore
+    }
 
-      // ✅ Use FormData for image upload (ONLY ONCE!)
-      const formData = new FormData();
-      formData.append("number", questionNumber);
-      formData.append("collectionId", collectionId);
-      formData.append("question", question.trim());
-      formData.append("hint", hint.trim());
-      formData.append("answer", JSON.stringify(trimmedAnswers));
-      formData.append("funFact", funFact.trim());
-      
-      if (image) {
-        formData.append("image", image);
-      }
+    // prepare payload
+    const answersArr = answer
+      .split(",")
+      .map((a) => a.trim())
+      .filter((a) => a);
+    const formData = new FormData();
+    formData.append("number", qNum);
+    formData.append("collectionId", collectionId);
+    formData.append("question", question.trim());
+    formData.append("hint", hint.trim());
+    formData.append("answer", JSON.stringify(answersArr));
+    formData.append("funFact", funFact.trim());
+    if (image) formData.append("image", image);
 
-      const response = await fetch("http://localhost:5000/questions", {
+    // submit
+    try {
+      const res = await fetch("http://localhost:5000/questions", {
         method: "POST",
         body: formData,
       });
-
-      if (response.ok) {
-        alert("Question added successfully!");
-        // Clear form
+      if (res.ok) {
+        setModalTitle("Success");
+        setModalMessage("Question added successfully!");
+        setShowSuccessModal(true);
+        // clear
         setNumber("");
         setCollectionId("");
         setQuestion("");
@@ -114,29 +140,34 @@ const CreateQuestion = () => {
         setAnswer("");
         setFunFact("");
         setImage(null);
-        setMessage("");
       } else {
-        const data = await response.json();
-        setMessage(`Error: ${data.message || "Could not add question."}`);
+        const data = await res.json();
+        setMessage(data.message || "Could not add question.");
       }
-    } catch (err) {
-      console.error("Error submitting question:", err);
-      setMessage("Something went wrong. Please try again.");
+    } catch {
+      setMessage("Server error. Please try again.");
     }
+  };
+
+  const handleSuccessConfirm = () => {
+    setShowSuccessModal(false);
+    navigate("/questions?collection=all");
   };
 
   return (
     <div className="login-container">
-      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay"></div>
-
+      <img
+        src="/images/changihome.jpg"
+        alt="Background"
+        className="background-image"
+      />
+      <div className="page-overlay" />
       <div className="top-left-logo">
         <img src="/images/ces.jpg" alt="Changi Experience Studio" />
       </div>
-
       <div className="header">
         <button
-          onClick={() => navigate("/questions")}
+          onClick={() => navigate("/questions?collection=all")}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
@@ -150,17 +181,26 @@ const CreateQuestion = () => {
       </div>
 
       <div className="buttons">
-        <h2 style={{ fontSize: "24px", color: "#000", textAlign: "center", marginBottom: "10px" }}>
+        <h2
+          style={{
+            fontSize: "24px",
+            color: "#000",
+            textAlign: "center",
+            marginBottom: "10px",
+          }}
+        >
           Create a New Question:
         </h2>
 
-        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ width: "100%", maxWidth: "300px" }}
+        >
           <input
             type="number"
             value={number}
             onChange={(e) => setNumber(e.target.value)}
             placeholder="Question Number"
-            required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
@@ -168,7 +208,6 @@ const CreateQuestion = () => {
           <select
             value={collectionId}
             onChange={(e) => setCollectionId(e.target.value)}
-            required
             className="dropdown-select"
             style={{
               marginBottom: "10px",
@@ -179,7 +218,6 @@ const CreateQuestion = () => {
               fontSize: "16px",
               padding: "0 10px",
               width: "100%",
-              outline: "none",
             }}
           >
             <option value="">Select Collection</option>
@@ -194,7 +232,6 @@ const CreateQuestion = () => {
             placeholder="Question Description"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            required
             className="login-btn"
             style={{
               marginBottom: "10px",
@@ -221,7 +258,6 @@ const CreateQuestion = () => {
             placeholder="Answer"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
-            required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
@@ -242,7 +278,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
-          
+
           <button
             type="submit"
             className="login-btn"
@@ -261,6 +297,28 @@ const CreateQuestion = () => {
           <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
         )}
       </div>
+
+      {/* Success */}
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessConfirm}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
+
+      {/* Error */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
     </div>
   );
 };
