@@ -1,5 +1,4 @@
-// CreateCollection.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "./AlertModal";
 import "./MainStyles.css";
@@ -7,31 +6,96 @@ import "./MainStyles.css";
 const CreateCollection = () => {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const navigate = useNavigate();
+  const [isPublic, setIsPublic] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
-  // modal state
+  const [prevIsPublic, setPrevIsPublic] = useState(false);
+  const [prevIsOnline, setPrevIsOnline] = useState(true);
+
+  const [existingPublicCollection, setExistingPublicCollection] = useState(null);
+  const [checkboxType, setCheckboxType] = useState(null);
+
+  const [showPublicConfirmModal, setShowPublicConfirmModal] = useState(false);
+  const [showCheckboxInfoModal, setShowCheckboxInfoModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkPublicCollection = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/collections");
+        const data = await res.json();
+        const publicCol = data.find((c) => c.isPublic);
+        setExistingPublicCollection(publicCol || null);
+      } catch {
+        console.error("Failed to check public collections");
+      }
+    };
+    checkPublicCollection();
+  }, []);
 
   const handleModalClose = () => {
     setShowSuccessModal(false);
     setShowErrorModal(false);
+    setShowPublicConfirmModal(false);
+    setShowCheckboxInfoModal(false);
+    setCheckboxType(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!name.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter a collection name.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    if (!isPublic && !code.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter or generate a collection code.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    if (isPublic && existingPublicCollection) {
+      setModalTitle("Existing Public Collection");
+      setModalMessage(
+        `A public collection "${existingPublicCollection.name}" already exists. Please set its online status to offline in Edit Collection, then try again.`
+      );
+      setShowPublicConfirmModal(true);
+      return;
+    }
+
+    await submitCollection();
+  };
+
+  const submitCollection = async () => {
     try {
       const res = await fetch("http://localhost:5000/collections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, code }),
+        body: JSON.stringify({
+          name,
+          code: isPublic ? undefined : code,
+          isPublic,
+          isOnline,
+        }),
       });
 
       if (res.ok) {
         setModalTitle("Success");
-        setModalMessage("Collection created successfully!");
+        setModalMessage(
+          isPublic
+            ? "Collection created successfully and set as the public collection!"
+            : "Collection created successfully!"
+        );
         setShowSuccessModal(true);
       } else {
         const data = await res.json();
@@ -48,7 +112,53 @@ const CreateCollection = () => {
 
   const handleSuccessConfirm = () => {
     handleModalClose();
-    navigate("/admin");
+    navigate("/collections-bank");
+  };
+
+  const handlePublicConfirm = () => {
+    if (existingPublicCollection) {
+      handleModalClose();
+      navigate(`/edit-collection/${existingPublicCollection._id}`);
+    } else {
+      setShowPublicConfirmModal(false);
+      submitCollection();
+    }
+  };
+
+  const handleCheckboxChange = (type, newValue) => {
+    if (type === "public") {
+      setPrevIsPublic(isPublic);
+      setIsPublic(newValue);
+    } else {
+      setPrevIsOnline(isOnline);
+      setIsOnline(newValue);
+    }
+
+    setCheckboxType(type);
+    setModalTitle(
+      type === "public" ? "Set as Public?" : "Set Online?"
+    );
+    setModalMessage(
+      type === "public"
+        ? newValue
+          ? "This makes the collection the only public one accessible via 'Play as Guest'. Only one collection can be public at a time. The collection code will be disabled."
+          : "This will remove the collection from being the public one."
+        : newValue
+        ? "The collection will be playable by users."
+        : "The collection will be disabled and unplayable."
+    );
+    setShowCheckboxInfoModal(true);
+  };
+
+  const handleCheckboxConfirm = () => {
+    setCheckboxType(null);
+    handleModalClose(); // Confirmed, state stays
+  };
+
+  const handleCheckboxCancel = () => {
+    if (checkboxType === "public") setIsPublic(prevIsPublic);
+    if (checkboxType === "online") setIsOnline(prevIsOnline);
+    handleModalClose();
   };
 
   return (
@@ -59,30 +169,12 @@ const CreateCollection = () => {
         className="background-image"
       />
       <div className="page-overlay" />
-      <div className="header">
-        <button
-          onClick={() => navigate("/collections")}
-          className="login-btn"
-          style={{
-            backgroundColor: "#17C4C4",
-            color: "#fff",
-            width: "120px",
-            marginBottom: "10px",
-          }}
-        >
-          &lt; Back
-        </button>
-      </div>
-
       <div className="buttons">
         <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "10px" }}>
           Create New Collection
         </h2>
 
-        <form
-          onSubmit={handleSubmit}
-          style={{ maxWidth: "300px", width: "100%" }}
-        >
+        <form onSubmit={handleSubmit} style={{ maxWidth: "300px", width: "100%" }}>
           <input
             type="text"
             placeholder="Collection Name"
@@ -97,10 +189,31 @@ const CreateCollection = () => {
             placeholder="Collection Code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            required
+            disabled={isPublic}
             className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
+            style={{
+              marginBottom: "10px",
+              backgroundColor: isPublic ? "#e9ecef" : "white",
+            }}
           />
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+            <div>
+              <input
+                type="checkbox"
+                checked={isPublic}
+                onChange={(e) => handleCheckboxChange("public", e.target.checked)}
+              />
+              <label style={{ marginLeft: "8px" }}>Set as Public</label>
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                checked={isOnline}
+                onChange={(e) => handleCheckboxChange("online", e.target.checked)}
+              />
+              <label style={{ marginLeft: "8px" }}>Online</label>
+            </div>
+          </div>
           <button
             type="submit"
             className="login-btn"
@@ -108,14 +221,27 @@ const CreateCollection = () => {
               background: "linear-gradient(90deg, #C4EB22, #17C4C4)",
               color: "black",
               width: "100%",
+              marginBottom: "10px",
             }}
           >
             Create
           </button>
+          <button
+            type="button"
+            onClick={() => navigate("/collections-bank")}
+            className="login-btn"
+            style={{
+              backgroundColor: "#17C4C4",
+              color: "#fff",
+              width: "100%",
+            }}
+          >
+            Return
+          </button>
         </form>
       </div>
 
-      {/* Success */}
+      {/* Modals */}
       <AlertModal
         isOpen={showSuccessModal}
         onClose={handleSuccessConfirm}
@@ -125,8 +251,6 @@ const CreateCollection = () => {
         type="success"
         showCancel={false}
       />
-
-      {/* Error */}
       <AlertModal
         isOpen={showErrorModal}
         onClose={handleModalClose}
@@ -135,6 +259,29 @@ const CreateCollection = () => {
         confirmText="OK"
         type="error"
         showCancel={false}
+      />
+      <AlertModal
+        isOpen={showPublicConfirmModal}
+        onClose={handleModalClose}
+        onConfirm={handlePublicConfirm}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText={existingPublicCollection ? "Go to Edit" : "Confirm"}
+        cancelText="Cancel"
+        type="warning"
+        showCancel={true}
+      />
+      <AlertModal
+        isOpen={showCheckboxInfoModal}
+        onClose={handleModalClose}
+        onConfirm={handleCheckboxConfirm}
+        onCancel={handleCheckboxCancel}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        type="info"
+        showCancel={true}
       />
     </div>
   );

@@ -8,23 +8,19 @@ import "./MainStyles.css";
 const QuestionsBank = () => {
   const [questions, setQuestions] = useState([]);
   const [collections, setCollections] = useState([]);
-  const [collectionCode, setCollectionCode] = useState("");
-  
-  // Modal state
+  const [collectionId, setCollectionId] = useState("");
+
   const [showError, setShowError] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
-  
-  // remember which question to delete
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const navigate = useNavigate();
   const location = useLocation();
-  const passedCode = new URLSearchParams(location.search).get("collection");
+  const passedId = new URLSearchParams(location.search).get("collection");
 
-  // Auth check
   useEffect(() => {
     if (!localStorage.getItem("jwtToken")) {
       setModalTitle("Not Logged In");
@@ -33,29 +29,27 @@ const QuestionsBank = () => {
     }
   }, []);
 
-  // Fetch collections
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
         const data = await res.json();
         setCollections(data);
-        if (data.length && !collectionCode) {
-          setCollectionCode(passedCode || "all");
+        if (data.length && !collectionId) {
+          setCollectionId(passedId || "all");
         }
       } catch (err) {
         console.error(err);
       }
     })();
-  }, [passedCode, collectionCode]);
+  }, [passedId, collectionId]);
 
-  // Fetch questions whenever collectionCode changes
   useEffect(() => {
-    if (!collectionCode) return;
+    if (!collectionId) return;
     const url =
-      collectionCode === "all"
+      collectionId === "all"
         ? "http://localhost:5000/questions"
-        : `http://localhost:5000/collections/${collectionCode}/questions`;
+        : `http://localhost:5000/collections/${collectionId}/questions`;
     (async () => {
       try {
         const res = await fetch(url);
@@ -66,25 +60,24 @@ const QuestionsBank = () => {
         setQuestions([]);
       }
     })();
-  }, [collectionCode]);
+  }, [collectionId]);
 
   const getCollectionName = (id) => {
     const col = collections.find((c) => c._id === id);
     return col ? col.name : "Unknown Collection";
   };
 
-  // Edit handler unchanged
   const handleEdit = (number, colId) => {
-    if (collectionCode === "all" && !colId) {
+    if (collectionId === "all" && !colId) {
       setModalTitle("Error");
       setModalMessage("Cannot edit: Question collection ID not found.");
       setShowError(true);
       return;
     }
     const targetId =
-      collectionCode === "all"
+      collectionId === "all"
         ? colId
-        : collections.find((c) => c.code === collectionCode)?._id;
+        : collections.find((c) => c._id === collectionId)?._id;
     if (!targetId) {
       setModalTitle("Error");
       setModalMessage("Collection not selected.");
@@ -94,7 +87,6 @@ const QuestionsBank = () => {
     navigate(`/edit-question/${number}/${targetId}`);
   };
 
-  // Schedule delete-confirm
   const handleDeleteClick = (q) => {
     setDeleteTarget(q);
     setModalTitle("Confirm Delete");
@@ -102,7 +94,6 @@ const QuestionsBank = () => {
     setShowConfirmDelete(true);
   };
 
-  // Actually delete
   const confirmDelete = async () => {
     const { number, collectionId } = deleteTarget || {};
     if (!collectionId) {
@@ -139,12 +130,10 @@ const QuestionsBank = () => {
     setDeleteTarget(null);
   };
 
-  // Close any modal
   const closeModal = () => {
     setShowError(false);
     setShowConfirmDelete(false);
     setShowDeleteSuccess(false);
-    // redirect if not logged in
     if (modalTitle === "Not Logged In") {
       navigate("/login");
     }
@@ -159,36 +148,35 @@ const QuestionsBank = () => {
       </div>
       <div className="scroll-wrapper">
         <div className="buttons" style={{ gap: "12px" }}>
-          {/* Collection selector */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <select
-              value={collectionCode}
+              value={collectionId}
               onChange={(e) => {
                 const val = e.target.value;
-                navigate(
-                  val === "all"
-                    ? "/questions?collection=all"
-                    : `/collections/${val}?collection=${val}`
-                );
+                if (val === "all") {
+                  navigate("/questions?collection=all");
+                } else {
+                  navigate(`/get-collections/${val}`, {
+                    state: { from: "questions" },
+                  });
+                }
               }}
               style={{ padding: "6px", fontSize: "15px" }}
             >
               <option value="all">All Questions</option>
               {collections.map((c) => (
-                <option key={c._id} value={c.code}>
+                <option key={c._id} value={c._id}>
                   {c.name} Collection
                 </option>
               ))}
             </select>
             <p style={{ fontSize: "16px", fontWeight: "bold", margin: 0 }}>
-              Viewing "{collectionCode === "all"
+              Viewing "{collectionId === "all"
                 ? "All Collections"
-                : collections.find((c) => c.code === collectionCode)?.name ||
-                  collectionCode}"
+                : getCollectionName(collectionId)}"
             </p>
           </div>
 
-          {/* Question list */}
           <div style={{ maxHeight: "65vh", overflowY: "auto" }}>
             {questions.length === 0 ? (
               <p>No questions found.</p>
@@ -206,24 +194,23 @@ const QuestionsBank = () => {
                       cursor: "pointer",
                     }}
                   >
-                    <div
-                      style={{ display: "flex", justifyContent: "space-between" }}
-                    >
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <strong>
-                        {collectionCode !== "all" &&
-                        collections.find((c) => c.code === collectionCode)
-                          ?.questionOrder?.length > 0
+                        {collectionId !== "all" &&
+                        collections.find((c) => c._id === collectionId)?.questionOrder?.length > 0
                           ? `Game Q${idx + 1}: (Original Q${q.number})`
                           : `Q${q.number}`}
                       </strong>
-                      {collectionCode === "all" && (
-                        <span style={{
-                          fontSize: "12px",
-                          color: "#666",
-                          background: "#f0f0f0",
-                          padding: "2px 6px",
-                          borderRadius: "4px"
-                        }}>
+                      {collectionId === "all" && (
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#666",
+                            background: "#f0f0f0",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                          }}
+                        >
                           {getCollectionName(q.collectionId)}
                         </span>
                       )}
@@ -232,12 +219,7 @@ const QuestionsBank = () => {
                     <div style={{ display: "flex", gap: "8px" }}>
                       <button
                         className="login-btn"
-                        style={{
-                          backgroundColor: "#FFC107",
-                          color: "#000",
-                          padding: "5px 10px",
-                          fontSize: "14px"
-                        }}
+                        style={{ backgroundColor: "#FFC107", color: "#000" }}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(q.number, q.collectionId);
@@ -247,12 +229,7 @@ const QuestionsBank = () => {
                       </button>
                       <button
                         className="login-btn"
-                        style={{
-                          backgroundColor: "#DC3545",
-                          color: "#fff",
-                          padding: "5px 10px",
-                          fontSize: "14px"
-                        }}
+                        style={{ backgroundColor: "#DC3545", color: "#fff" }}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteClick(q);
@@ -267,12 +244,8 @@ const QuestionsBank = () => {
             )}
           </div>
 
-          {/* Actions */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <button
-              onClick={() => navigate("/add-question")}
-              className="login-btn"
-            >
+            <button onClick={() => navigate("/add-question")} className="login-btn">
               Add New Question
             </button>
             <button
@@ -286,7 +259,6 @@ const QuestionsBank = () => {
         </div>
       </div>
 
-      {/* Error Modal */}
       <AlertModal
         isOpen={showError}
         onClose={closeModal}
@@ -297,7 +269,6 @@ const QuestionsBank = () => {
         showCancel={false}
       />
 
-      {/* Delete Confirmation */}
       <AlertModal
         isOpen={showConfirmDelete}
         onClose={closeModal}
@@ -310,7 +281,6 @@ const QuestionsBank = () => {
         showCancel={true}
       />
 
-      {/* Delete Success */}
       <AlertModal
         isOpen={showDeleteSuccess}
         onClose={closeModal}

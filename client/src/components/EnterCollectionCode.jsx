@@ -23,7 +23,7 @@ export default function EnterCollCode() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/collections/${code.trim()}`);
+      const res = await fetch(`http://localhost:5000/collections/code/${code.trim()}`);
 
       if (!res.ok) {
         showError("Invalid code. Please check with the staff.");
@@ -35,6 +35,25 @@ export default function EnterCollCode() {
       navigate("/rules");
     } catch (err) {
       console.error("Code validation failed:", err);
+      showError("Something went wrong. Please try again later.");
+    }
+  };
+
+
+  const handlePublicPlay = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/collections/public`);
+
+      if (!res.ok) {
+        showError("Public game is currently unavailable.");
+        return;
+      }
+
+      const data = await res.json();
+      sessionStorage.setItem("collectionId", data._id);
+      navigate("/rules");
+    } catch (err) {
+      console.error("Public collection fetch failed:", err);
       showError("Something went wrong. Please try again later.");
     }
   };
@@ -80,9 +99,17 @@ export default function EnterCollCode() {
             Continue
           </button>
         </form>
+        <p style={{ margin: "1rem 0", color: "#000" }}>OR</p>
+        <button
+          className="share-button"
+          style={{ maxWidth: "200px", width: "100%", background: "#17C4C4" }}
+          onClick={handlePublicPlay}
+        >
+          Play as Guest
+        </button>
       </div>
 
-      {/* ❌ Error Modal for validation issues */}
+      {/* Error Modal for validation issues */}
       <AlertModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}

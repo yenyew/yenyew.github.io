@@ -40,7 +40,7 @@ const AdminScreen = () => {
         </button>
 
         <button
-          onClick={() => navigate("/collections")}
+          onClick={() => navigate("/collections-bank")}
           className="login-btn"
           style={{ marginTop: "16px", width: "100%", maxWidth: "300px", backgroundColor: "#17a2b8", color: "#000" }}
         >

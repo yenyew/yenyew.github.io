@@ -1,4 +1,3 @@
-// CollectionsBank.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "./AlertModal";
@@ -7,18 +6,18 @@ import "./MainStyles.css";
 
 const CollectionsBank = () => {
   const [collections, setCollections] = useState([]);
-  const [deleteId, setDeleteId] = useState(null);
 
-  // modal state
+  // Modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const navigate = useNavigate();
 
-  // auth check
+  // Auth check
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -28,7 +27,7 @@ const CollectionsBank = () => {
     }
   }, [navigate]);
 
-  // fetch collections
+  // Fetch collections
   useEffect(() => {
     const fetchCollections = async () => {
       try {
@@ -43,14 +42,14 @@ const CollectionsBank = () => {
     fetchCollections();
   }, []);
 
-  // delete logic
+  // Delete logic
   const confirmDelete = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/collections/${deleteId}`, {
+      const res = await fetch(`http://localhost:5000/collections/${deleteTargetId}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setCollections(prev => prev.filter(col => col._id !== deleteId));
+        setCollections((prev) => prev.filter((col) => col._id !== deleteTargetId));
         setModalTitle("Deleted");
         setModalMessage("Collection deleted successfully. Questions remain in the database.");
         setShowSuccessModal(true);
@@ -67,19 +66,30 @@ const CollectionsBank = () => {
       setShowErrorModal(true);
     }
     setShowConfirmModal(false);
-    setDeleteId(null);
+    setDeleteTargetId(null);
   };
 
-  // handlers
-  const handleEdit = (code) => {
-    navigate(`/collections/${code}`, { state: { from: "collections" } });
+  // Handlers
+  const handleEdit = (id) => {
+    navigate(`/get-collections/${id}`, {
+      state: { from: "collections" },
+    });
   };
 
-  const handleDeleteClick = (id) => {
-    setDeleteId(id);
+  const handleDeleteClick = (id, isPublic, name) => {
+    if (isPublic) {
+      setModalTitle("Cannot Delete Public Collection");
+      setModalMessage(
+        `The collection "${name}" is public. Please set its online status to offline in Edit Collection before deleting.`
+      );
+      setDeleteTargetId(id);
+      setShowConfirmModal(true);
+      return;
+    }
+    setDeleteTargetId(id);
     setModalTitle("Confirm Delete");
     setModalMessage(
-      "Are you sure you want to delete this collection? Associated questions will remain in the database."
+      `Are you sure you want to delete "${name}"? Associated questions will remain in the database.`
     );
     setShowConfirmModal(true);
   };
@@ -88,19 +98,24 @@ const CollectionsBank = () => {
     setShowConfirmModal(false);
     setShowSuccessModal(false);
     setShowErrorModal(false);
-    // redirect on not-logged-in
+    setDeleteTargetId(null);
     if (modalTitle === "Not Logged In") {
       navigate("/login");
     }
   };
 
+  const handleConfirmAction = () => {
+    if (modalTitle === "Cannot Delete Public Collection") {
+      handleModalClose();
+      navigate(`/collections/${deleteTargetId}`);
+    } else {
+      confirmDelete();
+    }
+  };
+
   return (
     <div className="login-container">
-      <img
-        src="/images/changihome.jpg"
-        alt="Background"
-        className="background-image"
-      />
+      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="page-overlay" />
       <div className="top-left-logo">
         <img src="/images/ces.jpg" alt="Changi Experience Studio" />
@@ -120,7 +135,10 @@ const CollectionsBank = () => {
                 {collections.map((col) => (
                   <li
                     key={col._id}
-                    onClick={() => navigate(`/collections/${col.code}`)}
+                    onClick={() =>
+                      navigate(`/get-collections/${col._id}`, {
+                        state: { from: "collections" },
+                    })}
                     style={{
                       background: "#fff",
                       borderRadius: "8px",
@@ -130,7 +148,35 @@ const CollectionsBank = () => {
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                      <strong>{col.name}</strong>
+                      <strong>
+                        {col.name}{" "}
+                        {col.isPublic && (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "#fff",
+                              backgroundColor: "#28a745",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              marginLeft: "4px",
+                            }}
+                          >
+                            Public
+                          </span>
+                        )}{" "}
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#fff",
+                            backgroundColor: col.isOnline ? "#17C4C4" : "#DC3545",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            marginLeft: "4px",
+                          }}
+                        >
+                          {col.isOnline ? "Online" : "Offline"}
+                        </span>
+                      </strong>
                       <span
                         style={{
                           fontSize: "12px",
@@ -152,7 +198,7 @@ const CollectionsBank = () => {
                         style={{ backgroundColor: "#FFC107", color: "#000", fontSize: "14px", padding: "5px 10px" }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEdit(col.code);
+                          handleEdit(col._id);
                         }}
                       >
                         Edit
@@ -162,7 +208,7 @@ const CollectionsBank = () => {
                         style={{ backgroundColor: "#DC3545", color: "#fff", fontSize: "14px", padding: "5px 10px" }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteClick(col._id);
+                          handleDeleteClick(col._id, col.isPublic, col.name);
                         }}
                       >
                         Delete
@@ -197,10 +243,10 @@ const CollectionsBank = () => {
       <AlertModal
         isOpen={showConfirmModal}
         onClose={handleModalClose}
-        onConfirm={confirmDelete}
+        onConfirm={handleConfirmAction}
         title={modalTitle}
         message={modalMessage}
-        confirmText="Delete"
+        confirmText={modalTitle === "Cannot Delete Public Collection" ? "Edit Collection" : "Delete"}
         cancelText="Cancel"
         type="warning"
         showCancel={true}
