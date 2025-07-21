@@ -1,6 +1,9 @@
+// EditQuestion.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import AlertModal from "./AlertModal";
 import "./MainStyles.css";
+import "./Questions.css";
 
 const EditQuestion = () => {
   const { number, collectionId } = useParams();
@@ -15,98 +18,147 @@ const EditQuestion = () => {
   const [deleteImage, setDeleteImage] = useState(false);
   const [funFact, setFunFact] = useState("");
 
+  // modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  const [errorRedirect, setErrorRedirect] = useState(null);
+
+  const handleModalClose = () => {
+    setShowErrorModal(false);
+    if (errorRedirect) {
+      navigate(errorRedirect);
+    }
+  };
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    navigate("/questions?collection=all");
+  };
+
+  // load data
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setModalTitle("Not Logged In");
+      setModalMessage("You must be logged in to access this page.");
+      setErrorRedirect("/login");
+      setShowErrorModal(true);
       return;
     }
-    
     if (!collectionId) {
-      alert("Missing collection ID.");
-      navigate("/questions");
+      setModalTitle("Missing Data");
+      setModalMessage("Collection ID is missing.");
+      setErrorRedirect("/questions?collection=all");
+      setShowErrorModal(true);
       return;
     }
-    
-    const fetchCollectionName = async () => {
+
+    // fetch collection name
+    (async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
         const data = await res.json();
-        const target = data.find((col) => col._id === collectionId);
-        if (target) setCollectionName(target.name || "");
-      } catch (err) {
-        console.error("Error fetching collections:", err);
-      }
-    };
+        const target = data.find((c) => c._id === collectionId);
+        if (target) setCollectionName(target.name);
+      } catch {}
+    })();
 
-    const fetchQuestion = async () => {
+    // fetch question
+    (async () => {
       try {
-        const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`);
-        if (!res.ok) throw new Error("Question not found");
-        const data = await res.json();
-        setQuestion(data.data.question);
-        setHint(data.data.hint);
-        setExistingImage(data.data.image);
-        // Fixed: Only set answer once, handle array properly
-        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer);
-        setFunFact(data.data.funFact || "");
-      } catch (err) {
-        console.error("Error fetching question:", err);
-        alert("Failed to load question.");
+        const res = await fetch(
+          `http://localhost:5000/questions/${number}/${collectionId}`
+        );
+        if (!res.ok) throw new Error();
+        const { data } = await res.json();
+        setQuestion(data.question);
+        setHint(data.hint);
+        setExistingImage(data.image);
+        setAnswer(
+          Array.isArray(data.answer) ? data.answer.join(", ") : data.answer
+        );
+        setFunFact(data.funFact || "");
+      } catch {
+        setModalTitle("Error");
+        setModalMessage("Failed to load question.");
+        setErrorRedirect("/questions?collection=all");
+        setShowErrorModal(true);
       }
-    };
-
-    fetchCollectionName();
-    fetchQuestion();
+    })();
   }, [number, collectionId, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // validations
+    if (!question.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter a question description.");
+      setShowErrorModal(true);
+      return;
+    }
+    if (!answer.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter at least one answer.");
+      setShowErrorModal(true);
+      return;
+    }
+    const trimmed = answer
+      .split(",")
+      .map((a) => a.trim())
+      .filter((a) => a);
+    if (trimmed.length === 0) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter at least one valid answer.");
+      setShowErrorModal(true);
+      return;
+    }
 
+    // prepare form
+    const formData = new FormData();
+    formData.append("question", question.trim());
+    formData.append("hint", hint.trim());
+    formData.append("answer", JSON.stringify(trimmed));
+    formData.append("funFact", funFact.trim());
+    formData.append("collectionId", collectionId);
+    if (image) formData.append("image", image);
+    if (deleteImage) formData.append("deleteImage", "true");
+
+    // submit
     try {
-      const formData = new FormData();
-      formData.append("question", question);
-      formData.append("hint", hint);
-      formData.append("answer", JSON.stringify(answer.split(",").map(ans => ans.trim())));
-      formData.append("funFact", funFact);
-      formData.append("collectionId", collectionId);
-      
-      if (image) {
-        formData.append("image", image);
-      }
-      
-      if (deleteImage) {
-        formData.append("deleteImage", "true");
-      }
-
-      const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`, {
-        method: "PATCH",
-        body: formData, // Only FormData body - no duplicate!
-        // Note: Don't set Content-Type header when using FormData
-      });
-
+      const res = await fetch(
+        `http://localhost:5000/questions/${number}/${collectionId}`,
+        { method: "PATCH", body: formData }
+      );
       if (res.ok) {
-        alert("Question updated successfully!");
-        navigate(`/questions`);
+        setModalTitle("Success");
+        setModalMessage("Question updated successfully!");
+        setShowSuccessModal(true);
       } else {
         const data = await res.json();
-        alert(`Error: ${data.message || "Update failed"}`);
+        setModalTitle("Error");
+        setModalMessage(data.message || "Update failed.");
+        setShowErrorModal(true);
       }
     } catch (err) {
       console.error("Error updating question:", err);
-      alert("Something went wrong.");
+      setModalTitle("Server Error");
+      setModalMessage("Something went wrong.");
+      setShowErrorModal(true);
     }
   };
 
   return (
     <div className="login-container">
-      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay"></div>
-
+      <img
+        src="/images/changihome.jpg"
+        alt="Background"
+        className="background-image"
+      />
+      <div className="page-overlay" />
       <div className="header">
         <button
-          onClick={() => navigate(`/questions`)}
+          onClick={() => navigate("/questions?collection=all")}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
@@ -118,18 +170,26 @@ const EditQuestion = () => {
           &lt; Back
         </button>
       </div>
-
       <div className="buttons">
-        <h2 style={{ fontSize: "24px", color: "#000", textAlign: "center", marginBottom: "10px" }}>
-          Edit {collectionName} Question #{number}
+        <h2
+          style={{
+            fontSize: "24px",
+            color: "#000",
+            textAlign: "center",
+            marginBottom: "10px",
+          }}
+        >
+          Edit {collectionName} Q#{number}
         </h2>
 
-        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ width: "100%", maxWidth: "300px" }}
+        >
           <textarea
             placeholder="Question Description"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            required
             className="login-btn"
             style={{
               marginBottom: "10px",
@@ -138,7 +198,6 @@ const EditQuestion = () => {
               backgroundColor: "white",
             }}
           />
-          
           <input
             type="text"
             placeholder="Hint"
@@ -147,16 +206,15 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
-          
+
           <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
-            Enter multiple acceptable answers, separated by commas.
+            Enter multiple answers, separated by commas.
           </p>
           <input
             type="text"
             placeholder="Answer"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
-            required
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
@@ -165,12 +223,12 @@ const EditQuestion = () => {
             <div style={{ marginBottom: "10px" }}>
               <img
                 src={`http://localhost:5000/${existingImage}`}
-                alt="Current question"
-                style={{ 
-                  width: "100%", 
-                  maxHeight: "200px", 
-                  objectFit: "contain", 
-                  borderRadius: "10px" 
+                alt="Current"
+                style={{
+                  width: "100%",
+                  maxHeight: "200px",
+                  objectFit: "contain",
+                  borderRadius: "10px",
                 }}
               />
               <button
@@ -179,14 +237,14 @@ const EditQuestion = () => {
                   setExistingImage(null);
                   setDeleteImage(true);
                 }}
-                style={{ 
-                  marginTop: "5px", 
-                  backgroundColor: "red", 
-                  color: "white", 
-                  border: "none", 
-                  borderRadius: "5px", 
+                style={{
+                  marginTop: "5px",
+                  backgroundColor: "red",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
                   padding: "5px 10px",
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Delete Image
@@ -210,7 +268,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
-          
+
           <button
             type="submit"
             className="login-btn"
@@ -225,6 +283,28 @@ const EditQuestion = () => {
           </button>
         </form>
       </div>
+
+      {/* Error Modal */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
+
+      {/* Success Modal */}
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
     </div>
   );
 };

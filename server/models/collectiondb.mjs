@@ -7,7 +7,6 @@ const collectionSchema = new mongoose.Schema({
   },
   code: {
     type: String,
-    required: true,
     unique: true,
   },
   questionOrder: {
@@ -29,6 +28,14 @@ const collectionSchema = new mongoose.Schema({
     wrongAnswerPenalty: { type: Number, min: 0 },
     hintPenalty: { type: Number, min: 0 },
     skipPenalty: { type: Number, min: 0 }
+  },
+  isPublic: { 
+    type: Boolean, 
+    default: false 
+  },
+  isOnline: { 
+    type: Boolean, 
+    default: true 
   }
 }, {
   timestamps: true,

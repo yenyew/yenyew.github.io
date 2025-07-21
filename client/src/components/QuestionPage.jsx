@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import AlertModal from './AlertModal';
+import "./MainStyles.css";
 import "./QuestionPage.css";
 
 const QuestionPage = () => {
@@ -9,43 +11,107 @@ const QuestionPage = () => {
   const [hintsUsed, setHintsUsed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [gameSettings, setGameSettings] = useState(null);
+  const [timerPaused, setTimerPaused] = useState(false);
+  const [error, setError] = useState(null); 
+
+  // Modal states
+  const [showHintModal, setShowHintModal] = useState(false);
+  const [showSkipModal, setShowSkipModal] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showAnswerModal, setShowAnswerModal] = useState(false);
+  const [infoMessage, setInfoMessage] = useState("");
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoType, setInfoType] = useState("info");
 
   const startTime = useRef(Date.now());
   const wrongAnswers = useRef(0);
   const questionsSkipped = useRef(0);
   const timePenalty = useRef(0);
+  const pausedTime = useRef(0);
+
+  // Timer control functions
+  const pauseTimer = () => {
+    if (!timerPaused) {
+      setTimerPaused(true);
+      pausedTime.current += Date.now() - startTime.current;
+    }
+  };
+
+  const resumeTimer = () => {
+    if (timerPaused) {
+      setTimerPaused(false);
+      startTime.current = Date.now();
+    }
+  };
+
+  // Helper functions for modals
+  const showInfo = (title, message, type = "info") => {
+    setInfoTitle(title);
+    setInfoMessage(message);
+    setInfoType(type);
+    setShowInfoModal(true);
+  };
+
+  const showAnswerInfo = (title, message, type = "success") => {
+    setInfoTitle(title);
+    setInfoMessage(message);
+    setInfoType(type);
+    setShowAnswerModal(true);
+    pauseTimer();
+  };
 
   useEffect(() => {
     const fetchQuestionsAndSettings = async () => {
       const collectionId = sessionStorage.getItem("collectionId");
-      if (!collectionId) return;
+      if (!collectionId) {
+        setError("No collection selected. Please enter a code or play as a guest.");
+        return;
+      }
 
       try {
         // Fetch effective settings for this collection
         const settingsResponse = await fetch(`http://localhost:5000/collections/${collectionId}/effective-settings`);
+        if (!settingsResponse.ok) {
+          const data = await settingsResponse.json();
+          setError(data.message || "Failed to load game settings.");
+          return;
+        }
         const settingsData = await settingsResponse.json();
         setGameSettings(settingsData);
 
-        // Fetch questions (existing logic)
-        const collections = await fetch("http://localhost:5000/collections/");
-        const collectionsData = await collections.json();
-        const collection = collectionsData.find(c => c._id === collectionId);
+        // Fetch collection details to get the code
+        const collectionRes = await fetch(`http://localhost:5000/collections/${collectionId}`);
+        const collection = await collectionRes.json();
         
+        if (!collection) {
+          setError("Collection not found or is offline.");
+          return;
+        }
+
         let fetchedQuestions = [];
-        
-        if (collection && collection.questionOrder && collection.questionOrder.length > 0) {
-          const response = await fetch(`http://localhost:5000/collections/${collection.code}/questions`);
+        if (collection.questionOrder && collection.questionOrder.length > 0) {
+          const response = await fetch(`http://localhost:5000/collections/${collection._id}/questions`);
+          if (!response.ok) {
+            const data = await response.json();
+            setError(data.message || "Failed to load questions.");
+            return;
+          }
           const data = await response.json();
           fetchedQuestions = Array.isArray(data) ? data : data.questions || [];
         } else {
           const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
+          if (!res.ok) {
+            const data = await res.json();
+            setError(data.message || "Failed to load questions.");
+            return;
+          }
           const data = await res.json();
           fetchedQuestions = data;
         }
 
         // Apply game mode randomization per-game
         if (settingsData && settingsData.gameMode === 'random') {
-          // Fisher-Yates shuffle algorithm for true randomization each game
           const shuffled = [...fetchedQuestions];
           for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -58,19 +124,23 @@ const QuestionPage = () => {
         
       } catch (error) {
         console.error("Failed to fetch questions and settings:", error);
+        setError("Something went wrong. Please try again later.");
       }
     };
 
     fetchQuestionsAndSettings();
   }, []);
 
+  // Timer effect
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = Date.now();
-      setElapsed(Math.floor((now - startTime.current) / 1000) + timePenalty.current);
+      if (!timerPaused) {
+        const now = Date.now();
+        setElapsed(Math.floor((now - startTime.current - pausedTime.current) / 1000) + timePenalty.current);
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timerPaused]);
 
   const formatTime = (seconds) => {
     const hours = String(Math.floor(seconds / 3600)).padStart(2, "0");
@@ -88,28 +158,27 @@ const QuestionPage = () => {
     return `${secs} second${secs > 1 ? 's' : ''}`;
   };
 
-  // Add airplane animation function
   const animateAirplaneMovement = () => {
     const airplane = document.querySelector('.game-airplane-current');
     if (airplane) {
       airplane.classList.add('game-airplane-moving');
       setTimeout(() => {
         airplane.classList.remove('game-airplane-moving');
-      }, 1200); // Duration matches the CSS animation
+      }, 1200);
     }
   };
 
   const handleHintClick = () => {
     const hint = questions[currentIndex]?.hint;
     if (!hint || !gameSettings) return;
+    setShowHintModal(true);
+  };
 
-    const penaltyText = formatPenaltyTime(gameSettings.hintPenalty);
-    const confirmed = window.confirm(`Use a hint? A ${penaltyText} penalty will be added.`);
-    if (confirmed) {
-      setHintsUsed((prev) => prev + 1);
-      timePenalty.current += gameSettings.hintPenalty;
-      alert(`Hint: ${hint}`);
-    }
+  const confirmHint = () => {
+    const hint = questions[currentIndex]?.hint;
+    setHintsUsed((prev) => prev + 1);
+    timePenalty.current += gameSettings.hintPenalty;
+    showInfo("💡 Hint", hint, "info");
   };
 
   const handleSubmit = () => {
@@ -117,14 +186,15 @@ const QuestionPage = () => {
     if (!currentQuestion || !gameSettings) return;
 
     if (!userAnswer.trim()) {
-      alert("Please enter your answer.");
+      showInfo("Missing Answer", "Please enter your answer.", "warning");
       return;
     }
 
-    const penaltyText = formatPenaltyTime(gameSettings.wrongAnswerPenalty);
-    const confirmed = window.confirm(`Submit answer? Wrong answers add a ${penaltyText} penalty.`);
-    if (!confirmed) return;
+    setShowSubmitModal(true);
+  };
 
+  const confirmSubmit = () => {
+    const currentQuestion = questions[currentIndex];
     const input = userAnswer.toLowerCase().trim();
     const acceptableAnswers = Array.isArray(currentQuestion.answer)
       ? currentQuestion.answer
@@ -134,75 +204,62 @@ const QuestionPage = () => {
       (ans) => ans.toLowerCase().trim() === input
     );
 
-    const isLast = currentIndex === questions.length - 1;
-
     if (isCorrect) {
-      alert("Correct!");
       setCorrectAnswers((prev) => prev + 1);
       setUserAnswer("");
-
       const funFact = questions[currentIndex].funFact || "No fun fact available.";
-      alert(`🎉 Fun Fact: ${funFact}`);
-
-      if (isLast) {
-        setTimeout(() => handleFinish(true), 100);
-      } else {
-        // Animate airplane movement before going to next question
-        animateAirplaneMovement();
-        setTimeout(() => {
-          setCurrentIndex((prev) => prev + 1);
-        }, 600); // Wait for half the animation to complete
-      }
+      showAnswerInfo("Correct!", funFact, "success");
     } else {
-      alert("Incorrect.");
       wrongAnswers.current += 1;
       timePenalty.current += gameSettings.wrongAnswerPenalty;
       setUserAnswer("");
-
-      // Don't finish quiz, don't move to next question - let them try again
+      showAnswerInfo("Incorrect", "Try again! You can still answer this question.", "error");
     }
   };
 
   const handleSkip = () => {
     if (!gameSettings) return;
-    
-    const penaltyText = formatPenaltyTime(gameSettings.skipPenalty);
-    const confirmed = window.confirm(`Skip this question? A ${penaltyText} penalty will be added.`);
-    if (!confirmed) return;
+    setShowSkipModal(true);
+  };
 
+  const confirmSkip = () => {
     timePenalty.current += gameSettings.skipPenalty;
     questionsSkipped.current += 1;
     setUserAnswer("");
-
-    // Show correct answer first, then fun fact
     const currentQuestion = questions[currentIndex];
-    const correctAnswer = Array.isArray(currentQuestion.answer) 
-      ? currentQuestion.answer[0] 
+    const correctAnswer = Array.isArray(currentQuestion.answer)
+      ? currentQuestion.answer[0]
       : currentQuestion.answer;
-    
-    alert(`The correct answer was: ${correctAnswer}`);
-    
     const funFact = currentQuestion.funFact || "No fun fact available.";
-    alert(`🎉 Fun Fact: ${funFact}`);
+    const message = `The correct answer was: ${correctAnswer}\n\n🎉 Fun Fact: ${funFact}`;
+    showAnswerInfo("⏭️ Question Skipped", message, "warning");
+  };
 
+  const handleAnswerModalClose = () => {
+    setShowAnswerModal(false);
+    resumeTimer();
+    const isCorrectAnswer = infoType === "success";
+    const isSkipped = infoType === "warning";
     const isLast = currentIndex === questions.length - 1;
-    if (isLast) {
-      handleFinish(false);
-    } else {
-      // Animate airplane movement before going to next question
-      animateAirplaneMovement();
-      setTimeout(() => {
-        setCurrentIndex((prev) => prev + 1);
-      }, 600); // Wait for half the animation to complete
+
+    if (isCorrectAnswer || isSkipped) {
+      if (isLast) {
+        handleFinish(isCorrectAnswer);
+      } else {
+        animateAirplaneMovement();
+        setTimeout(() => {
+          setCurrentIndex((prev) => prev + 1);
+        }, 600);
+      }
     }
   };
 
   const handleFinish = async (answeredLast) => {
     const finalCorrect = correctAnswers + (answeredLast ? 1 : 0);
-    const rawTime = Math.floor((Date.now() - startTime.current) / 1000);
+    const rawTime = Math.floor((Date.now() - startTime.current - pausedTime.current) / 1000);
     const finalTime = rawTime + timePenalty.current;
 
-    alert("Quiz complete!");
+    showInfo("🎊 Quiz Complete!", "Great job! Redirecting to results...", "success");
 
     const playerId = sessionStorage.getItem("playerId");
     const collectionId = sessionStorage.getItem("collectionId");
@@ -227,24 +284,52 @@ const QuestionPage = () => {
       }
     }
 
-    // Store correct answers count in sessionStorage for ResultPage
     sessionStorage.setItem("correctAnswers", finalCorrect.toString());
     sessionStorage.setItem("totalQuestions", questions.length.toString());
 
-    window.location.href = "/results";
+    setTimeout(() => {
+      window.location.href = "/results";
+    }, 2000);
   };
 
-  const currentQuestion = questions[currentIndex];
-  if (questions.length === 0 || !gameSettings) return (
-    <div className="game-page-wrapper">
-      <div className="game-loading">Loading questions...</div>
-    </div>
-  );
-  if (!currentQuestion) return (
-    <div className="game-page-wrapper">
-      <div className="game-loading">Loading question...</div>
-    </div>
-  );
+  // Handle error state
+  if (error) {
+    return (
+      <div className="game-page-wrapper">
+        <AlertModal
+          isOpen={true}
+          onClose={() => window.location.href = "/entercode"}
+          title="Error"
+          message={error}
+          confirmText="Back to Code Entry"
+          type="error"
+          showCancel={false}
+        />
+      </div>
+    );
+  }
+
+  if (questions.length === 0 || !gameSettings) {
+    return (
+      <div className="game-page-wrapper">
+        <div className="game-loading">Loading questions...</div>
+      </div>
+    );
+  }
+
+  if (!questions[currentIndex]) {
+    return (
+      <div className="game-page-wrapper">
+        <div className="game-loading">Loading question...</div>
+      </div>
+    );
+  }
+
+  const penaltyText = gameSettings ? {
+    hint: formatPenaltyTime(gameSettings.hintPenalty),
+    skip: formatPenaltyTime(gameSettings.skipPenalty),
+    wrong: formatPenaltyTime(gameSettings.wrongAnswerPenalty)
+  } : { hint: "", skip: "", wrong: "" };
 
   return (
     <div className="game-page-wrapper">
@@ -254,7 +339,7 @@ const QuestionPage = () => {
           <img src="/images/ces.jpg" alt="Changi Experience Studio" className="game-ces-logo" />
         </div>
         <div className="game-time-display">
-          Time: {formatTime(elapsed)}
+          Time: {formatTime(elapsed)} {timerPaused && <span style={{color: "#ff9800"}}>(⏸️ Paused)</span>}
         </div>
       </div>
 
@@ -285,13 +370,12 @@ const QuestionPage = () => {
       <div className="game-question-section">
         <div className="game-question-header">
           <span className="game-airplane-small">✈️</span>
-          Stop {currentIndex + 1}: {currentQuestion.title || `Question ${currentIndex + 1}`}
+          Stop {currentIndex + 1}: {questions[currentIndex].title || `Question ${currentIndex + 1}`}
         </div>
         <div className="game-question-text">
-          {currentQuestion.question}
+          {questions[currentIndex].question}
         </div>
         
-        {/* Image support from main branch */}
         {questions[currentIndex].image && (
           <img
             src={`http://localhost:5000/${questions[currentIndex].image}`}
@@ -337,7 +421,7 @@ const QuestionPage = () => {
         </button>
       </div>
 
-      {/* Submit button - separated at bottom */}
+      {/* Submit button */}
       <div className="game-submit-section">
         <button 
           onClick={handleSubmit}
@@ -346,6 +430,63 @@ const QuestionPage = () => {
           Submit Answer
         </button>
       </div>
+
+      {/* Modals */}
+      <AlertModal
+        isOpen={showHintModal}
+        onClose={() => setShowHintModal(false)}
+        onConfirm={confirmHint}
+        title="Use Hint?"
+        message={`Using a hint will add a ${penaltyText.hint} penalty to your time.`}
+        confirmText="Use Hint"
+        cancelText="Cancel"
+        type="warning"
+        icon="💡"
+      />
+
+      <AlertModal
+        isOpen={showSkipModal}
+        onClose={() => setShowSkipModal(false)}
+        onConfirm={confirmSkip}
+        title="Skip Question?"
+        message={`Skipping this question will add a ${penaltyText.skip} penalty to your time.`}
+        confirmText="Skip"
+        cancelText="Cancel"
+        type="warning"
+        icon="⏭️"
+      />
+
+      <AlertModal
+        isOpen={showSubmitModal}
+        onClose={() => setShowSubmitModal(false)}
+        onConfirm={confirmSubmit}
+        title="Submit Answer?"
+        message={`Are you sure? Wrong answers add a ${penaltyText.wrong} penalty.`}
+        confirmText="Submit"
+        cancelText="Cancel"
+        type="info"
+        icon="📝"
+      />
+
+      <AlertModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title={infoTitle}
+        message={infoMessage}
+        confirmText="OK"
+        type={infoType}
+        showCancel={false}
+      />
+
+      <AlertModal
+        isOpen={showAnswerModal}
+        onClose={handleAnswerModalClose}
+        title={infoTitle}
+        message={infoMessage}
+        confirmText="Continue"
+        type={infoType}
+        showCancel={false}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import './MainStyles.css';
+import AlertModal from './AlertModal';
 
 export default function ResultPage() {
   const [player, setPlayer] = useState(null);
@@ -8,6 +9,12 @@ export default function ResultPage() {
   const [error, setError] = useState("");
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  
+  // Modal states
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,39 +72,33 @@ export default function ResultPage() {
     return { formattedDate, formattedTime };
   };
 
-  const handleRedeem = async () => {
-    const confirm = window.confirm(
-      "🎁 Once you click this, please claim your reward at the booth immediately!"
-    );
-    if (!confirm) return;
-  
+  // ✅ Replace window.confirm with modal
+  const handleRedeemClick = () => {
+    setShowRedeemModal(true);
+  };
+
+  // ✅ Handle modal confirmation
+  const handleConfirmRedeem = async () => {
     try {
       const res = await fetch(`http://localhost:5000/players/${player._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...player, redeemed: true }),
       });
-  
+
       if (res.ok) {
         setPlayer({ ...player, redeemed: true, redeemedAt: new Date() });
-        alert("✅ Marked as redeemed!");
+        setShowSuccessModal(true);
+      } else {
+        setShowErrorModal(true);
       }
-    } catch {
-      alert("❌ Error redeeming gift.");
+    } catch (error) {
+      console.error("Redeem error:", error);
+      setShowErrorModal(true);
     }
   };
 
-  // Calculate performance percentage
-  const getPerformanceMessage = () => {
-    if (totalQuestions === 0) return "";
-    const percentage = (correctAnswers / totalQuestions) * 100;
-    
-    if (percentage === 100) return "🏆 Perfect Score! Amazing!";
-    if (percentage >= 80) return "🎉 Excellent work!";
-    if (percentage >= 60) return "👍 Good job!";
-    if (percentage >= 40) return "👌 Not bad!";
-    return "🎯 Thanks for playing!";
-  };
+  // ❌ REMOVED getPerformanceMessage function
 
   if (loading) return <p style={{ textAlign: "center" }}>Loading...</p>;
 
@@ -134,22 +135,21 @@ export default function ResultPage() {
 
       <div className="page-content" style={{ textAlign: "center" }}>
         <h2>🎉 Congratulations {player.username}!</h2>
-        <p>You have completed the quest with these stats:</p>
+        
+        <p style={{ fontWeight: "bold", fontSize: "18px", color: "#333" }}>
+          You have completed the quest with these stats:
+        </p>
 
         <div style={{ 
           margin: "1.5rem 0", 
           lineHeight: "1.8",
-          background: "rgba(255, 255, 255, 0.1)",
           padding: "20px",
-          borderRadius: "10px",
-          backdropFilter: "blur(5px)"
+          borderRadius: "10px"
         }}>
           <div style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px", color: "#2e7d32" }}>
             ✅ Correct Answers: {correctAnswers}/{totalQuestions}
           </div>
-          <div style={{ fontSize: "16px", marginBottom: "15px", color: "#1976d2" }}>
-            {getPerformanceMessage()}
-          </div>
+          {/* ❌ REMOVED performance message display */}
           <div><strong>Total Time (with penalties):</strong> {formatTime(totalTime)}</div>
           <div><strong>Hints Used:</strong> {player.hintsUsed || 0}</div>
           <div><strong>Questions Skipped:</strong> {player.questionsSkipped || 0}</div>
@@ -163,12 +163,12 @@ export default function ResultPage() {
         </div>
 
         <p style={{ fontWeight: "bold", marginTop: "2rem" }}>
-          🎁 Redeem your gift at the booth now!
+          Redeem your gift at the booth now!
         </p>
 
         {!player.redeemed ? (
           <button
-            onClick={handleRedeem}
+            onClick={handleRedeemClick}
             className="login-btn"
             style={{ marginTop: "1rem" }}
           >
@@ -176,12 +176,55 @@ export default function ResultPage() {
           </button>
         ) : (
           <p style={{ color: "green", fontWeight: "bold", marginTop: "1rem" }}>
-            ✅ Already Redeemed at {new Date(player.redeemedAt).toLocaleString("en-SG")}
+            ✅ Redeemed at {new Date(player.redeemedAt).toLocaleString("en-SG")}
           </p>
         )}
 
-        <p style={{ marginTop: "2rem" }}>{formattedDate}, {formattedTime}</p>
+        <p style={{ 
+          marginTop: "2rem", 
+          fontWeight: "bold", 
+          color: "#333", 
+          fontSize: "16px" 
+        }}>
+          {formattedDate}, {formattedTime}
+        </p>
       </div>
+
+      {/* 🎁 Redeem Confirmation Modal */}
+      <AlertModal
+        isOpen={showRedeemModal}
+        onClose={() => setShowRedeemModal(false)}
+        onConfirm={handleConfirmRedeem}
+        title="Redeem Gift"
+        message="Once you click confirm, please claim your reward at the booth immediately!"
+        confirmText="Redeem Now"
+        cancelText="Cancel"
+        type="warning"
+        icon="🎁"
+      />
+
+      {/* ✅ Success Modal */}
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Success!"
+        message="Your gift has been marked as redeemed! Please head to the booth now."
+        confirmText="Got it!"
+        type="success"
+        showCancel={false}
+      />
+
+      {/* ❌ Error Modal */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Error"
+        message="There was an error redeeming your gift. Please try again or contact staff."
+        confirmText="Try Again"
+        cancelText="Cancel"
+        type="error"
+        onConfirm={handleRedeemClick}
+      />
     </div>
   );
 }
