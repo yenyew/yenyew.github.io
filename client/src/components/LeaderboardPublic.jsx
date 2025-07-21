@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import './MainStyles.css';
+import './LeaderboardStyles.css'; 
 
 const FILTERS = [
   { label: "Today", value: "day" },
@@ -24,52 +25,76 @@ function isWithin(date, filter) {
 
 export default function LeaderboardPage() {
   const [players, setPlayers] = useState([]);
-  const [collections, setCollections] = useState({});
+  const [currentPlayer, setCurrentPlayer] = useState(null);
+  const [collectionName, setCollectionName] = useState("");
   const [filter, setFilter] = useState("all");
-  const [selectedCollection, setSelectedCollection] = useState("all");
   const [page, setPage] = useState(0);
   const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const pageSize = 10;
   const currentPlayerId = sessionStorage.getItem("playerId");
 
   useEffect(() => {
-    async function fetchAll() {
+    async function fetchData() {
       try {
+        // First, get the current player to know their collection
+        if (!currentPlayerId) {
+          console.error("No current player ID found");
+          setLoading(false);
+          return;
+        }
+
+        const currentPlayerRes = await fetch(`http://localhost:5000/players/${currentPlayerId}`);
+        const currentPlayerData = await currentPlayerRes.json();
+        setCurrentPlayer(currentPlayerData);
+
+        // Get all players and collections
         const [playersRes, collectionsRes] = await Promise.all([
-          fetch("http://172.20.10.2:5000/players"),
-          fetch("http://172.20.10.2:5000/collections"),
+          fetch("http://localhost:5000/players"),
+          fetch("http://localhost:5000/collections"),
         ]);
+        
         const [playersData, collectionsData] = await Promise.all([
           playersRes.json(),
           collectionsRes.json(),
         ]);
 
-        const finishedPlayers = playersData.filter(p => p.finishedAt);
-        const sorted = finishedPlayers.sort((a, b) => a.totalTimeInSeconds - b.totalTimeInSeconds);
+        // ✅ Filter to only show players from the same collection who have finished
+        const finishedPlayersFromSameCollection = playersData.filter(p => 
+          p.finishedAt && p.collectionId === currentPlayerData.collectionId
+        );
+
+        // Sort by time (ascending - fastest first)
+        const sorted = finishedPlayersFromSameCollection.sort((a, b) => 
+          a.totalTimeInSeconds - b.totalTimeInSeconds
+        );
+        
         setPlayers(sorted);
 
-        const colMap = {};
-        collectionsData.forEach(col => colMap[col._id] = col.name);
-        setCollections(colMap);
+        // Get the collection name for display
+        const currentCollection = collectionsData.find(col => col._id === currentPlayerData.collectionId);
+        setCollectionName(currentCollection?.name || "Unknown Collection");
 
+        // Set page to show current player
         const currentIndex = sorted.findIndex(p => p._id === currentPlayerId);
-        setPage(Math.max(0, Math.floor(currentIndex / pageSize)));
+        if (currentIndex >= 0) {
+          setPage(Math.floor(currentIndex / pageSize));
+        }
+
+        setLoading(false);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching leaderboard data:", err);
+        setLoading(false);
       }
     }
-    fetchAll();
-  }, []);
+    
+    fetchData();
+  }, [currentPlayerId]);
 
-  useEffect(() => setPage(0), [filter, selectedCollection]);
+  useEffect(() => setPage(0), [filter]);
 
-  const filteredPlayers = players.filter(
-    (p) =>
-      isWithin(p.finishedAt, filter) &&
-      (selectedCollection === "all" || p.collectionId === selectedCollection)
-  );
-
+  const filteredPlayers = players.filter(p => isWithin(p.finishedAt, filter));
   const totalPages = Math.ceil(filteredPlayers.length / pageSize);
   const pagedPlayers = filteredPlayers.slice(page * pageSize, (page + 1) * pageSize);
 
@@ -83,6 +108,33 @@ export default function LeaderboardPage() {
     year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
+  if (loading) {
+    return (
+      <div className="page-container">
+        <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
+        <div className="page-overlay"></div>
+        <div className="page-content" style={{ textAlign: "center" }}>
+          <p>Loading leaderboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentPlayer) {
+    return (
+      <div className="page-container">
+        <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
+        <div className="page-overlay"></div>
+        <div className="page-content" style={{ textAlign: "center" }}>
+          <h2>Error: Player not found</h2>
+          <button className="return-button" onClick={() => window.history.back()}>
+            Return
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
@@ -90,32 +142,42 @@ export default function LeaderboardPage() {
 
       <div className="page-content leaderboard-page">
         <h1 className="leaderboard-title">Leaderboard</h1>
+        
+        {/* ✅ Show which collection this leaderboard is for */}
+        <h3 style={{ 
+          textAlign: "center", 
+          color: "#2196F3", 
+          marginBottom: "20px",
+          fontWeight: "600"
+        }}>
+          {collectionName} Collection
+        </h3>
 
-        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+        {/* ✅ Only time filter, no collection filter needed */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="filter-select"
+            style={{ minWidth: "150px" }}
           >
             {FILTERS.map(f => (
               <option key={f.value} value={f.value}>{f.label}</option>
             ))}
           </select>
-
-          <select
-            value={selectedCollection}
-            onChange={(e) => setSelectedCollection(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Collections</option>
-            {Object.entries(collections).map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
-          </select>
         </div>
 
         {pagedPlayers.length === 0 ? (
-          <p className="no-results">No completed players yet.</p>
+          <div style={{ textAlign: "center", margin: "40px 0" }}>
+            <p className="no-results">
+              No completed players in {collectionName} collection yet.
+            </p>
+            {filter !== "all" && (
+              <p style={{ fontSize: "14px", color: "#666", marginTop: "10px" }}>
+                Try changing the time filter to see more results.
+              </p>
+            )}
+          </div>
         ) : (
           <>
             <table className="leaderboard-table">
@@ -136,10 +198,17 @@ export default function LeaderboardPage() {
                     rank === 1 ? "silver" :
                     rank === 2 ? "bronze" : "";
 
+                  // ✅ Add subtle background for non-podium, non-current players
+                  const getRowStyle = () => {
+                    if (highlight || isCurrent) return {}; // Keep existing styling for podium/current
+                    return { backgroundColor: "rgba(255, 255, 255, 0.40)" }; // Subtle translucent background
+                  };
+
                   return (
                     <tr
                       key={player._id}
                       className={`${highlight} ${isCurrent ? "current-player" : ""}`}
+                      style={getRowStyle()}
                       onMouseEnter={() => setHoveredPlayerId(player._id)}
                       onMouseLeave={() => setHoveredPlayerId(null)}
                     >
@@ -148,10 +217,10 @@ export default function LeaderboardPage() {
                         {player.username}
                         {isCurrent && <span className="you-indicator"> ← You</span>}
 
+                        {/* ✅ Simplified tooltip - only show completion date */}
                         {hoveredPlayerId === player._id && (
                           <div className="player-tooltip">
-                            <div><strong>Collection:</strong> {collections[player.collectionId] || "Unknown"}</div>
-                            <div><strong>Date:</strong> {formatDate(player.finishedAt)}</div>
+                            <div><strong>Completed:</strong> {formatDate(player.finishedAt)}</div>
                           </div>
                         )}
                       </td>
@@ -162,21 +231,44 @@ export default function LeaderboardPage() {
               </tbody>
             </table>
 
-            <div className="pagination">
-              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                ← Prev
-              </button>
-              <span>Page {page + 1} of {totalPages}</span>
-              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
-                Next →
-              </button>
-            </div>
+            {totalPages > 1 && (
+              <div className="pagination" style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                gap: "20px", 
+                margin: "20px 0",
+                maxWidth: "300px",
+                marginLeft: "auto",
+                marginRight: "auto"
+              }}>
+                <button 
+                  onClick={() => setPage(p => Math.max(0, p - 1))} 
+                  disabled={page === 0}
+                  style={{ minWidth: "80px" }}
+                >
+                  ← Prev
+                </button>
+                <span style={{ textAlign: "center", minWidth: "100px" }}>
+                  Page {page + 1} of {totalPages}
+                </span>
+                <button 
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} 
+                  disabled={page >= totalPages - 1}
+                  style={{ minWidth: "80px" }}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </>
         )}
 
-        <button className="return-button" onClick={() => window.history.back()}>
-          Return
-        </button>
+        <div style={{ textAlign: "center", marginTop: "30px" }}>
+          <button className="return-button" onClick={() => window.history.back()}>
+            Return
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,157 +1,225 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import AlertModal from "./AlertModal";
 import "./MainStyles.css";
+
 const EditCollection = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const [questions, setQuestions] = useState([]);
-  const [page, setPage] = useState(0);
-  const [sortOrder, setSortOrder] = useState("asc");
-  const navigate = useNavigate();
-  const pageSize = 6;
+  const [isPublic, setIsPublic] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [prevIsPublic, setPrevIsPublic] = useState(false);
+  const [prevIsOnline, setPrevIsOnline] = useState(true);
+  const [existingPublicCollection, setExistingPublicCollection] = useState(null);
+
+  // Modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showPublicConfirmModal, setShowPublicConfirmModal] = useState(false);
+  const [showCheckboxInfoModal, setShowCheckboxInfoModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  const [checkboxType, setCheckboxType] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
-      return;
-    }
-    
     const fetchCollection = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/collections`);
+        const res = await fetch(`http://localhost:5000/collections/${id}`);
         const data = await res.json();
-        const target = data.find((col) => col._id === id);
-
-        if (target) {
-          setName(target.name);
-          setCode(target.code);
-          fetchQuestions(target.code, target._id); // ✅ pass both
-        }
-      } catch (err) {
-        console.error("Error fetching collection:", err);
+        setName(data.name);
+        setCode(data.code);
+        setIsPublic(data.isPublic);
+        setIsOnline(data.isOnline);
+        setPrevIsPublic(data.isPublic);
+        setPrevIsOnline(data.isOnline);
+      } catch {
+        console.error("Failed to load collection");
       }
     };
 
-    const fetchQuestions = async (collectionCode, collectionId) => {
+    const checkPublicCollection = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/collections/${collectionCode}/questions`);
+        const res = await fetch("http://localhost:5000/collections");
         const data = await res.json();
-
-        const withCollectionId = (data.questions || []).map((q) => ({
-          ...q,
-          collectionId: collectionId, // ✅ needed for edit navigation
-        }));
-
-        setQuestions(withCollectionId);
-      } catch (err) {
-        console.error("Failed to load questions:", err);
+        const publicCol = data.find((c) => c.isPublic && c._id !== id);
+        setExistingPublicCollection(publicCol || null);
+      } catch {
+        console.error("Failed to check public collections");
       }
     };
 
     fetchCollection();
+    checkPublicCollection();
   }, [id]);
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+    setShowErrorModal(false);
+    setShowPublicConfirmModal(false);
+    setShowCheckboxInfoModal(false);
+    setShowDeleteConfirmModal(false);
+    setCheckboxType(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!name.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter a collection name.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    if (!isPublic && !code.trim()) {
+      setModalTitle("Invalid Input");
+      setModalMessage("Please enter a collection code.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    if (isPublic && existingPublicCollection) {
+      setModalTitle("Existing Public Collection");
+      setModalMessage(
+        `A public collection "${existingPublicCollection.name}" already exists. Please set it offline before making another one public.`
+      );
+      setShowPublicConfirmModal(true);
+      return;
+    }
+
+    await submitCollection();
+  };
+
+  const submitCollection = async () => {
     try {
       const res = await fetch(`http://localhost:5000/collections/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, code }),
+        body: JSON.stringify({
+          name,
+          code: isPublic ? undefined : code,
+          isPublic,
+          isOnline,
+        }),
       });
 
-      if (res.ok) alert("Collection updated successfully!");
-      else alert("Failed to update collection.");
-    } catch (err) {
-      console.error("Update failed:", err);
-      alert("Server error during update.");
+      if (res.ok) {
+        setModalTitle("Success");
+        setModalMessage("Collection updated successfully!");
+        setShowSuccessModal(true);
+      } else {
+        const data = await res.json();
+        setModalTitle("Error");
+        setModalMessage(data.message || "Failed to update collection.");
+        setShowErrorModal(true);
+      }
+    } catch {
+      setModalTitle("Server Error");
+      setModalMessage("Please try again later.");
+      setShowErrorModal(true);
     }
   };
 
-  const handleDeleteCollection = async () => {
-    const confirm = window.confirm("Delete this entire collection and all its questions?");
-    if (!confirm) return;
+  const handleSuccessConfirm = () => {
+    handleModalClose();
+    navigate(`/get-collections/${id}`);
+  };
 
+  const handlePublicConfirm = () => {
+    if (existingPublicCollection) {
+      handleModalClose();
+      navigate(`/edit-collection/${existingPublicCollection._id}`);
+    } else {
+      setShowPublicConfirmModal(false);
+      submitCollection();
+    }
+  };
+
+  const handleCheckboxChange = (type, newValue) => {
+    if (type === "public") {
+      setPrevIsPublic(isPublic);
+      setIsPublic(newValue);
+      if (newValue) {
+        setCode(""); // Clear code when made public
+      }
+    } else {
+      setPrevIsOnline(isOnline);
+      setIsOnline(newValue);
+    }
+
+    setCheckboxType(type);
+    setModalTitle(type === "public" ? "Change Public Status?" : "Change Online Status?");
+    setModalMessage(
+      type === "public"
+        ? newValue
+          ? "This will make the collection public and available to all users. Collection code will be cleared and disabled."
+          : "This will remove this collection from public access."
+        : newValue
+        ? "This will make the collection available for gameplay."
+        : "This will disable the collection from being accessed by players."
+    );
+    setShowCheckboxInfoModal(true);
+  };
+
+  const handleCheckboxConfirm = () => {
+    setCheckboxType(null);
+    handleModalClose();
+  };
+
+  const handleCheckboxCancel = () => {
+    if (checkboxType === "public") setIsPublic(prevIsPublic);
+    if (checkboxType === "online") setIsOnline(prevIsOnline);
+    handleModalClose();
+  };
+
+  const handleDeleteClick = () => {
+    if (isOnline) {
+      setModalTitle("Cannot Delete Online Collection");
+      setModalMessage(
+        "This collection is currently online. Please set it offline before deleting."
+      );
+      setShowErrorModal(true);
+    } else {
+      setModalTitle("Confirm Delete");
+      setModalMessage("Are you sure you want to delete this collection?");
+      setShowDeleteConfirmModal(true);
+    }
+  };
+
+  const confirmDelete = async () => {
     try {
       const res = await fetch(`http://localhost:5000/collections/${id}`, {
         method: "DELETE",
       });
-
       if (res.ok) {
-        alert("Collection deleted.");
-        navigate("/admin");
+        setModalTitle("Deleted");
+        setModalMessage("Collection deleted successfully.");
+        setShowSuccessModal(true);
       } else {
-        alert("Failed to delete the collection.");
+        const data = await res.json();
+        setModalTitle("Error");
+        setModalMessage(data.message || "Failed to delete collection.");
+        setShowErrorModal(true);
       }
-    } catch (err) {
-      console.error("Error deleting collection:", err);
-      alert("Server error during deletion.");
+    } catch {
+      setModalTitle("Server Error");
+      setModalMessage("Failed to delete collection.");
+      setShowErrorModal(true);
+    } finally {
+      setShowDeleteConfirmModal(false);
     }
   };
-
-  const handleDeleteQuestion = async (number) => {
-    const confirm = window.confirm(`Delete Question ${number}?`);
-    if (!confirm) return;
-
-    try {
-      const response = await fetch(`http://localhost:5000/questions/${number}/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        alert(`Question ${number} deleted.`);
-        const updated = questions.filter((q) => q.number !== number);
-        setQuestions(updated);
-      } else {
-        const data = await response.json();
-        alert(`Failed to delete question: ${data.message || "Unknown error"}`);
-      }
-    } catch (err) {
-      console.error("Error deleting question:", err);
-      alert("Server error during deletion.");
-    }
-  };
-
-  const handleQuestionClick = (number, collectionId) => {
-    navigate(`/edit-question/${number}/${collectionId}`);
-  };
-
-  const sortedQuestions = [...questions];
-  if (sortOrder === "asc") sortedQuestions.sort((a, b) => a.number - b.number);
-  else if (sortOrder === "desc") sortedQuestions.sort((a, b) => b.number - a.number);
-  else if (sortOrder === "random") sortedQuestions.sort(() => Math.random() - 0.5);
-
-  const totalPages = Math.ceil(sortedQuestions.length / pageSize);
-  const pagedQuestions = sortedQuestions.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay"></div>
-
-      <div className="header">
-        <button
-          onClick={() => navigate("/admin")}
-          className="login-btn"
-          style={{
-            backgroundColor: "#17C4C4",
-            color: "#fff",
-            width: "120px",
-            marginBottom: "10px",
-          }}
-        >
-          &lt; Back
-        </button>
-      </div>
-
+      <div className="page-overlay" />
       <div className="buttons">
-        <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "10px" }}>
-          Edit Collection
-        </h2>
+        <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "10px" }}>Edit Collection</h2>
 
         <form onSubmit={handleSubmit} style={{ maxWidth: "300px", width: "100%" }}>
           <input
@@ -161,27 +229,35 @@ const EditCollection = () => {
             onChange={(e) => setName(e.target.value)}
             required
             className="login-btn"
-            style={{
-              marginBottom: "8px",
-              backgroundColor: "white",
-              padding: "10px",
-              fontSize: "14px",
-            }}
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
           <input
             type="text"
             placeholder="Collection Code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            required
+            disabled={isPublic}
             className="login-btn"
-            style={{
-              marginBottom: "8px",
-              backgroundColor: "white",
-              padding: "10px",
-              fontSize: "14px",
-            }}
+            style={{ marginBottom: "10px", backgroundColor: isPublic ? "#e9ecef" : "white" }}
           />
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+            <div>
+              <input
+                type="checkbox"
+                checked={isPublic}
+                onChange={(e) => handleCheckboxChange("public", e.target.checked)}
+              />
+              <label style={{ marginLeft: "8px" }}>Set as Public</label>
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                checked={isOnline}
+                onChange={(e) => handleCheckboxChange("online", e.target.checked)}
+              />
+              <label style={{ marginLeft: "8px" }}>Online</label>
+            </div>
+          </div>
           <button
             type="submit"
             className="login-btn"
@@ -192,125 +268,84 @@ const EditCollection = () => {
               marginBottom: "10px",
             }}
           >
-            Save
+            Save Changes
           </button>
-        </form>
-
-        <button
-          onClick={handleDeleteCollection}
-          className="login-btn"
-          style={{ backgroundColor: "#DC3545", color: "#fff", width: "100%" }}
-        >
-          Delete Collection
-        </button>
-
-        <div style={{ marginTop: "30px", width: "100%", maxWidth: "300px" }}>
-          <h3 style={{ color: "#000" }}>Questions in this Collection:</h3>
-
-          <label style={{ fontWeight: "bold", color: "#000", fontSize: "14px", marginBottom: "4px" }}>
-            Sort Questions By:
-          </label>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            className="login-btn"
             style={{
-              marginBottom: "10px",
-              height: "36px",
-              borderRadius: "8px",
-              backgroundColor: "white",
-              color: "#000",
-              fontSize: "14px",
-              padding: "0 8px",
+              backgroundColor: "#DC3545",
+              color: "#fff",
               width: "100%",
-              outline: "none",
+              marginBottom: "10px",
             }}
           >
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-            <option value="random">Random</option>
-          </select>
-
-          {questions.length === 0 ? (
-            <p style={{ color: "#555" }}>No questions found.</p>
-          ) : (
-            <>
-              <ul style={{ padding: 0, listStyle: "none" }}>
-                {pagedQuestions.map((q) => {
-                  const truncated =
-                    q.question.length > 60
-                      ? q.question.slice(0, 60) + "..."
-                      : q.question;
-                  return (
-                    <li
-                      key={q._id}
-                      title={q.question}
-                      style={{
-                        backgroundColor: "#fff",
-                        padding: "6px 8px",
-                        borderRadius: "8px",
-                        marginBottom: "8px",
-                        color: "#000",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: "14px",
-                      }}
-                    >
-                      <span
-                        onClick={() => handleQuestionClick(q.number, q.collectionId)}
-                        style={{
-                          cursor: "pointer",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          flex: 1,
-                          paddingRight: "6px",
-                        }}
-                      >
-                        <strong>Q{q.number}:</strong> {truncated}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteQuestion(q.number)}
-                        style={{
-                          backgroundColor: "#DC3545",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "4px",
-                          padding: "2px 6px",
-                          fontSize: "14px",
-                          marginLeft: "6px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
-                <button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="login-btn"
-                  style={{ width: "48%" }}
-                >
-                  ← Prev
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="login-btn"
-                  style={{ width: "48%" }}
-                >
-                  Next →
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+            Delete Collection
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/collections-bank")}
+            className="login-btn"
+            style={{ backgroundColor: "#17C4C4", color: "#fff", width: "100%" }}
+          >
+            Return
+          </button>
+        </form>
       </div>
+
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessConfirm}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
+      />
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="error"
+        showCancel={false}
+      />
+      <AlertModal
+        isOpen={showPublicConfirmModal}
+        onClose={handleModalClose}
+        onConfirm={handlePublicConfirm}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Go to Edit"
+        cancelText="Cancel"
+        type="warning"
+        showCancel={true}
+      />
+      <AlertModal
+        isOpen={showCheckboxInfoModal}
+        onClose={handleModalClose}
+        onConfirm={handleCheckboxConfirm}
+        onCancel={handleCheckboxCancel}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        type="info"
+        showCancel={true}
+      />
+      <AlertModal
+        isOpen={showDeleteConfirmModal}
+        onClose={handleModalClose}
+        onConfirm={confirmDelete}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="warning"
+        showCancel={true}
+      />
     </div>
   );
 };

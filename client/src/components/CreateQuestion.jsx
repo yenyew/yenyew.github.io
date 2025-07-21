@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MainStyles.css";
 
+
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
   const [collectionId, setCollectionId] = useState("");
@@ -14,6 +15,7 @@ const CreateQuestion = () => {
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
   const navigate = useNavigate();
+
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
@@ -32,25 +34,31 @@ const CreateQuestion = () => {
       }
     };
 
+
     fetchCollections();
   }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
+
     try {
       const allRes = await fetch("http://localhost:5000/questions");
       const allQuestions = await allRes.json();
+
 
       const exists = allQuestions.some(
         (q) => q.number === parseInt(number) && q.collectionId === collectionId
       );
 
+
       if (exists) {
         alert("A question with that number already exists in the selected collection.");
         return;
       }
+
 
       const newQuestion = {
         number: parseInt(number),
@@ -63,11 +71,13 @@ const CreateQuestion = () => {
         ...(type === "mcq" && { options: options.split(",").map(opt => opt.trim()) }),
       };
 
+
       const response = await fetch("http://localhost:5000/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newQuestion),
       });
+
 
       if (response.ok) {
         alert("Question added successfully!");
@@ -89,10 +99,12 @@ const CreateQuestion = () => {
     }
   };
 
+
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="page-overlay"></div>
+
 
       <div className="header">
         <button
@@ -109,10 +121,12 @@ const CreateQuestion = () => {
         </button>
       </div>
 
+
       <div className="buttons">
         <h2 style={{ fontSize: "24px", color: "#000", textAlign: "center", marginBottom: "10px" }}>
           Create a New Question:
         </h2>
+
 
         <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
           {/* Question Type Selector */}
@@ -137,6 +151,7 @@ const CreateQuestion = () => {
             <option value="mcq">Multiple Choice Question</option>
           </select>
 
+
           <input
             type="number"
             value={number}
@@ -146,6 +161,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
 
           <select
             value={collectionId}
@@ -172,6 +188,7 @@ const CreateQuestion = () => {
             ))}
           </select>
 
+
           <textarea
             placeholder="Question Description"
             value={question}
@@ -186,6 +203,7 @@ const CreateQuestion = () => {
             }}
           />
 
+
           <input
             type="text"
             placeholder="Hint"
@@ -194,6 +212,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
 
           {type === "mcq" && (
             <>
@@ -212,6 +231,7 @@ const CreateQuestion = () => {
             </>
           )}
 
+
           <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
             Enter {type === "mcq" ? "correct options" : "acceptable answers"}, separated by commas.
           </p>
@@ -224,6 +244,7 @@ const CreateQuestion = () => {
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
 
+
           <input
             type="text"
             placeholder="Fun Fact"
@@ -232,6 +253,7 @@ const CreateQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
 
           <button
             type="submit"
@@ -247,6 +269,7 @@ const CreateQuestion = () => {
           </button>
         </form>
 
+
         {message && (
           <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
         )}
@@ -254,5 +277,6 @@ const CreateQuestion = () => {
     </div>
   );
 };
+
 
 export default CreateQuestion;

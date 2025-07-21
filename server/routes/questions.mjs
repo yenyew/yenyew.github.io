@@ -2,7 +2,6 @@ import express from 'express';
 import Question from '../models/questionsdb.mjs';
 import mongoose from 'mongoose';
 
-
 const router = express.Router();
 
 // Get all questions (optionally filtered by collectionId)
@@ -10,7 +9,8 @@ router.get("/", async (req, res) => {
   try {
     const { collectionId } = req.query;
     const filter = collectionId ? { collectionId } : {};
-    const questions = await Question.find(filter).sort({ number: 1 });
+    
+    const questions = await Question.find(filter);
     res.status(200).json(questions);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -37,32 +37,30 @@ router.get("/:number/:collectionId", async (req, res) => {
   }
 });
 
-
-
-// Create a new question (now checks for uniqueness within the same collection)
+// Create a new question
 router.post("/", async (req, res) => {
   try {
-    // router.post("/", ...)
     const { number, collectionId, question, hint, answer, funFact, type, options } = req.body;
 
-    if (!['mcq', 'open'].includes(type)) {
-      return res.status(400).json({ message: "Invalid question type." });
-    }
-
-    if (type === 'mcq' && (!options || options.length < 2)) {
-      return res.status(400).json({ message: "MCQ questions must have at least two options." });
+    const existing = await Question.findOne({ number, collectionId });
+    if (existing) {
+      return res.status(400).json({ message: `Question ${number} already exists in this collection.` });
     }
 
     const newQuestion = {
       number,
       collectionId,
       question,
-      type,
-      options: type === 'mcq' ? options : undefined,
-      answer,
       hint,
-      funFact
+      answer,
+      funFact,
+      type,
     };
+
+    // Optional: only include options if question type is MCQ
+    if (type === "mcq" || type === "multiple-choice") {
+      newQuestion.options = options;
+    }
 
     const result = await Question.create(newQuestion);
     res.status(201).json(result);
@@ -72,25 +70,15 @@ router.post("/", async (req, res) => {
   }
 });
 
+
 // Update a question (scoped by number + collectionId)
-// PATCH /questions/:number/:collectionId
 router.patch("/:number/:collectionId", async (req, res) => {
   try {
     const { number, collectionId } = req.params;
-    const { question, hint, answer, funFact, type, options } = req.body;
+    const { question, hint, answer, funFact } = req.body;
 
     const query = { number: parseInt(number), collectionId };
-    const updates = {
-      $set: {
-        question,
-        hint,
-        answer,
-        funFact,
-        type,
-        ...(type === "mcq" && { options }),
-        ...(type === "open" && { options: undefined }), // clear options for open-ended
-      },
-    };
+    const updates = { $set: { question, hint, answer, funFact } };
 
     const result = await Question.updateOne(query, updates);
 
@@ -103,7 +91,6 @@ router.patch("/:number/:collectionId", async (req, res) => {
     res.status(500).json({ message: "Error updating question", error: err.message });
   }
 });
-
 
 // Delete a question (scoped by number + collectionId as path params)
 router.delete("/:number/:collectionId", async (req, res) => {
@@ -123,6 +110,5 @@ router.delete("/:number/:collectionId", async (req, res) => {
     res.status(500).json({ message: "Error deleting question", error: error.message });
   }
 });
-
 
 export default router;

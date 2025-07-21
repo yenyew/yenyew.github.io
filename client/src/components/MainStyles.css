@@ -9,7 +9,7 @@
   position: relative;
   min-height: 100vh;
   width: 100vw;
-  overflow: hidden;
+  overflow: hidden !important;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -36,7 +36,7 @@
   left: 0;
   height: 100%;
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.6); /* adjustable background dim */
+  background-color: rgba(255, 255, 255, 0.65); /* adjustable background dim */
   z-index: 1;
 }
 
@@ -230,132 +230,6 @@ button.login-btn,
 }
 
 /* =======
-  LEADERBOARD PAGE
-  LeaderboardPublic.jsx and LeaderboardAdmin.jsx elements
-========== */
-
-.leaderboard-page {
-  text-align: center;
-}
-
-.leaderboard-title {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-}
-
-.filter-select {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-
-.leaderboard-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1rem;
-}
-
-.leaderboard-table th,
-.leaderboard-table td {
-  padding: 4px 6px;
-  font-size: 13px;
-}
-
-.leaderboard-table thead {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.gold {
-  background-color: #ffe066;
-  font-weight: bold;
-}
-
-.silver {
-  background-color: #d0d0d0;
-  font-weight: bold;
-}
-
-.bronze {
-  background-color: #f4c49a;
-  font-weight: bold;
-}
-
-.current-player {
-  background-color: #cce5ff;
-}
-
-.you-indicator {
-  color: #007bff;
-  font-size: 0.85em;
-  font-weight: normal;
-  margin-left: 6px;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 1.5rem;
-}
-
-.pagination button {
-  padding: 8px 16px;
-  font-size: 14px;
-  border: none;
-  border-radius: 10px;
-  background-color: #222;
-  color: white;
-  cursor: pointer;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.player-tooltip {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 10;
-  background: rgba(255,255,255,0.95);
-  padding: 10px 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  white-space: nowrap;
-  font-size: 0.9rem;
-  margin-top: 4px;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px 30px;
-  border-radius: 12px;
-  width: 300px;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
-  text-align: center;
-}
-
-.modal-content h3 {
-  margin-bottom: 15px;
-}
-
-/* =======
   LOGOS PLACEMENT
   Used in HomePage, AdminScreen, LoginForm, etc.
 ========== */
@@ -373,9 +247,11 @@ button.login-btn,
 }
 
 .jewel-logo-wrapper {
-  margin-top: 2rem;
-  display: flex;
-  justify-content: center;
+  position: absolute;
+  bottom: 32px;
+  left: 0;
+  right: 0;
+  text-align: center;
 }
 
 .jewel-logo-wrapper img {
@@ -492,11 +368,138 @@ button.login-btn,
 }
 
 /* =======
+  ALERT MODAL COMPONENT
+  Reusable modal for confirmations and alerts
+========== */
+
+.alert-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.alert-modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+  overflow: hidden;
+}
+
+.alert-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 25px 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.alert-modal-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.alert-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.alert-modal-body {
+  padding: 15px 25px 20px;
+}
+
+.alert-modal-body p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.alert-modal-actions {
+  display: flex;
+  gap: 10px;
+  padding: 15px 25px 25px;
+  justify-content: flex-end;
+}
+
+.alert-modal-cancel-btn,
+.alert-modal-confirm-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.alert-modal-cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.alert-modal-cancel-btn:hover {
+  background: #e8e8e8;
+  border-color: #ccc;
+}
+
+.alert-modal-confirm-btn {
+  color: white;
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+}
+
+.alert-modal-confirm-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  
+}
+
+.modal-content {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  width: 300px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+  text-align: center;
+}
+
+.modal-content h3 {
+  margin-bottom: 15px;
+}
+
+/* =======
   MOBILE RESPONSIVE
   Mobile tweaks for all elements
 ========== */
 
-/* @media (max-width: 767px) {
+@media (max-width: 767px) {
   .ces-logo {
     width: 140px;
   }
@@ -533,4 +536,4 @@ button.login-btn,
     height: 55px;
     font-size: 28px;
   }
-} */
+}

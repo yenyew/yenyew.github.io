@@ -1,0 +1,139 @@
+/* =======
+  LEADERBOARD PAGE STYLES
+  Used by LeaderboardPublic.jsx and LeaderboardAdmin.jsx
+========== */
+
+.leaderboard-page {
+  text-align: center;
+}
+
+.leaderboard-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.filter-select {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+/* ✅ SAME SIZE FOR BOTH PUBLIC AND ADMIN */
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.leaderboard-table thead {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ✅ Podium styling */
+.gold {
+  background-color: #ffe066;
+  font-weight: bold;
+}
+
+.silver {
+  background-color: #d0d0d0;
+  font-weight: bold;
+}
+
+.bronze {
+  background-color: #f4c49a;
+  font-weight: bold;
+}
+
+/* ✅ Current player highlight */
+.current-player {
+  background-color: #cce5ff;
+}
+
+.you-indicator {
+  color: #007bff;
+  font-size: 0.85em;
+  font-weight: normal;
+  margin-left: 6px;
+}
+
+/* ✅ Pagination styling */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 1.5rem;
+}
+
+.pagination button {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  background-color: #222;
+  color: white;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ✅ Hover tooltip for player details */
+.player-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  background: rgba(255,255,255,0.95);
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  white-space: nowrap;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+/* ✅ No results message */
+.no-results {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 2rem 0;
+}
+
+/* ✅ Mobile responsive adjustments */
+@media (max-width: 767px) {
+  .leaderboard-title {
+    font-size: 1.6rem;
+  }
+  
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  
+  .filter-select {
+    font-size: 14px;
+    padding: 8px;
+  }
+  
+  .pagination button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .player-tooltip {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+}

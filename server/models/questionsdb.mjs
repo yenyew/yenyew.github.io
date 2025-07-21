@@ -35,7 +35,7 @@ const questionSchema = new mongoose.Schema({
   funFact: {
     type: String,
     required: true,
-  }
+  },
 });
 
 questionSchema.index({ number: 1, collectionId: 1 }, { unique: true });
