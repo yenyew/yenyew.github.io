@@ -1,6 +1,9 @@
 import express from 'express';
 import Question from '../models/questionsdb.mjs';
 import mongoose from 'mongoose';
+import multer from "multer";
+const upload = multer({ dest: "uploads/" }); 
+
 
 const router = express.Router();
 
@@ -37,10 +40,10 @@ router.get("/:number/:collectionId", async (req, res) => {
   }
 });
 
-// Create a new question (now checks for uniqueness within the same collection)
+// Create a new question
 router.post("/", async (req, res) => {
   try {
-    const { number, collectionId, question, hint, answer, funFact } = req.body;
+    const { number, collectionId, question, hint, answer, funFact, type, options } = req.body;
 
     const existing = await Question.findOne({ number, collectionId });
     if (existing) {
@@ -53,8 +56,14 @@ router.post("/", async (req, res) => {
       question,
       hint,
       answer,
-      funFact
+      funFact,
+      type,
     };
+
+    // Optional: only include options if question type is MCQ
+    if (type === "mcq" || type === "multiple-choice") {
+      newQuestion.options = options;
+    }
 
     const result = await Question.create(newQuestion);
     res.status(201).json(result);
@@ -64,26 +73,58 @@ router.post("/", async (req, res) => {
   }
 });
 
+
 // Update a question (scoped by number + collectionId)
-router.patch("/:number/:collectionId", async (req, res) => {
+router.patch("/:number/:collectionId", upload.single("image"), async (req, res) => {
   try {
     const { number, collectionId } = req.params;
-    const { question, hint, answer, funFact } = req.body;
 
-    const query = { number: parseInt(number), collectionId };
-    const updates = { $set: { question, hint, answer, funFact } };
+    const questionDoc = await Question.findOne({
+      number: parseInt(number),
+      collectionId,
+    });
 
-    const result = await Question.updateOne(query, updates);
-
-    if (result.matchedCount === 0) {
-      res.status(404).json({ message: "Question not found in this collection." });
-    } else {
-      res.status(200).json({ message: "Question updated successfully." });
+    if (!questionDoc) {
+      return res.status(404).json({ message: "Question not found in this collection." });
     }
+
+    // Update fields from form
+    if (req.body.question) questionDoc.question = req.body.question.trim();
+    if (req.body.hint) questionDoc.hint = req.body.hint.trim();
+    if (req.body.funFact) questionDoc.funFact = req.body.funFact.trim();
+    if (req.body.type) questionDoc.type = req.body.type;
+
+    if (req.body.answer) {
+      try {
+        questionDoc.answer = JSON.parse(req.body.answer);
+      } catch {
+        return res.status(400).json({ message: "Invalid JSON in 'answer'" });
+      }
+    }
+
+    if (req.body.options) {
+      try {
+        questionDoc.options = JSON.parse(req.body.options);
+      } catch {
+        return res.status(400).json({ message: "Invalid JSON in 'options'" });
+      }
+    }
+
+    if (req.file) {
+      questionDoc.image = req.file.path;
+    } else if (req.body.deleteImage === "true") {
+      questionDoc.image = null;
+    }
+
+    await questionDoc.save();
+
+    res.status(200).json({ message: "Question updated successfully." });
   } catch (err) {
+    console.error("Error in PATCH /:number/:collectionId:", err);
     res.status(500).json({ message: "Error updating question", error: err.message });
   }
 });
+
 
 // Delete a question (scoped by number + collectionId as path params)
 router.delete("/:number/:collectionId", async (req, res) => {

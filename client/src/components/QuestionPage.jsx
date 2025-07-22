@@ -12,7 +12,7 @@ const QuestionPage = () => {
   const [elapsed, setElapsed] = useState(0);
   const [gameSettings, setGameSettings] = useState(null);
   const [timerPaused, setTimerPaused] = useState(false);
-  const [error, setError] = useState(null); 
+  const [error, setError] = useState(null);
 
   // Modal states
   const [showHintModal, setShowHintModal] = useState(false);
@@ -83,7 +83,7 @@ const QuestionPage = () => {
         // Fetch collection details to get the code
         const collectionRes = await fetch(`http://localhost:5000/collections/${collectionId}`);
         const collection = await collectionRes.json();
-        
+
         if (!collection) {
           setError("Collection not found or is offline.");
           return;
@@ -121,7 +121,7 @@ const QuestionPage = () => {
         } else {
           setQuestions(fetchedQuestions);
         }
-        
+
       } catch (error) {
         console.error("Failed to fetch questions and settings:", error);
         setError("Something went wrong. Please try again later.");
@@ -339,7 +339,7 @@ const QuestionPage = () => {
           <img src="/images/ces.jpg" alt="Changi Experience Studio" className="game-ces-logo" />
         </div>
         <div className="game-time-display">
-          Time: {formatTime(elapsed)} {timerPaused && <span style={{color: "#ff9800"}}>(⏸️ Paused)</span>}
+          Time: {formatTime(elapsed)} {timerPaused && <span style={{ color: "#ff9800" }}>(⏸️ Paused)</span>}
         </div>
       </div>
 
@@ -375,7 +375,7 @@ const QuestionPage = () => {
         <div className="game-question-text">
           {questions[currentIndex].question}
         </div>
-        
+
         {questions[currentIndex].image && (
           <img
             src={`http://localhost:5000/${questions[currentIndex].image}`}
@@ -393,27 +393,44 @@ const QuestionPage = () => {
       </div>
 
       {/* Answer input */}
+      {/* Answer Section: MCQ vs Open-ended */}
       <div className="game-answer-section">
-        <input
-          type="text"
-          placeholder="Type your answer here"
-          value={userAnswer}
-          onChange={(e) => setUserAnswer(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          className="game-answer-input"
-          autoFocus
-        />
+        {questions[currentIndex].type === "mcq" ? (
+          <div className="game-mcq-options">
+            {questions[currentIndex].options?.map((option, idx) => (
+              <button
+                key={idx}
+                onClick={() => setUserAnswer(option)}
+                className={`game-mcq-option-button ${userAnswer === option ? "selected" : ""
+                  }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <input
+            type="text"
+            placeholder="Type your answer here"
+            value={userAnswer}
+            onChange={(e) => setUserAnswer(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            className="game-answer-input"
+            autoFocus
+          />
+        )}
       </div>
+
 
       {/* Top Action buttons - Hint and Skip */}
       <div className="game-top-actions-section">
-        <button 
+        <button
           onClick={handleHintClick}
           className="game-hint-button"
         >
           Hint (-{Math.floor(gameSettings.hintPenalty / 60)} min)
         </button>
-        <button 
+        <button
           onClick={handleSkip}
           className="game-skip-button"
         >
@@ -423,7 +440,7 @@ const QuestionPage = () => {
 
       {/* Submit button */}
       <div className="game-submit-section">
-        <button 
+        <button
           onClick={handleSubmit}
           className="game-submit-button"
         >
