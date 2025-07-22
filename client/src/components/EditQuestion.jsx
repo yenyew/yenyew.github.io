@@ -1,4 +1,3 @@
-// EditQuestion.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AlertModal from "./AlertModal";
@@ -61,7 +60,12 @@ const EditQuestion = () => {
         const data = await res.json();
         const target = data.find((c) => c._id === collectionId);
         if (target) setCollectionName(target.name);
-      } catch {}
+      } catch {
+        setModalTitle("Error");
+        setModalMessage("Failed to load collection.");
+        setErrorRedirect("/questions?collection=all");
+        setShowErrorModal(true);
+      }
     })();
 
     // fetch question

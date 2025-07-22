@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import './MainStyles.css';
 import './LeaderboardStyles.css';
 import AlertModal from "./AlertModal";
+import { ManualClearModal, AutoClearModal } from "./LeaderboardClearModals";
 
 const FILTERS = [
   { label: "Today", value: "day" },
@@ -166,7 +167,7 @@ export default function LeaderboardAdmin() {
     setPendingManualClear(false);
   };
 
-  // Auto-Clear (unchanged)
+  // Auto-Clear
   const openAuto = () => {
     setTempAuto(autoClear);
     setShowAutoModal(true);
@@ -236,13 +237,6 @@ export default function LeaderboardAdmin() {
     setShowConfirmModal(false);
     setPendingManualClear(false);
   };
-
-  const isCustomIntervalInvalid =
-    tempAuto.interval === "custom" && (!tempAuto.customIntervalValue || !tempAuto.customIntervalUnit);
-
-  const isSaveDisabled =
-    (tempAuto.target === "custom" && (!tempAuto.startDate || !tempAuto.endDate)) ||
-    isCustomIntervalInvalid;
 
   return (
     <>
@@ -386,117 +380,27 @@ export default function LeaderboardAdmin() {
         </div>
       </div>
 
-      {/* Auto-Clear Modal */}
-      {showAutoModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Auto-Clear Configuration</h3>
-            <p style={{ fontSize: "0.9em", color: "#777", marginBottom: "10px" }}>
-              <strong>Current:</strong> {autoClear.interval}, {autoClear.target}
-            </p>
+      {/* Modals */}
+      <ManualClearModal
+        isOpen={showManualModal}
+        manualRange={manualRange}
+        setManualRange={setManualRange}
+        manualCol={manualCol}
+        setManualCol={setManualCol}
+        collections={collections}
+        onConfirm={confirmManualClear}
+        onClose={closeManual}
+      />
+      <AutoClearModal
+        isOpen={showAutoModal}
+        autoClear={autoClear}
+        tempAuto={tempAuto}
+        setTempAuto={setTempAuto}
+        onConfirm={confirmAuto}
+        onClose={closeAuto}
+      />
 
-            <div style={{ marginBottom: 10, textAlign: "left" }}>
-              <label>Interval:</label>
-              <select
-                value={tempAuto.interval}
-                onChange={e => setTempAuto(t => ({ ...t, interval: e.target.value }))}
-              >
-                <option value="day">Daily</option>
-                <option value="week">Weekly</option>
-                <option value="month">Monthly</option>
-                <option value="custom">Custom Interval</option>
-              </select>
-            </div>
-
-            {tempAuto.interval === "custom" && (
-              <div style={{ marginTop: 10, textAlign: "left" }}>
-                <label>Custom Interval:</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={tempAuto.customIntervalValue || ""}
-                  onChange={e => setTempAuto(t => ({ ...t, customIntervalValue: e.target.value }))}
-                  placeholder="Enter number"
-                />
-                <select
-                  value={tempAuto.customIntervalUnit || "minute"}
-                  onChange={e => setTempAuto(t => ({ ...t, customIntervalUnit: e.target.value }))}
-                >
-                  <option value="minute">Minutes</option>
-                  <option value="hour">Hours</option>
-                  <option value="day">Days</option>
-                </select>
-              </div>
-            )}
-
-            <div style={{ marginBottom: 10, textAlign: "left" }}>
-              <label>Target Range:</label>
-              <select value={tempAuto.target} onChange={e => setTempAuto(t => ({ ...t, target: e.target.value }))}>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="custom">Custom Range</option>
-                <option value="all">All Players</option>
-              </select>
-            </div>
-
-            {tempAuto.target === "custom" && (
-              <div style={{ marginBottom: 10, textAlign: "left" }}>
-                <label>Start Date:</label>
-                <input
-                  type="date"
-                  value={tempAuto.startDate?.slice(0, 10) || ""}
-                  onChange={(e) => setTempAuto(t => ({ ...t, startDate: e.target.value }))}
-                />
-                <br />
-                <label>End Date:</label>
-                <input
-                  type="date"
-                  value={tempAuto.endDate?.slice(0, 10) || ""}
-                  onChange={(e) => setTempAuto(t => ({ ...t, endDate: e.target.value }))}
-                />
-              </div>
-            )}
-
-            <div style={{ fontSize: "0.85em", color: "#999", marginBottom: 15 }}>
-              ⚠ Auto-clear applies to <strong>all collections</strong>.
-            </div>
-
-            <button onClick={confirmAuto} style={{ marginRight: 10 }} disabled={isSaveDisabled}>
-              Save
-            </button>
-            <button onClick={closeAuto}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {/* Manual Clear Modal */}
-      {showManualModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Manual Clear</h3>
-            <div style={{ marginBottom: 10, textAlign: "left",  }}>
-              <label>Range:</label>
-              <select value={manualRange} onChange={e => setManualRange(e.target.value)}>
-                {FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-            </div>
-            <div style={{ marginBottom: 20, textAlign: "left" }}>
-              <label>Collection:</label>
-              <select value={manualCol} onChange={e => setManualCol(e.target.value)}>
-                <option value="all">All Collections</option>
-                {Object.entries(collections).map(([id, name]) => (
-                  <option key={id} value={id}>{name}</option>
-                ))}
-              </select>
-            </div>
-            <button onClick={confirmManualClear} style={{ marginRight: 10 }}>Confirm</button>
-            <button onClick={closeManual}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {/* AlertModals - OUTSIDE CONTAINER */}
+      {/* AlertModals */}
       <AlertModal
         isOpen={showConfirmModal && pendingManualClear}
         onClose={handleModalClose}
