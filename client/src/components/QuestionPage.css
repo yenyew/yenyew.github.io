@@ -12,7 +12,7 @@
     top: 0;
     left: 0;
   }
-  
+
   /* Loading state */
   .game-loading {
     display: flex;
@@ -22,7 +22,7 @@
     font-size: 20px;
     color: #333;
   }
-  
+
   /* Header section */
   .game-header {
     display: flex;
@@ -31,17 +31,17 @@
     margin-bottom: 25px;
     width: 100%;
   }
-  
+
   .game-logo-container {
     flex-shrink: 0;
   }
-  
+
   .game-ces-logo {
     height: 45px;
     width: auto;
     object-fit: contain;
   }
-  
+
   .game-time-display {
     background: linear-gradient(135deg, #42a5f5, #1e88e5);
     color: white;
@@ -54,18 +54,18 @@
     align-items: center;
     gap: 6px;
   }
-  
+
   .game-time-display::before {
     content: "⏱️";
     font-size: 14px;
   }
-  
+
   /* Progress section */
   .game-progress-section {
     margin-bottom: 35px;
     width: 100%;
   }
-  
+
   .game-progress-text {
     font-size: 24px;
     font-weight: bold;
@@ -73,14 +73,14 @@
     margin-bottom: 18px;
     text-align: left;
   }
-  
+
   .game-progress-bar-container {
     display: flex;
     align-items: center;
     width: 100%;
     position: relative;
   }
-  
+
   .game-progress-line {
     position: absolute;
     left: 0;
@@ -90,7 +90,7 @@
     border-radius: 2px;
     z-index: 1;
   }
-  
+
   .game-progress-track {
     display: flex;
     align-items: center;
@@ -99,7 +99,7 @@
     position: relative;
     z-index: 2;
   }
-  
+
   .game-progress-item {
     display: flex;
     align-items: center;
@@ -107,41 +107,52 @@
     width: 28px;
     height: 28px;
   }
-  
+
   .game-airplane-current {
     font-size: 22px;
     z-index: 3;
     animation: planeHover 2s ease-in-out infinite;
     transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
+
   @keyframes planeHover {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-3px); }
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-3px);
+    }
   }
-  
+
   @keyframes planeMove {
-    0% { 
+    0% {
       transform: translateX(0) translateY(0) scale(1);
     }
-    25% { 
+
+    25% {
       transform: translateX(25%) translateY(-10px) scale(1.2);
     }
-    50% { 
+
+    50% {
       transform: translateX(50%) translateY(-5px) scale(1.1);
     }
-    75% { 
+
+    75% {
       transform: translateX(75%) translateY(-8px) scale(1.15);
     }
-    100% { 
+
+    100% {
       transform: translateX(100%) translateY(0) scale(1);
     }
   }
-  
+
   .game-airplane-moving {
     animation: planeMove 1.2s ease-in-out forwards !important;
   }
-  
+
   .game-progress-dot {
     width: 18px;
     height: 18px;
@@ -150,16 +161,16 @@
     border: 3px solid white;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
   }
-  
+
   .game-progress-completed {
     background-color: #e53935;
     transform: scale(1.1);
   }
-  
+
   .game-progress-pending {
     background-color: #bdbdbd;
   }
-  
+
   /* Question section */
   .game-question-section {
     background: white;
@@ -171,7 +182,7 @@
     box-sizing: border-box;
     border: 1px solid rgba(0, 0, 0, 0.05);
   }
-  
+
   .game-question-header {
     display: flex;
     align-items: center;
@@ -181,24 +192,24 @@
     color: #1976d2;
     margin-bottom: 18px;
   }
-  
+
   .game-airplane-small {
     font-size: 20px;
   }
-  
+
   .game-question-text {
     font-size: 18px;
     line-height: 1.6;
     color: #444;
     letter-spacing: 0.3px;
   }
-  
+
   /* Answer section */
   .game-answer-section {
     margin-bottom: 20px;
     width: 100%;
   }
-  
+
   .game-answer-input {
     width: 100%;
     padding: 18px 25px;
@@ -212,17 +223,17 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     color: #333;
   }
-  
+
   .game-answer-input:focus {
     border-color: #42a5f5;
     box-shadow: 0 0 0 4px rgba(66, 165, 245, 0.1);
   }
-  
+
   .game-answer-input::placeholder {
     color: #aaa;
     font-style: italic;
   }
-  
+
   /* Top Action buttons section - Hint and Skip */
   .game-top-actions-section {
     display: flex;
@@ -231,7 +242,7 @@
     width: 100%;
     justify-content: center;
   }
-  
+
   .game-hint-button,
   .game-skip-button {
     padding: 14px 30px;
@@ -248,37 +259,37 @@
     gap: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
-  
+
   .game-hint-button {
     background: linear-gradient(135deg, #ffc107, #ffb300);
     color: white;
   }
-  
+
   .game-hint-button:hover {
     background: linear-gradient(135deg, #ffb300, #ffa000);
     box-shadow: 0 6px 16px rgba(255, 193, 7, 0.4);
   }
-  
+
   .game-hint-button::before {
     content: "💡";
     font-size: 16px;
   }
-  
+
   .game-skip-button {
     background: linear-gradient(135deg, #f44336, #e53935);
     color: white;
   }
-  
+
   .game-skip-button:hover {
     background: linear-gradient(135deg, #e53935, #d32f2f);
     box-shadow: 0 6px 16px rgba(244, 67, 54, 0.4);
   }
-  
+
   .game-skip-button::before {
     content: "⏭️";
     font-size: 14px;
   }
-  
+
   /* Submit section - Separated at bottom */
   .game-submit-section {
     width: 100%;
@@ -287,7 +298,7 @@
     margin-top: 10px;
     padding-top: 20px;
   }
-  
+
   .game-submit-button {
     background: linear-gradient(135deg, #1976d2, #1565c0);
     color: white;
@@ -300,125 +311,156 @@
     box-shadow: 0 6px 18px rgba(25, 118, 210, 0.3);
     min-width: 250px;
   }
-  
+
   .game-submit-button:hover {
     box-shadow: 0 8px 24px rgba(25, 118, 210, 0.4);
     background: linear-gradient(135deg, #1565c0, #0d47a1);
   }
-  
+
   .game-submit-button:active {
     background: linear-gradient(135deg, #0d47a1, #1565c0);
   }
-  
+
   /* Mobile Responsive */
   @media (max-width: 768px) {
     .game-page-wrapper {
       padding: 15px;
     }
-    
+
     .game-ces-logo {
       height: 35px;
     }
-    
+
     .game-time-display {
       font-size: 14px;
       padding: 8px 14px;
     }
-    
+
     .game-progress-text {
       font-size: 20px;
     }
-    
+
     .game-progress-item {
       width: 24px;
       height: 24px;
     }
-    
+
     .game-airplane-current {
       font-size: 18px;
     }
-    
+
     .game-progress-dot {
       width: 14px;
       height: 14px;
       border: 2px solid white;
     }
-    
+
     .game-question-section {
       padding: 20px;
     }
-    
+
     .game-question-header {
       font-size: 18px;
     }
-    
+
     .game-question-text {
       font-size: 16px;
     }
-    
+
     .game-answer-input {
       padding: 15px 20px;
       font-size: 16px;
     }
-    
+
     .game-top-actions-section {
       flex-direction: column;
       gap: 15px;
       margin-bottom: 25px;
     }
-    
+
     .game-hint-button,
     .game-skip-button {
       max-width: none;
       font-size: 14px;
       padding: 12px 20px;
     }
-    
+
     .game-submit-button {
       font-size: 16px;
       padding: 15px 35px;
       min-width: 200px;
     }
   }
-  
+
   @media (max-width: 480px) {
     .game-page-wrapper {
       padding: 12px;
     }
-    
+
     .game-progress-track {
       gap: 4px;
     }
-    
+
     .game-progress-item {
       width: 20px;
       height: 20px;
     }
-    
+
     .game-airplane-current {
       font-size: 16px;
     }
-    
+
     .game-progress-dot {
       width: 12px;
       height: 12px;
     }
-    
+
     .game-question-header {
       font-size: 16px;
     }
-    
+
     .game-question-text {
       font-size: 15px;
     }
-    
+
     .game-submit-button {
       min-width: 180px;
       padding: 14px 30px;
     }
   }
-  
+
+  .game-mcq-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .game-mcq-option-button {
+    padding: 12px 20px;
+    background-color: white;
+    border: 2px solid #17C4C4;
+    border-radius: 30px;
+    color: #000;
+    font-size: 16px;
+    width: 90%;
+    max-width: 320px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .game-mcq-option-button:hover {
+    background-color: #e6ffff;
+  }
+
+  .game-mcq-option-button.selected {
+    background-color: #17C4C4;
+    color: white;
+    font-weight: bold;
+  }
+
   /* Prevent any scrolling */
-  html, body {
+  html,
+  body {
     overflow: hidden !important;
   }
