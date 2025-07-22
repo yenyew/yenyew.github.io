@@ -1,9 +1,7 @@
-// CreateQuestion.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AlertModal from "./AlertModal";
 import "./MainStyles.css";
-import "./Questions.css";
+
 
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
@@ -12,162 +10,105 @@ const CreateQuestion = () => {
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [funFact, setFunFact] = useState("");
+  const [type, setType] = useState("open"); // 'mcq' or 'open'
+  const [options, setOptions] = useState(""); // comma-separated options
   const [message, setMessage] = useState("");
   const [collections, setCollections] = useState([]);
-  const [image, setImage] = useState(null);
-
-  // modal state
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-
   const navigate = useNavigate();
 
-  // auth + fetch collections
+
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
-      setModalTitle("Not Logged In");
-      setModalMessage("You must be logged in to access this page.");
-      setShowErrorModal(true);
+      alert("You must be logged in to access this page.");
+      navigate("/login");
       return;
     }
-    (async () => {
+    const fetchCollections = async () => {
       try {
-        const res = await fetch("http://localhost:5000/collections/");
-        const data = await res.json();
+        const response = await fetch("http://localhost:5000/collections/");
+        const data = await response.json();
         setCollections(data);
       } catch (err) {
         console.error("Failed to fetch collections:", err);
       }
-    })();
-  }, [navigate]);
+    };
 
-  const handleModalClose = () => {
-    setShowErrorModal(false);
-    setShowSuccessModal(false);
-    if (modalTitle === "Not Logged In") {
-      navigate("/login");
-    }
-  };
+
+    fetchCollections();
+  }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
-    // validations
-    if (!number.trim()) {
-      setModalTitle("Invalid Input");
-      setModalMessage("Please enter a question number.");
-      setShowErrorModal(true);
-      return;
-    }
-    if (!collectionId) {
-      setModalTitle("Invalid Input");
-      setModalMessage("Please select a collection.");
-      setShowErrorModal(true);
-      return;
-    }
-    if (!question.trim()) {
-      setModalTitle("Invalid Input");
-      setModalMessage("Please enter a question description.");
-      setShowErrorModal(true);
-      return;
-    }
-    if (!answer.trim()) {
-      setModalTitle("Invalid Input");
-      setModalMessage("Please enter at least one answer.");
-      setShowErrorModal(true);
-      return;
-    }
 
-    const qNum = parseInt(number, 10);
-    if (isNaN(qNum) || qNum <= 0) {
-      setModalTitle("Invalid Input");
-      setModalMessage("Please enter a valid positive question number.");
-      setShowErrorModal(true);
-      return;
-    }
-
-    // check duplicate
     try {
       const allRes = await fetch("http://localhost:5000/questions");
-      const allQs = await allRes.json();
-      if (
-        allQs.some((q) => q.number === qNum && q.collectionId === collectionId)
-      ) {
-        setModalTitle("Duplicate");
-        setModalMessage(
-          "A question with that number already exists in the selected collection."
-        );
-        setShowErrorModal(true);
+      const allQuestions = await allRes.json();
+
+
+      const exists = allQuestions.some(
+        (q) => q.number === parseInt(number) && q.collectionId === collectionId
+      );
+
+
+      if (exists) {
+        alert("A question with that number already exists in the selected collection.");
         return;
       }
-    } catch {
-      // ignore
-    }
 
-    // prepare payload
-    const answersArr = answer
-      .split(",")
-      .map((a) => a.trim())
-      .filter((a) => a);
-    const formData = new FormData();
-    formData.append("number", qNum);
-    formData.append("collectionId", collectionId);
-    formData.append("question", question.trim());
-    formData.append("hint", hint.trim());
-    formData.append("answer", JSON.stringify(answersArr));
-    formData.append("funFact", funFact.trim());
-    if (image) formData.append("image", image);
 
-    // submit
-    try {
-      const res = await fetch("http://localhost:5000/questions", {
+      const newQuestion = {
+        number: parseInt(number),
+        collectionId,
+        question,
+        type,
+        hint,
+        answer: answer.split(",").map(ans => ans.trim()),
+        funFact,
+        ...(type === "mcq" && { options: options.split(",").map(opt => opt.trim()) }),
+      };
+
+
+      const response = await fetch("http://localhost:5000/questions", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newQuestion),
       });
-      if (res.ok) {
-        setModalTitle("Success");
-        setModalMessage("Question added successfully!");
-        setShowSuccessModal(true);
-        // clear
-        setNumber("");
+
+
+      if (response.ok) {
+        alert("Question added successfully!");
         setCollectionId("");
         setQuestion("");
         setHint("");
         setAnswer("");
+        setNumber("");
         setFunFact("");
-        setImage(null);
+        setOptions("");
+        setType("open");
       } else {
-        const data = await res.json();
-        setMessage(data.message || "Could not add question.");
+        const data = await response.json();
+        setMessage(`Error: ${data.message || "Could not add question."}`);
       }
-    } catch {
-      setMessage("Server error. Please try again.");
+    } catch (err) {
+      console.error("Error submitting question:", err);
+      setMessage("Something went wrong. Please try again.");
     }
   };
 
-  const handleSuccessConfirm = () => {
-    setShowSuccessModal(false);
-    navigate("/questions?collection=all");
-  };
 
   return (
     <div className="login-container">
-      <img
-        src="/images/changihome.jpg"
-        alt="Background"
-        className="background-image"
-      />
-      <div className="page-overlay" />
-      <div className="top-left-logo">
-        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
-      </div>
+      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
+      <div className="page-overlay"></div>
+
+
       <div className="header">
         <button
-          onClick={() => navigate("/questions?collection=all")}
+          onClick={() => navigate("/questions")}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
@@ -180,34 +121,19 @@ const CreateQuestion = () => {
         </button>
       </div>
 
+
       <div className="buttons">
-        <h2
-          style={{
-            fontSize: "24px",
-            color: "#000",
-            textAlign: "center",
-            marginBottom: "10px",
-          }}
-        >
+        <h2 style={{ fontSize: "24px", color: "#000", textAlign: "center", marginBottom: "10px" }}>
           Create a New Question:
         </h2>
 
-        <form
-          onSubmit={handleSubmit}
-          style={{ width: "100%", maxWidth: "300px" }}
-        >
-          <input
-            type="number"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            placeholder="Question Number"
-            className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
-          />
 
+        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
+          {/* Question Type Selector */}
           <select
-            value={collectionId}
-            onChange={(e) => setCollectionId(e.target.value)}
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            required
             className="dropdown-select"
             style={{
               marginBottom: "10px",
@@ -218,6 +144,40 @@ const CreateQuestion = () => {
               fontSize: "16px",
               padding: "0 10px",
               width: "100%",
+              outline: "none",
+            }}
+          >
+            <option value="open">Open-Ended Question</option>
+            <option value="mcq">Multiple Choice Question</option>
+          </select>
+
+
+          <input
+            type="number"
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            placeholder="Question Number"
+            required
+            className="login-btn"
+            style={{ marginBottom: "10px", backgroundColor: "white" }}
+          />
+
+
+          <select
+            value={collectionId}
+            onChange={(e) => setCollectionId(e.target.value)}
+            required
+            className="dropdown-select"
+            style={{
+              marginBottom: "10px",
+              height: "50px",
+              borderRadius: "20px",
+              backgroundColor: "white",
+              color: "#000",
+              fontSize: "16px",
+              padding: "0 10px",
+              width: "100%",
+              outline: "none",
             }}
           >
             <option value="">Select Collection</option>
@@ -228,10 +188,12 @@ const CreateQuestion = () => {
             ))}
           </select>
 
+
           <textarea
             placeholder="Question Description"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
+            required
             className="login-btn"
             style={{
               marginBottom: "10px",
@@ -241,17 +203,37 @@ const CreateQuestion = () => {
             }}
           />
 
+
           <input
             type="text"
-            placeholder="Hint (Optional)"
+            placeholder="Hint"
             value={hint}
             onChange={(e) => setHint(e.target.value)}
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
 
+
+          {type === "mcq" && (
+            <>
+              <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
+                Enter MCQ options, separated by commas (e.g., A,B,C,D).
+              </p>
+              <input
+                type="text"
+                placeholder="MCQ Options"
+                value={options}
+                onChange={(e) => setOptions(e.target.value)}
+                className="login-btn"
+                style={{ marginBottom: "10px", backgroundColor: "white" }}
+                required={type === "mcq"}
+              />
+            </>
+          )}
+
+
           <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
-            Enter multiple acceptable answers, separated by commas.
+            Enter {type === "mcq" ? "correct options" : "acceptable answers"}, separated by commas.
           </p>
           <input
             type="text"
@@ -262,22 +244,16 @@ const CreateQuestion = () => {
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-            className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
-          />
 
           <input
             type="text"
-            placeholder="Fun Fact (Optional)"
+            placeholder="Fun Fact"
             value={funFact}
             onChange={(e) => setFunFact(e.target.value)}
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
+
 
           <button
             type="submit"
@@ -293,34 +269,14 @@ const CreateQuestion = () => {
           </button>
         </form>
 
+
         {message && (
           <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
         )}
       </div>
-
-      {/* Success */}
-      <AlertModal
-        isOpen={showSuccessModal}
-        onClose={handleSuccessConfirm}
-        title={modalTitle}
-        message={modalMessage}
-        confirmText="OK"
-        type="success"
-        showCancel={false}
-      />
-
-      {/* Error */}
-      <AlertModal
-        isOpen={showErrorModal}
-        onClose={handleModalClose}
-        title={modalTitle}
-        message={modalMessage}
-        confirmText="OK"
-        type="error"
-        showCancel={false}
-      />
     </div>
   );
 };
+
 
 export default CreateQuestion;
