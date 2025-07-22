@@ -5,7 +5,7 @@
     background: linear-gradient(135deg, #e8f4fd, #f0f8ff);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    /* overflow: hidden; */
     padding: 20px;
     box-sizing: border-box;
     position: fixed;
