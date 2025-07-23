@@ -1,7 +1,6 @@
 // questionsdb.mjs
 import mongoose from 'mongoose';
 
-
 const questionSchema = new mongoose.Schema({
   number: {
     type: Number,
@@ -16,10 +15,19 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  answer: {
-    type: [String],
+  type: {
+    type: String,
+    enum: ['mcq', 'open'],
     required: true,
-  },  
+  },
+  options: {
+    type: [String], // Only used for MCQ type
+    default: undefined,
+  },
+  answer: {
+    type: [String], // Can be one or more correct answers
+    required: true,
+  },
   hint: {
     type: String,
     required: true,
@@ -28,16 +36,10 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  sortOrder: {
-    type: Number,
-    default: 0,  
-  }
 });
 
-// Ensure that the combination of number and collectionId is unique
 questionSchema.index({ number: 1, collectionId: 1 }, { unique: true });
 
-// Create and export the Question model
 const Question = mongoose.model('Question', questionSchema);
 
 export default Question;

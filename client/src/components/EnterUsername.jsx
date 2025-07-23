@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from './AlertModal';
 import "./MainStyles.css";
 
 export default function EnterUsername() {
   const [form, setForm] = useState({ username: "" });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,14 +32,18 @@ export default function EnterUsername() {
     }
   };
 
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     // Frontend validation
     if (!form.username.trim()) {
-      setError("Please enter your name.");
+      showError("Please enter your name.");
       setLoading(false);
       return;
     }
@@ -46,7 +52,7 @@ export default function EnterUsername() {
 
     // Basic validation - check length
     if (cleanUsername.length < 2) {
-      setError("Username must be at least 2 characters long.");
+      showError("Username must be at least 2 characters long.");
       setLoading(false);
       return;
     }
@@ -54,7 +60,7 @@ export default function EnterUsername() {
     // Basic validation - check for special characters (optional)
     const hasSpecialChars = /[^a-zA-Z0-9\s]/.test(cleanUsername);
     if (hasSpecialChars) {
-      setError("Username can only contain letters, numbers, and spaces.");
+      showError("Username can only contain letters, numbers, and spaces.");
       setLoading(false);
       return;
     }
@@ -62,7 +68,7 @@ export default function EnterUsername() {
     // Check if username is prohibited
     const isBad = await checkBadUsername(cleanUsername);
     if (isBad) {
-      setError("This username is not allowed. Please choose a different one.");
+      showError("This username is not allowed. Please choose a different one.");
       setLoading(false);
       return;
     }
@@ -130,9 +136,19 @@ export default function EnterUsername() {
           >
             {loading ? "Checking..." : "Let's Go"}
           </button>
-          {error && <div style={{ color: "red", marginTop: "12px" }}>{error}</div>}
         </form>
       </div>
+
+      {/* ❌ Error Modal for validation issues */}
+      <AlertModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Oops!"
+        message={errorMessage}
+        confirmText="Try Again"
+        type="error"
+        showCancel={false}
+      />
     </div>
   );
 }

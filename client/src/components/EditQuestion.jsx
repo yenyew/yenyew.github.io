@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import "./MainStyles.css";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import "./LoginScreen.css";
 
 const EditQuestion = () => {
-  const { number, collectionId } = useParams();
+  const { number } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
+  const [collectionId, setCollectionId] = useState("");
   const [collectionName, setCollectionName] = useState("");
   const [question, setQuestion] = useState("");
   const [hint, setHint] = useState("");
@@ -13,27 +15,24 @@ const EditQuestion = () => {
   const [image, setImage] = useState(null);
   const [existingImage, setExistingImage] = useState(null);
   const [deleteImage, setDeleteImage] = useState(false);
-  const [funFact, setFunFact] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+    const params = new URLSearchParams(location.search);
+    const colId = params.get("collectionId");
+
+    if (!colId) {
+      alert("Missing collection ID.");
+      navigate("/admin");
       return;
     }
 
-    if (!collectionId) {
-      alert("Missing collection ID.");
-      navigate("/questions");
-      return;
-    }
+    setCollectionId(colId);
 
     const fetchCollectionName = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections/");
         const data = await res.json();
-        const target = data.find((col) => col._id === collectionId);
+        const target = data.find((col) => col._id === colId);
         if (target) setCollectionName(target.name || "");
       } catch (err) {
         console.error("Error fetching collections:", err);
@@ -42,14 +41,13 @@ const EditQuestion = () => {
 
     const fetchQuestion = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/questions/${number}/${collectionId}`);
+        const res = await fetch(`http://localhost:5000/questions/${number}/${colId}`);
         if (!res.ok) throw new Error("Question not found");
         const data = await res.json();
         setQuestion(data.data.question);
         setHint(data.data.hint);
+        setAnswer(data.data.answer);
         setExistingImage(data.data.image);
-        setAnswer(Array.isArray(data.data.answer) ? data.data.answer.join(", ") : data.data.answer);
-        setFunFact(data.data.funFact || "");
       } catch (err) {
         console.error("Error fetching question:", err);
         alert("Failed to load question.");
@@ -58,7 +56,7 @@ const EditQuestion = () => {
 
     fetchCollectionName();
     fetchQuestion();
-  }, [number, collectionId, navigate]);
+  }, [number, location.search, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,7 +67,6 @@ const EditQuestion = () => {
       formData.append("hint", hint);
       formData.append("answer", answer);
       formData.append("collectionId", collectionId);
-      formData.append("funFact", funFact);
       if (image) formData.append("image", image);
       if (deleteImage) formData.append("deleteImage", "true");
 
@@ -80,7 +77,7 @@ const EditQuestion = () => {
 
       if (res.ok) {
         alert("Question updated successfully!");
-        navigate(`/questions`);
+        navigate(`/edit-collection/${collectionId}`);
       } else {
         const data = await res.json();
         alert(`Error: ${data.message || "Update failed"}`);
@@ -94,11 +91,11 @@ const EditQuestion = () => {
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
-      <div className="page-overlay"></div>
+      <div className="overlay"></div>
 
       <div className="header">
         <button
-          onClick={() => navigate(`/questions`)}
+          onClick={() => navigate(`/edit-collection/${collectionId}`)}
           className="login-btn"
           style={{
             backgroundColor: "#17C4C4",
@@ -138,9 +135,6 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
-          <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
-            Enter multiple acceptable answers, separated by commas.
-          </p>
           <input
             type="text"
             placeholder="Answer"
@@ -174,15 +168,6 @@ const EditQuestion = () => {
             type="file"
             accept="image/*"
             onChange={(e) => setImage(e.target.files[0])}
-            className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
-          />
-
-          <input
-            type="text"
-            placeholder="Fun fact"
-            value={funFact}
-            onChange={(e) => setFunFact(e.target.value)}
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />

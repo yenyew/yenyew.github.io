@@ -1,28 +1,19 @@
 import express from 'express';
 import Question from '../models/questionsdb.mjs';
 import mongoose from 'mongoose';
+import multer from "multer";
+const upload = multer({ dest: "uploads/" }); 
+
 
 const router = express.Router();
 
-// Get all questions (optionally filtered by collectionId) with sorting
+// Get all questions (optionally filtered by collectionId)
 router.get("/", async (req, res) => {
   try {
-    const { collectionId, sortBy = 'number', sortOrder = 'asc' } = req.query;
+    const { collectionId } = req.query;
     const filter = collectionId ? { collectionId } : {};
     
-    // Determine sort direction
-    const sortDirection = sortOrder === 'desc' ? -1 : 1;
-    
-    // Create sort object
-    const sortObj = {};
-    if (sortBy === 'custom') {
-      sortObj.sortOrder = sortDirection;
-      sortObj.number = 1; // Secondary sort by number
-    } else {
-      sortObj[sortBy] = sortDirection;
-    }
-    
-    const questions = await Question.find(filter).sort(sortObj);
+    const questions = await Question.find(filter);
     res.status(200).json(questions);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -49,10 +40,10 @@ router.get("/:number/:collectionId", async (req, res) => {
   }
 });
 
-// Create a new question (now checks for uniqueness within the same collection)
+// Create a new question
 router.post("/", async (req, res) => {
   try {
-    const { number, collectionId, question, hint, answer, funFact, sortOrder = 0 } = req.body;
+    const { number, collectionId, question, hint, answer, funFact, type, options } = req.body;
 
     const existing = await Question.findOne({ number, collectionId });
     if (existing) {
@@ -66,8 +57,13 @@ router.post("/", async (req, res) => {
       hint,
       answer,
       funFact,
-      sortOrder
+      type,
     };
+
+    // Optional: only include options if question type is MCQ
+    if (type === "mcq" || type === "multiple-choice") {
+      newQuestion.options = options;
+    }
 
     const result = await Question.create(newQuestion);
     res.status(201).json(result);
@@ -77,56 +73,58 @@ router.post("/", async (req, res) => {
   }
 });
 
+
 // Update a question (scoped by number + collectionId)
-router.patch("/:number/:collectionId", async (req, res) => {
+router.patch("/:number/:collectionId", upload.single("image"), async (req, res) => {
   try {
     const { number, collectionId } = req.params;
-    const { question, hint, answer, funFact, sortOrder } = req.body;
 
-    const query = { number: parseInt(number), collectionId };
-    const updates = { $set: { question, hint, answer, funFact } };
-    
-    // Only update sortOrder if provided
-    if (sortOrder !== undefined) {
-      updates.$set.sortOrder = sortOrder;
+    const questionDoc = await Question.findOne({
+      number: parseInt(number),
+      collectionId,
+    });
+
+    if (!questionDoc) {
+      return res.status(404).json({ message: "Question not found in this collection." });
     }
 
-    const result = await Question.updateOne(query, updates);
+    // Update fields from form
+    if (req.body.question) questionDoc.question = req.body.question.trim();
+    if (req.body.hint) questionDoc.hint = req.body.hint.trim();
+    if (req.body.funFact) questionDoc.funFact = req.body.funFact.trim();
+    if (req.body.type) questionDoc.type = req.body.type;
 
-    if (result.matchedCount === 0) {
-      res.status(404).json({ message: "Question not found in this collection." });
-    } else {
-      res.status(200).json({ message: "Question updated successfully." });
+    if (req.body.answer) {
+      try {
+        questionDoc.answer = JSON.parse(req.body.answer);
+      } catch {
+        return res.status(400).json({ message: "Invalid JSON in 'answer'" });
+      }
     }
+
+    if (req.body.options) {
+      try {
+        questionDoc.options = JSON.parse(req.body.options);
+      } catch {
+        return res.status(400).json({ message: "Invalid JSON in 'options'" });
+      }
+    }
+
+    if (req.file) {
+      questionDoc.image = req.file.path;
+    } else if (req.body.deleteImage === "true") {
+      questionDoc.image = null;
+    }
+
+    await questionDoc.save();
+
+    res.status(200).json({ message: "Question updated successfully." });
   } catch (err) {
+    console.error("Error in PATCH /:number/:collectionId:", err);
     res.status(500).json({ message: "Error updating question", error: err.message });
   }
 });
 
-// Bulk update sort order for questions in a collection
-router.patch("/bulk-sort/:collectionId", async (req, res) => {
-  try {
-    const { collectionId } = req.params;
-    const { questions } = req.body; // Array of {number, sortOrder}
-
-    if (!Array.isArray(questions)) {
-      return res.status(400).json({ message: "Questions must be an array" });
-    }
-
-    // Update each question's sort order
-    const updatePromises = questions.map(({ number, sortOrder }) => 
-      Question.updateOne(
-        { number: parseInt(number), collectionId },
-        { $set: { sortOrder } }
-      )
-    );
-
-    await Promise.all(updatePromises);
-    res.status(200).json({ message: "Sort order updated successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating sort order", error: error.message });
-  }
-});
 
 // Delete a question (scoped by number + collectionId as path params)
 router.delete("/:number/:collectionId", async (req, res) => {
