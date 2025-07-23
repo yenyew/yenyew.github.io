@@ -13,7 +13,6 @@ const QuestionPage = () => {
   const wrongAnswers = useRef(0);
   const questionsSkipped = useRef(0);
   const timePenalty = useRef(0);
-}
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -50,11 +49,9 @@ const QuestionPage = () => {
     if (questions[currentIndex]?.hint) {
       const confirmHint = window.confirm("Are you sure you want to use a hint? A 2-minute penalty will be added to your time.");
       if (!confirmHint) return;
-    const hint = questions[currentIndex]?.hint;
-    if (!hint) return;
+      const hint = questions[currentIndex]?.hint;
+      if (!hint) return;
 
-    const confirmed = window.confirm("Use a hint? A 2-minute penalty will be added.");
-    if (confirmed) {
       setHintsUsed((prev) => prev + 1);
       timePenalty.current += 120;
       alert(`Hint: ${hint}`);
@@ -116,13 +113,12 @@ const QuestionPage = () => {
 
     timePenalty.current += 600;
     setUserAnswer("");
-    const isLast = currentIndex === questions.length - 1;
     questionsSkipped.current += 1;
-    setUserAnswer("");
 
+    const isLast = currentIndex === questions.length - 1;
     const funFact = questions[currentIndex].funFact || "No fun fact available.";
     alert(`🎉 Fun Fact: ${funFact}`);
-    
+
     if (isLast) {
       handleFinish(false);
     } else {
@@ -140,35 +136,22 @@ const QuestionPage = () => {
     const playerId = sessionStorage.getItem("playerId");
     const collectionId = sessionStorage.getItem("collectionId");
 
-    if (playerId) {
+    try {
       await fetch(`http://localhost:5000/players/${playerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          score: finalScore,
+          score: finalCorrect,
           totalTimeInSeconds: finalTime,
-          hintsUsed: finalHintsUsed,
+          hintsUsed,
           finishedAt: new Date(),
           collectionId,
+          wrongAnswers: wrongAnswers.current,
+          questionsSkipped: questionsSkipped.current,
         }),
       });
-      try {
-        await fetch(`http://localhost:5000/players/${playerId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            score: finalCorrect,
-            totalTimeInSeconds: finalTime,
-            hintsUsed,
-            finishedAt: new Date(),
-            collectionId,
-            wrongAnswers: wrongAnswers.current,
-            questionsSkipped: questionsSkipped.current
-          }),
-        });
-      } catch (error) {
-        console.error("Failed to submit results:", error);
-      }
+    } catch (error) {
+      console.error("Failed to submit results:", error);
     }
 
     window.location.href = "/results";
@@ -207,7 +190,7 @@ const QuestionPage = () => {
                 maxWidth: "90%",
                 maxHeight: "300px",
                 marginTop: "10px",
-                borderRadius: "12px"
+                borderRadius: "12px",
               }}
             />
           )}
