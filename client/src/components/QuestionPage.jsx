@@ -298,7 +298,7 @@ const QuestionPage = () => {
       <div className="game-page-wrapper">
         <AlertModal
           isOpen={true}
-          onClose={() => window.location.href = "/entercode"}
+          onClose={() => window.location.href = "/getcode"}
           title="Error"
           message={error}
           confirmText="Back to Code Entry"
@@ -420,7 +420,6 @@ const QuestionPage = () => {
           />
         )}
       </div>
-
 
       {/* Top Action buttons - Hint and Skip */}
       <div className="game-top-actions-section">

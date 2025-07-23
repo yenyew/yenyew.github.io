@@ -1,9 +1,8 @@
-// GameSettingsModal.jsx
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import AlertModal from "./AlertModal";
 
-const GameSettingsModal = ({ collection }) => {
+const GameSettingsModal = ({ collection, onModalFeedback }) => {
   const [showModal, setShowModal] = useState(false);
   const [useGlobalSettings, setUseGlobalSettings] = useState(true);
   const [customSettings, setCustomSettings] = useState({
@@ -13,12 +12,6 @@ const GameSettingsModal = ({ collection }) => {
     skipPenalty: 600,
   });
   const [globalSettings, setGlobalSettings] = useState(null);
-
-  // feedback modal state
-  const [showError, setShowError] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
 
   useEffect(() => {
     if (!collection) return;
@@ -63,26 +56,16 @@ const GameSettingsModal = ({ collection }) => {
         }
       );
       if (res.ok) {
-        setModalTitle("Success");
-        setModalMessage("Game settings updated successfully!");
-        setShowSuccess(true);
+        onModalFeedback?.("Success", "Game settings updated successfully!", "success");
+        setShowModal(false);
       } else {
         const data = await res.json();
-        setModalTitle("Error");
-        setModalMessage(data.message || "Failed to update game settings.");
-        setShowError(true);
+        onModalFeedback?.("Error", data.message || "Failed to update game settings.", "error");
       }
     } catch (err) {
       console.error(err);
-      setModalTitle("Server Error");
-      setModalMessage("Error updating game settings. Please try again.");
-      setShowError(true);
+      onModalFeedback?.("Server Error", "Error updating game settings. Please try again.", "error");
     }
-  };
-
-  const closeAll = () => {
-    setShowError(false);
-    setShowSuccess(false);
   };
 
   return (
@@ -131,7 +114,6 @@ const GameSettingsModal = ({ collection }) => {
                 maxWidth: "600px",
                 maxHeight: "80vh",
                 overflowY: "auto",
-                boxSizing: "border-box",
                 color: "#000",
               }}
             >
@@ -139,14 +121,14 @@ const GameSettingsModal = ({ collection }) => {
                 Game Settings - {collection.name}
               </h3>
 
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "2px", marginBottom: "15px" }}>
+                <span style={{ fontWeight: "bold" }}>Use Global Default Settings</span>
                 <input
                   type="checkbox"
                   checked={useGlobalSettings}
                   onChange={(e) => setUseGlobalSettings(e.target.checked)}
                   style={{ cursor: "pointer" }}
                 />
-                <span style={{ fontWeight: "bold" }}>Use Global Default Settings</span>
               </label>
 
               {globalSettings && (
@@ -158,13 +140,13 @@ const GameSettingsModal = ({ collection }) => {
                     marginBottom: "15px",
                   }}
                 >
-                  <h4 style={{ margin: "0 0 8px 0", fontSize: "14px" }}>Global Defaults:</h4>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    <p>• Game Mode: {globalSettings.defaultGameMode}</p>
-                    <p>• Wrong Answer: +{formatTime(globalSettings.defaultWrongAnswerPenalty)}</p>
-                    <p>• Hint: +{formatTime(globalSettings.defaultHintPenalty)}</p>
-                    <p>• Skip: +{formatTime(globalSettings.defaultSkipPenalty)}</p>
-                  </div>
+                  <h4 style={{ marginBottom: "8px", fontSize: "14px" }}>Global Defaults:</h4>
+                  <p style={{ fontSize: "12px", color: "#666" }}>
+                    • Game Mode: {globalSettings.defaultGameMode}<br />
+                    • Wrong Answer: +{formatTime(globalSettings.defaultWrongAnswerPenalty)}<br />
+                    • Hint: +{formatTime(globalSettings.defaultHintPenalty)}<br />
+                    • Skip: +{formatTime(globalSettings.defaultSkipPenalty)}
+                  </p>
                 </div>
               )}
 
@@ -193,7 +175,6 @@ const GameSettingsModal = ({ collection }) => {
                       <option value="rotating">🔄 Rotating</option>
                       <option value="rotating-reverse">🔄 Rotating Reverse</option>
                     </select>
-                    {/* description text omitted for brevity */}
                   </div>
 
                   {["wrongAnswerPenalty", "hintPenalty", "skipPenalty"].map((key) => (
@@ -258,28 +239,6 @@ const GameSettingsModal = ({ collection }) => {
           </div>,
           document.body
         )}
-
-      <AlertModal
-        isOpen={showError}
-        onClose={closeAll}
-        title={modalTitle}
-        message={modalMessage}
-        confirmText="OK"
-        type="error"
-        showCancel={false}
-      />
-      <AlertModal
-        isOpen={showSuccess}
-        onClose={() => {
-          closeAll();
-          setShowModal(false);
-        }}
-        title={modalTitle}
-        message={modalMessage}
-        confirmText="OK"
-        type="success"
-        showCancel={false}
-      />
     </>
   );
 };

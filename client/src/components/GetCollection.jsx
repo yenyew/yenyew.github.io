@@ -219,10 +219,24 @@ const GetCollection = () => {
                   collection={selectedCollection}
                   questions={questions}
                   setQuestions={setQuestions}
+                  onModalFeedback={(title, message, type, updatedCollection) => {
+                    setModalTitle(title);
+                    setModalMessage(message);
+                    type === "success" ? setShowSuccessModal(true) : setShowErrorModal(true);
+                    if (updatedCollection) setSelectedCollection(updatedCollection);
+                  }}
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <GameSettingsModal collection={selectedCollection} />
+                <GameSettingsModal
+                  collection={selectedCollection}
+                  onModalFeedback={(title, message, type) => {
+                    setModalTitle(title);
+                    setModalMessage(message);
+                    if (type === "success") setShowSuccessModal(true);
+                    else setShowErrorModal(true);
+                  }}
+                />
               </div>
             </div>
           )}
@@ -262,7 +276,7 @@ const GetCollection = () => {
                   : navigate("/questions?collection=all")
               }
               className="login-btn"
-              style={{ backgroundColor: "#17C4C4", color: "#000" }} // Black text
+              style={{ backgroundColor: "#17C4C4", color: "#000" }}
             >
               Return
             </button>

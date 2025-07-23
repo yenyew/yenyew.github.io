@@ -40,6 +40,12 @@
   z-index: 1;
 }
 
+.scrollable-container {
+  max-height: 80vh; /* Restrict height to allow scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
+  box-sizing: border-box;
+}
+
 .rules-page .home-overlay {
   background-color: rgba(255, 255, 255, 0.8); /* darker dim for Rules page */
 }
@@ -49,7 +55,8 @@
   z-index: 2;
   width: 100%;
   max-width: 600px;
-  padding: 2rem;
+  padding: 1rem 2rem 2rem; /* top padding reduced */
+  margin-bottom: 100px; /* push it upwards */
   box-sizing: border-box;
   color: #000;
   text-align: center;
