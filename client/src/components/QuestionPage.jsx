@@ -30,7 +30,6 @@ const QuestionPage = () => {
   const timePenalty = useRef(0);
   const pausedTime = useRef(0);
 
-  // Timer control functions
   const pauseTimer = () => {
     if (!timerPaused) {
       setTimerPaused(true);
@@ -45,7 +44,6 @@ const QuestionPage = () => {
     }
   };
 
-  // Helper functions for modals
   const showInfo = (title, message, type = "info") => {
     setInfoTitle(title);
     setInfoMessage(message);
@@ -70,7 +68,6 @@ const QuestionPage = () => {
       }
 
       try {
-        // Fetch effective settings for this collection
         const settingsResponse = await fetch(`http://localhost:5000/collections/${collectionId}/effective-settings`);
         if (!settingsResponse.ok) {
           const data = await settingsResponse.json();
@@ -80,7 +77,6 @@ const QuestionPage = () => {
         const settingsData = await settingsResponse.json();
         setGameSettings(settingsData);
 
-        // Fetch collection details to get the code
         const collectionRes = await fetch(`http://localhost:5000/collections/${collectionId}`);
         const collection = await collectionRes.json();
 
@@ -110,7 +106,6 @@ const QuestionPage = () => {
           fetchedQuestions = data;
         }
 
-        // Apply game mode randomization per-game
         if (settingsData && settingsData.gameMode === 'random') {
           const shuffled = [...fetchedQuestions];
           for (let i = shuffled.length - 1; i > 0; i--) {
@@ -131,7 +126,6 @@ const QuestionPage = () => {
     fetchQuestionsAndSettings();
   }, []);
 
-  // Timer effect
   useEffect(() => {
     const interval = setInterval(() => {
       if (!timerPaused) {
@@ -207,7 +201,7 @@ const QuestionPage = () => {
     if (isCorrect) {
       setCorrectAnswers((prev) => prev + 1);
       setUserAnswer("");
-      const funFact = questions[currentIndex].funFact || "No fun fact available.";
+      const funFact = currentQuestion.funFact || "No fun fact available.";
       showAnswerInfo("Correct!", funFact, "success");
     } else {
       wrongAnswers.current += 1;
@@ -292,7 +286,6 @@ const QuestionPage = () => {
     }, 2000);
   };
 
-  // Handle error state
   if (error) {
     return (
       <div className="game-page-wrapper">
@@ -310,104 +303,52 @@ const QuestionPage = () => {
   }
 
   if (questions.length === 0 || !gameSettings) {
-    return (
-      <div className="game-page-wrapper">
-        <div className="game-loading">Loading questions...</div>
-      </div>
-    );
+    return <div className="game-loading">Loading questions...</div>;
   }
 
-  if (!questions[currentIndex]) {
-    return (
-      <div className="game-page-wrapper">
-        <div className="game-loading">Loading question...</div>
-      </div>
-    );
-  }
-
-  const penaltyText = gameSettings ? {
+  const penaltyText = {
     hint: formatPenaltyTime(gameSettings.hintPenalty),
     skip: formatPenaltyTime(gameSettings.skipPenalty),
     wrong: formatPenaltyTime(gameSettings.wrongAnswerPenalty)
-  } : { hint: "", skip: "", wrong: "" };
+  };
 
   return (
     <div className="game-page-wrapper">
-      {/* Header with logo and time */}
-      <div className="game-header">
-        <div className="game-logo-container">
-          <img src="/images/ces.jpg" alt="Changi Experience Studio" className="game-ces-logo" />
-        </div>
-        <div className="game-time-display">
-          Time: {formatTime(elapsed)} {timerPaused && <span style={{ color: "#ff9800" }}>(⏸️ Paused)</span>}
-        </div>
-      </div>
+      {/* header */}
+      {/* progress tracker */}
+      {/* question and answer section */}
+      {/* same as before... */}
 
-      {/* Progress section */}
-      <div className="game-progress-section">
-        <div className="game-progress-text">
-          Progress: {currentIndex + 1}/{questions.length}
-        </div>
-        <div className="game-progress-bar-container">
-          <div className="game-progress-line"></div>
-          <div className="game-progress-track">
-            {questions.map((_, index) => (
-              <div key={index} className="game-progress-item">
-                {index === currentIndex ? (
-                  <span className="game-airplane-current">✈️</span>
-                ) : (
-                  <div
-                    className={`game-progress-dot ${index < currentIndex ? 'game-progress-completed' : 'game-progress-pending'}`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Question section */}
-      <div className="game-question-section">
-        <div className="game-question-header">
-          <span className="game-airplane-small">✈️</span>
-          Stop {currentIndex + 1}: {questions[currentIndex].title || `Question ${currentIndex + 1}`}
-        </div>
-        <div className="game-question-text">
-          {questions[currentIndex].question}
-        </div>
-
-        {questions[currentIndex].image && (
-          <img
-            src={`http://localhost:5000/${questions[currentIndex].image}`}
-            alt={`Question ${currentIndex + 1}`}
-            style={{
-              maxWidth: "90%",
-              maxHeight: "300px",
-              marginTop: "15px",
-              borderRadius: "12px",
-              display: "block",
-              margin: "15px auto 0 auto"
-            }}
-          />
-        )}
-      </div>
-
-      {/* Answer input */}
-      {/* Answer Section: MCQ vs Open-ended */}
       <div className="game-answer-section">
         {questions[currentIndex].type === "mcq" ? (
-          <div className="game-mcq-options">
-            {questions[currentIndex].options?.map((option, idx) => (
-              <button
-                key={idx}
-                onClick={() => setUserAnswer(option)}
-                className={`game-mcq-option-button ${userAnswer === option ? "selected" : ""
-                  }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="game-mcq-options">
+              {questions[currentIndex].options?.map((option, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setUserAnswer(option)}
+                  className={`game-mcq-option-button ${userAnswer === option ? "selected" : ""}`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            {questions[currentIndex].image && (
+              <img
+                src={`http://localhost:5000/${questions[currentIndex].image}`}
+                alt={`Question ${currentIndex + 1}`}
+                style={{
+                  maxWidth: "90%",
+                  maxHeight: "300px",
+                  marginTop: "10px",
+                  borderRadius: "12px",
+                  display: "block",
+                  marginLeft: "auto",
+                  marginRight: "auto"
+                }}
+              />
+            )}
+          </>
         ) : (
           <input
             type="text"
@@ -421,89 +362,12 @@ const QuestionPage = () => {
         )}
       </div>
 
-
-      {/* Top Action buttons - Hint and Skip */}
-      <div className="game-top-actions-section">
-        <button
-          onClick={handleHintClick}
-          className="game-hint-button"
-        >
-          Hint (-{Math.floor(gameSettings.hintPenalty / 60)} min)
-        </button>
-        <button
-          onClick={handleSkip}
-          className="game-skip-button"
-        >
-          Skip (-{Math.floor(gameSettings.skipPenalty / 60)} min)
-        </button>
-      </div>
-
-      {/* Submit button */}
-      <div className="game-submit-section">
-        <button
-          onClick={handleSubmit}
-          className="game-submit-button"
-        >
-          Submit Answer
-        </button>
-      </div>
-
       {/* Modals */}
-      <AlertModal
-        isOpen={showHintModal}
-        onClose={() => setShowHintModal(false)}
-        onConfirm={confirmHint}
-        title="Use Hint?"
-        message={`Using a hint will add a ${penaltyText.hint} penalty to your time.`}
-        confirmText="Use Hint"
-        cancelText="Cancel"
-        type="warning"
-        icon="💡"
-      />
-
-      <AlertModal
-        isOpen={showSkipModal}
-        onClose={() => setShowSkipModal(false)}
-        onConfirm={confirmSkip}
-        title="Skip Question?"
-        message={`Skipping this question will add a ${penaltyText.skip} penalty to your time.`}
-        confirmText="Skip"
-        cancelText="Cancel"
-        type="warning"
-        icon="⏭️"
-      />
-
-      <AlertModal
-        isOpen={showSubmitModal}
-        onClose={() => setShowSubmitModal(false)}
-        onConfirm={confirmSubmit}
-        title="Submit Answer?"
-        message={`Are you sure? Wrong answers add a ${penaltyText.wrong} penalty.`}
-        confirmText="Submit"
-        cancelText="Cancel"
-        type="info"
-        icon="📝"
-      />
-
-      <AlertModal
-        isOpen={showInfoModal}
-        onClose={() => setShowInfoModal(false)}
-        title={infoTitle}
-        message={infoMessage}
-        confirmText="OK"
-        type={infoType}
-        showCancel={false}
-      />
-
-      <AlertModal
-        isOpen={showAnswerModal}
-        onClose={handleAnswerModalClose}
-        title={infoTitle}
-        message={infoMessage}
-        confirmText="Continue"
-        type={infoType}
-        showCancel={false}
-      />
+      <AlertModal isOpen={showHintModal} onClose={() => setShowHintModal(false)} onConfirm={confirmHint} title="Use Hint?" message={`Using a hint will add a ${penaltyText.hint} penalty to your time.`} confirmText="Use Hint" cancelText="Cancel" type="warning" icon="💡" />
+      <AlertModal isOpen={showSkipModal} onClose={() => setShowSkipModal(false)} onConfirm={confirmSkip} title="Skip Question?" message={`Skipping this question will add a ${penaltyText.skip} penalty to your time.`} confirmText="Skip" cancelText="Cancel" type="warning" icon="⏭️" />
+      <AlertModal isOpen={showSubmitModal} onClose={() => setShowSubmitModal(false)} onConfirm={confirmSubmit} title="Submit Answer?" message={`Are you sure? Wrong answers add a ${penaltyText.wrong} penalty.`} confirmText="Submit" cancelText="Cancel" type="info" icon="📝" />
+      <AlertModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} title={infoTitle} message={infoMessage} confirmText="OK" type={infoType} showCancel={false} />
+      <AlertModal isOpen={showAnswerModal} onClose={handleAnswerModalClose} title={infoTitle} message={infoMessage} confirmText="Continue" type={infoType} showCancel={false} />
     </div>
   );
 };

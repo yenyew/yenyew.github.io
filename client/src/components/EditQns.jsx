@@ -157,7 +157,14 @@ const EditQuestion = () => {
                   setExistingImage(null);
                   setDeleteImage(true);
                 }}
-                style={{ marginTop: "5px", backgroundColor: "red", color: "white", border: "none", borderRadius: "5px", padding: "5px 10px" }}
+                style={{
+                  marginTop: "5px",
+                  backgroundColor: "red",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  padding: "5px 10px"
+                }}
               >
                 Delete Image
               </button>
