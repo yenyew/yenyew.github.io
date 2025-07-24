@@ -36,6 +36,10 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  image: {
+    type: String,
+    default: null,
+  },
 });
 
 questionSchema.index({ number: 1, collectionId: 1 }, { unique: true });

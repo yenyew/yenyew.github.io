@@ -6,7 +6,6 @@ import "./MainStyles.css";
 const EditCollection = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [isPublic, setIsPublic] = useState(false);
@@ -14,16 +13,34 @@ const EditCollection = () => {
   const [prevIsPublic, setPrevIsPublic] = useState(false);
   const [prevIsOnline, setPrevIsOnline] = useState(true);
   const [existingPublicCollection, setExistingPublicCollection] = useState(null);
-
-  // Modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showPublicConfirmModal, setShowPublicConfirmModal] = useState(false);
   const [showCheckboxInfoModal, setShowCheckboxInfoModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false); // New state for copy success
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [checkboxType, setCheckboxType] = useState(null);
+
+  // Random code generator
+  const generateRandomCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  // Copy to clipboard function
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setModalTitle("Success");
+      setModalMessage("Code copied to clipboard!");
+      setShowCopySuccessModal(true);
+    }).catch(() => {
+      setModalTitle("Error");
+      setModalMessage("Failed to copy code.");
+      setShowErrorModal(true);
+    });
+  };
 
   useEffect(() => {
     const fetchCollection = async () => {
@@ -62,26 +79,24 @@ const EditCollection = () => {
     setShowPublicConfirmModal(false);
     setShowCheckboxInfoModal(false);
     setShowDeleteConfirmModal(false);
+    setShowCopySuccessModal(false); // Close copy success modal
     setCheckboxType(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!name.trim()) {
       setModalTitle("Invalid Input");
       setModalMessage("Please enter a collection name.");
       setShowErrorModal(true);
       return;
     }
-
     if (!isPublic && !code.trim()) {
       setModalTitle("Invalid Input");
       setModalMessage("Please enter a collection code.");
       setShowErrorModal(true);
       return;
     }
-
     if (isPublic && existingPublicCollection) {
       setModalTitle("Existing Public Collection");
       setModalMessage(
@@ -90,7 +105,6 @@ const EditCollection = () => {
       setShowPublicConfirmModal(true);
       return;
     }
-
     await submitCollection();
   };
 
@@ -106,7 +120,6 @@ const EditCollection = () => {
           isOnline,
         }),
       });
-
       if (res.ok) {
         setModalTitle("Success");
         setModalMessage("Collection updated successfully!");
@@ -144,13 +157,12 @@ const EditCollection = () => {
       setPrevIsPublic(isPublic);
       setIsPublic(newValue);
       if (newValue) {
-        setCode(""); // Clear code when made public
+        setCode("");
       }
     } else {
       setPrevIsOnline(isOnline);
       setIsOnline(newValue);
     }
-
     setCheckboxType(type);
     setModalTitle(type === "public" ? "Change Public Status?" : "Change Online Status?");
     setModalMessage(
@@ -220,7 +232,6 @@ const EditCollection = () => {
       <div className="page-overlay" />
       <div className="buttons">
         <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "10px" }}>Edit Collection</h2>
-
         <form onSubmit={handleSubmit} style={{ maxWidth: "300px", width: "100%" }}>
           <input
             type="text"
@@ -231,15 +242,45 @@ const EditCollection = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
-          <input
-            type="text"
-            placeholder="Collection Code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            disabled={isPublic}
-            className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: isPublic ? "#e9ecef" : "white" }}
-          />
+          <div style={{ display: "flex", marginBottom: "10px", gap: "10px" }}>
+            <input
+              type="text"
+              placeholder="Collection Code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              disabled={isPublic}
+              className="login-btn"
+              style={{ backgroundColor: isPublic ? "#e9ecef" : "white", flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => setCode(generateRandomCode())}
+              disabled={isPublic}
+              className="login-btn"
+              style={{
+                width: "90px",
+                backgroundColor: isPublic ? "#e9ecef" : "#17C4C4",
+                color: isPublic ? "#6c757d" : "#fff",
+                padding: "0 10px",
+              }}
+            >
+              Generate
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyCode}
+              disabled={isPublic || !code.trim()}
+              className="login-btn"
+              style={{
+                width: "70px",
+                backgroundColor: isPublic || !code.trim() ? "#e9ecef" : "#17C4C4",
+                color: isPublic || !code.trim() ? "#6c757d" : "#fff",
+                padding: "0 10px",
+              }}
+            >
+              Copy
+            </button>
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
             <div>
               <input
@@ -293,7 +334,6 @@ const EditCollection = () => {
           </button>
         </form>
       </div>
-
       <AlertModal
         isOpen={showSuccessModal}
         onClose={handleSuccessConfirm}
@@ -345,6 +385,15 @@ const EditCollection = () => {
         cancelText="Cancel"
         type="warning"
         showCancel={true}
+      />
+      <AlertModal
+        isOpen={showCopySuccessModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
       />
     </div>
   );

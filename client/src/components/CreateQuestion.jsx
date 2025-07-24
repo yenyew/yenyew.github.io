@@ -16,6 +16,7 @@ const CreateQuestion = () => {
   const [collections, setCollections] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [image, setImage] = useState(null);
 
   // AlertModal state
   const [showAlert, setShowAlert] = useState(false);
@@ -75,7 +76,9 @@ const CreateQuestion = () => {
       const allRes = await fetch("http://localhost:5000/questions");
       const allQuestions = await allRes.json();
       const exists = allQuestions.some(
-        (q) => q.number === parseInt(number) && q.collectionId === collectionId
+        (q) =>
+          q.number === parseInt(number) &&
+          q.collectionId === collectionId
       );
       if (exists) {
         setAlertTitle("Duplicate Question");
@@ -86,22 +89,28 @@ const CreateQuestion = () => {
         return;
       }
 
-      const newQuestion = {
-        number: parseInt(number),
-        collectionId,
-        question,
-        type,
-        hint,
-        answer:
-          type === "mcq" && correctIndex !== null ? [options[correctIndex]] : answer.split(",").map((ans) => ans.trim()),
-        funFact,
-        ...(type === "mcq" && { options }),
-      };
+      // Use FormData for image upload
+      const formData = new FormData();
+      formData.append("number", number);
+      formData.append("collectionId", collectionId);
+      formData.append("question", question);
+      formData.append("type", type);
+      formData.append("hint", hint);
+      formData.append(
+        "answer",
+        JSON.stringify(
+          type === "mcq" && correctIndex !== null
+            ? [options[correctIndex]]
+            : answer.split(",").map((ans) => ans.trim())
+        )
+      );
+      formData.append("funFact", funFact);
+      if (type === "mcq") formData.append("options", JSON.stringify(options));
+      if (image) formData.append("image", image);
 
       const response = await fetch("http://localhost:5000/questions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQuestion),
+        body: formData,
       });
 
       if (response.ok) {
@@ -119,6 +128,7 @@ const CreateQuestion = () => {
         setOptions(["", ""]);
         setCorrectIndex(null);
         setIsModalOpen(false);
+        setImage(null);
       } else {
         const data = await response.json();
         setAlertTitle("Error");
@@ -127,10 +137,10 @@ const CreateQuestion = () => {
         setShowAlert(true);
       }
     } catch {
-        setAlertTitle("Error");
-        setAlertMessage("Failed to fetch collections.");
-        setAlertType("error");
-        setShowAlert(true);
+      setAlertTitle("Error");
+      setAlertMessage("Failed to add question.");
+      setAlertType("error");
+      setShowAlert(true);
     }
     setIsSubmitting(false);
   };
@@ -175,7 +185,9 @@ const CreateQuestion = () => {
           >
             <option value="">Select Collection</option>
             {collections.map((col) => (
-              <option key={col._id} value={col._id}>{col.name}</option>
+              <option key={col._id} value={col._id}>
+                {col.name}
+              </option>
             ))}
           </select>
 
@@ -193,6 +205,14 @@ const CreateQuestion = () => {
             onChange={(e) => setHint(e.target.value)}
             placeholder="Hint"
             className="login-btn"
+          />
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="login-btn"
+            style={{ marginBottom: "10px" }}
           />
 
           {type === "mcq" && (

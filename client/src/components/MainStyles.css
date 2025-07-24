@@ -56,7 +56,7 @@
   width: 100%;
   max-width: 600px;
   padding: 1rem 2rem 2rem; /* top padding reduced */
-  margin-bottom: 100px; /* push it upwards */
+  margin-bottom: 0px; /* push it upwards */
   box-sizing: border-box;
   color: #000;
   text-align: center;
