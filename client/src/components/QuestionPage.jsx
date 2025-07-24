@@ -291,7 +291,7 @@ const QuestionPage = () => {
       <div className="game-page-wrapper">
         <AlertModal
           isOpen={true}
-          onClose={() => window.location.href = "/entercode"}
+          onClose={() => window.location.href = "/getcode"}
           title="Error"
           message={error}
           confirmText="Back to Code Entry"
@@ -360,6 +360,32 @@ const QuestionPage = () => {
             autoFocus
           />
         )}
+      </div>
+
+      {/* Top Action buttons - Hint and Skip */}
+      <div className="game-top-actions-section">
+        <button
+          onClick={handleHintClick}
+          className="game-hint-button"
+        >
+          Hint (-{Math.floor(gameSettings.hintPenalty / 60)} min)
+        </button>
+        <button
+          onClick={handleSkip}
+          className="game-skip-button"
+        >
+          Skip (-{Math.floor(gameSettings.skipPenalty / 60)} min)
+        </button>
+      </div>
+
+      {/* Submit button */}
+      <div className="game-submit-section">
+        <button
+          onClick={handleSubmit}
+          className="game-submit-button"
+        >
+          Submit Answer
+        </button>
       </div>
 
       {/* Modals */}

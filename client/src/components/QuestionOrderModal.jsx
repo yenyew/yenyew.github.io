@@ -1,17 +1,9 @@
-// QuestionOrderModal.jsx
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import AlertModal from "./AlertModal";
 
-const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
+const QuestionOrderModal = ({ collection, questions, setQuestions, onModalFeedback }) => {
   const [showModal, setShowModal] = useState(false);
   const [orderedQuestions, setOrderedQuestions] = useState([]);
-
-  // feedback modal state
-  const [showError, setShowError] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
 
   useEffect(() => {
     if (!collection) return;
@@ -47,26 +39,20 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
         }
       );
       if (res.ok) {
-        setModalTitle("Success");
-        setModalMessage("Question order updated successfully!");
-        setShowSuccess(true);
+        onModalFeedback?.("Success", "Question order updated successfully!", "success");
+        setShowModal(false);
+        // Refresh questions
+        const refreshed = await fetch(`http://localhost:5000/collections/${collection._id}/questions`);
+        const data = await refreshed.json();
+        setQuestions(Array.isArray(data) ? data : data.questions || []);
       } else {
         const data = await res.json();
-        setModalTitle("Error");
-        setModalMessage(data.message || "Failed to update question order.");
-        setShowError(true);
+        onModalFeedback?.("Error", data.message || "Failed to update question order.", "error");
       }
     } catch (err) {
       console.error(err);
-      setModalTitle("Server Error");
-      setModalMessage("Error updating question order. Please try again.");
-      setShowError(true);
+      onModalFeedback?.("Server Error", "Error updating question order. Please try again.", "error");
     }
-  };
-
-  const closeAll = () => {
-    setShowError(false);
-    setShowSuccess(false);
   };
 
   return (
@@ -115,16 +101,12 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
                 maxWidth: "600px",
                 maxHeight: "80vh",
                 overflowY: "auto",
-                boxSizing: "border-box",
                 color: "#000",
               }}
             >
               <h3 style={{ marginBottom: "20px", textAlign: "center" }}>
                 Reorder Questions
               </h3>
-              <div style={{ marginBottom: "20px", backgroundColor: "#f8f9fa", padding: "10px", borderRadius: "5px" }}>
-                {/* instructions */}
-              </div>
 
               {orderedQuestions.length === 0 ? (
                 <p style={{ textAlign: "center", color: "#666" }}>
@@ -241,32 +223,6 @@ const QuestionOrderModal = ({ collection, questions, setQuestions }) => {
           </div>,
           document.body
         )}
-
-      <AlertModal
-        isOpen={showError}
-        onClose={closeAll}
-        title={modalTitle}
-        message={modalMessage}
-        confirmText="OK"
-        type="error"
-        showCancel={false}
-      />
-      <AlertModal
-        isOpen={showSuccess}
-        onClose={() => {
-          closeAll();
-          setShowModal(false);
-          // refresh questions
-          fetch(`http://localhost:5000/collections/${collection.code}/questions`)
-            .then((r) => r.json())
-            .then((d) => setQuestions(Array.isArray(d) ? d : d.questions || []));
-        }}
-        title={modalTitle}
-        message={modalMessage}
-        confirmText="OK"
-        type="success"
-        showCancel={false}
-      />
     </>
   );
 };
