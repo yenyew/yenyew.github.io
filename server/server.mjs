@@ -61,77 +61,90 @@ app.listen(PORT, () => {
 
 setInterval(async () => {
   try {
-    const config = await AutoClearConfig.findOne();
-    if (!config) return;
+    const configs = await AutoClearConfig.find(); // Fetch all auto-clear configs
+    if (!configs || configs.length === 0) return;
 
     const now = new Date();
-    const last = config.lastClearedAt || new Date(0);
-    let due = false;
 
-    if (config.interval === "day") {
-      due = now - last >= 10 * 1000; // 1 seconds instead of 24 hours (testing purpose)
-    } else if (config.interval === "week") {
-      due = now - last >= 7 * 24 * 60 * 60 * 1000;
-    } else if (config.interval === "month") {
-      due = now - last >= 30 * 24 * 60 * 60 * 1000;
+    for (const config of configs) {
+      const last = config.lastClearedAt || new Date(0);
+      let due = false;
+
+      // Determine if clearing is due based on interval
+      if (config.interval === "day") {
+        due = now - last >= 10 * 1000; // 10 seconds for testing
+      } else if (config.interval === "week") {
+        due = now - last >= 7 * 24 * 60 * 60 * 1000;
+      } else if (config.interval === "month") {
+        due = now - last >= 30 * 24 * 60 * 60 * 1000;
+      } else if (config.interval === "custom") {
+        if (config.customIntervalValue && config.customIntervalUnit) {
+          const msMap = {
+            minute: 60 * 1000,
+            hour: 60 * 60 * 1000,
+            day: 24 * 60 * 60 * 1000,
+          };
+          const intervalMs = config.customIntervalValue * msMap[config.customIntervalUnit];
+          due = now - last >= intervalMs;
+        }
+      }
+
+      if (!due) continue;
+
+      let filter = { collectionId: config.collectionId }; // Restrict to this collection
+      if (config.target === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+        filter.finishedAt = { $gte: start, $lte: end };
+      } else if (config.target === "week") {
+        const start = new Date();
+        start.setDate(start.getDate() - start.getDay());
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        filter.finishedAt = { $gte: start, $lte: end };
+      } else if (config.target === "month") {
+        const start = new Date();
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + 1);
+        end.setDate(0);
+        end.setHours(23, 59, 59, 999);
+        filter.finishedAt = { $gte: start, $lte: end };
+      } else if (config.target === "custom") {
+        if (!config.startDate || !config.endDate) continue;
+        const start = new Date(config.startDate);
+        const end = new Date(config.endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.finishedAt = { $gte: start, $lte: end };
+      } else if (config.target === "all") {
+        filter.finishedAt = { $lte: now };
+      }
+
+      const result = await Player.deleteMany(filter);
+      config.lastClearedAt = now;
+      await config.save();
+
+      // Log the clear action
+      await AutoClearLog.create({
+        collectionId: config.collectionId,
+        clearedAt: now,
+        interval: config.interval,
+        target: config.target,
+        range: config.target === "custom" ? { start: config.startDate, end: config.endDate } : undefined,
+        clearedCount: result.deletedCount,
+        clearedIds: result.deletedIds || [], 
+      });
+
+      console.log(
+        `[AUTO CLEAR] Collection ${config.collectionId}: Deleted ${result.deletedCount} players (Target: ${config.target})`
+      );
     }
-
-    if (!due) return;
-
-    let filter = {};
-    if (config.target === "today") {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-
-      filter.finishedAt = { $gte: start, $lte: end };
-
-    } else if (config.target === "week") {
-      const start = new Date();
-      start.setDate(start.getDate() - start.getDay()); // Sunday
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(start);
-      end.setDate(end.getDate() + 6);
-      end.setHours(23, 59, 59, 999);
-
-      filter.finishedAt = { $gte: start, $lte: end };
-
-    } else if (config.target === "month") {
-      const start = new Date();
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(start);
-      end.setMonth(end.getMonth() + 1);
-      end.setDate(0); // last day of the previous month
-      end.setHours(23, 59, 59, 999);
-
-      filter.finishedAt = { $gte: start, $lte: end };
-
-    } else if (config.target === "custom") {
-      if (!config.startDate || !config.endDate) return;
-
-      const start = new Date(config.startDate);
-      const end = new Date(config.endDate);
-      end.setHours(23, 59, 59, 999);
-
-      filter.finishedAt = { $gte: start, $lte: end };
-
-    } else {
-      // "all"
-      filter.finishedAt = { $lte: new Date() };
-    }
-
-
-    const result = await Player.deleteMany(filter);
-    config.lastClearedAt = now;
-    await config.save();
-
-    console.log(`[AUTO CLEAR] Deleted ${result.deletedCount} players (Target: ${config.target})`);
   } catch (err) {
     console.error("[AUTO CLEAR ERROR]", err);
   }
-}, 10 * 1000); 
+}, 10 * 1000); // Check every 10 seconds for testing

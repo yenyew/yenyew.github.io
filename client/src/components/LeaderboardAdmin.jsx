@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import './MainStyles.css';
 import './LeaderboardStyles.css';
 import AlertModal from "./AlertModal";
-import { ManualClearModal, AutoClearModal } from "./LeaderboardClearModals";
+import { ManualClearModal, AutoClearModal, AutoClearLogModal } from "./LeaderboardClearModals";
 
 const FILTERS = [
   { label: "Today", value: "day" },
@@ -38,13 +38,23 @@ export default function LeaderboardAdmin() {
   const [page, setPage] = useState(0);
   const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const [autoClear, setAutoClear] = useState({ interval: "day", target: "today", lastUpdated: null });
-  const [tempAuto, setTempAuto] = useState(autoClear);
+  const [autoClearConfigs, setAutoClearConfigs] = useState({});
+  const [tempAuto, setTempAuto] = useState({
+    interval: "day",
+    target: "today",
+    startDate: null,
+    endDate: null,
+    customIntervalValue: null,
+    customIntervalUnit: "minute",
+  });
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualRange, setManualRange] = useState("day");
   const [manualCol, setManualCol] = useState("all");
   const [showAutoModal, setShowAutoModal] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [logCollection, setLogCollection] = useState("all");
+  const [selectedConfigCollection, setSelectedConfigCollection] = useState(null);
 
   // AlertModal states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -83,15 +93,14 @@ export default function LeaderboardAdmin() {
         setCollections(collectionsMap);
 
         // Fetch auto-clear configs for each collection
-        const autoClearConfigs = await Promise.all(
+        const configs = await Promise.all(
           collectionsData.map(async (col) => {
             const res = await fetch(`${baseUrl}/auto-clear-config/${col._id}`);
-            return res.status === 200 ? await res.json() : null;
+            return res.status === 200 ? { [col._id]: await res.json() } : { [col._id]: null };
           })
         );
-        const validConfig = autoClearConfigs.find(config => config) || autoClear;
-        setAutoClear(validConfig);
-        setTempAuto(validConfig);
+        const configsMap = Object.assign({}, ...configs);
+        setAutoClearConfigs(configsMap);
 
         setLoading(false);
       } catch (err) {
@@ -106,6 +115,24 @@ export default function LeaderboardAdmin() {
   }, []);
 
   useEffect(() => setPage(0), [filter, selectedCollection]);
+
+  useEffect(() => {
+    if (showLogModal && selectedCollection !== "all") {
+      async function fetchLogs() {
+        try {
+          const res = await fetch(`${baseUrl}/auto-clear-config/${selectedCollection}/logs`);
+          const data = await res.json();
+          setLogs(data);
+        } catch (err) {
+          console.error("Error fetching logs:", err);
+          setModalTitle("Error");
+          setModalMessage("Failed to fetch auto-clear logs.");
+          setShowErrorModal(true);
+        }
+      }
+      fetchLogs();
+    }
+  }, [showLogModal, selectedCollection]);
 
   const filteredPlayers = players.filter(p =>
     isWithin(p.finishedAt, filter) &&
@@ -176,11 +203,29 @@ export default function LeaderboardAdmin() {
 
   // Auto-Clear
   const openAuto = () => {
-    setTempAuto(autoClear);
+    if (selectedCollection === "all") {
+      setModalTitle("Error");
+      setModalMessage("Please select a specific collection to configure auto-clear.");
+      setShowErrorModal(true);
+      return;
+    }
+    setSelectedConfigCollection(selectedCollection);
+    const config = autoClearConfigs[selectedCollection] || {
+      interval: "day",
+      target: "today",
+      startDate: null,
+      endDate: null,
+      customIntervalValue: null,
+      customIntervalUnit: "minute",
+    };
+    setTempAuto(config);
     setShowAutoModal(true);
   };
 
-  const closeAuto = () => setShowAutoModal(false);
+  const closeAuto = () => {
+    setShowAutoModal(false);
+    setSelectedConfigCollection(null);
+  };
 
   const confirmAuto = async () => {
     const payload = {
@@ -197,14 +242,18 @@ export default function LeaderboardAdmin() {
     };
 
     try {
-      await fetch(`${baseUrl}/auto-clear-config/${selectedCollection === "all" ? collections[Object.keys(collections)[0]] : selectedCollection}`, {
+      const response = await fetch(`${baseUrl}/auto-clear-config/${selectedConfigCollection}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      setAutoClear({ ...payload, lastUpdated: new Date().toISOString() });
+      const updatedConfig = await response.json();
+      setAutoClearConfigs({
+        ...autoClearConfigs,
+        [selectedConfigCollection]: updatedConfig.config,
+      });
       setModalTitle("Success");
-      setModalMessage("Auto-clear configuration saved.");
+      setModalMessage(`Auto-clear configuration saved for ${collections[selectedConfigCollection]}.`);
       setShowSuccessModal(true);
       setShowAutoModal(false);
     } catch (e) {
@@ -212,6 +261,18 @@ export default function LeaderboardAdmin() {
       setModalMessage("Failed to save auto-clear configuration.");
       setShowErrorModal(true);
     }
+  };
+
+  // View Logs
+  const openLogs = () => {
+    if (selectedCollection === "all") {
+      setModalTitle("Error");
+      setModalMessage("Please select a specific collection to view auto-clear logs.");
+      setShowErrorModal(true);
+      return;
+    }
+    setLogCollection(selectedCollection);
+    setShowLogModal(true);
   };
 
   const handleModalClose = () => {
@@ -252,6 +313,21 @@ export default function LeaderboardAdmin() {
           </select>
         </div>
 
+        {selectedCollection !== "all" && autoClearConfigs[selectedCollection] && (
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <p style={{ fontSize: "0.9em", color: "#666" }}>
+              <strong>Auto-Clear Config:</strong> Interval: {autoClearConfigs[selectedCollection].interval}, 
+              Target: {autoClearConfigs[selectedCollection].target}
+              {autoClearConfigs[selectedCollection].interval === "custom" && (
+                <span>, Custom: {autoClearConfigs[selectedCollection].customIntervalValue} {autoClearConfigs[selectedCollection].customIntervalUnit}</span>
+              )}
+              {autoClearConfigs[selectedCollection].target === "custom" && (
+                <span>, Range: {new Date(autoClearConfigs[selectedCollection].startDate).toLocaleDateString()} - {new Date(autoClearConfigs[selectedCollection].endDate).toLocaleDateString()}</span>
+              )}
+            </p>
+          </div>
+        )}
+
         {pagedPlayers.length === 0 ? (
           <div style={{ textAlign: "center", margin: "40px 0" }}>
             <p className="no-results">
@@ -277,7 +353,7 @@ export default function LeaderboardAdmin() {
                 </tr>
               </thead>
               <tbody>
-                {pagedPlayers.map((player, index) => {
+                {pagedPlayers.map((player) => {
                   const rank = filteredPlayers.findIndex(p => p._id === player._id) + 1;
                   return (
                     <tr
@@ -377,6 +453,21 @@ export default function LeaderboardAdmin() {
           >
             Auto-Clear
           </button>
+          <button
+            onClick={openLogs}
+            style={{
+              padding: "10px 20px",
+              fontSize: "14px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#2196F3",
+              color: "white",
+              cursor: "pointer",
+              minWidth: "120px"
+            }}
+          >
+            View Auto-Clear Logs
+          </button>
           <button className="return-button" style={{ minWidth: "120px" }} onClick={() => navigate("/admin")}>
             Return
           </button>
@@ -395,13 +486,21 @@ export default function LeaderboardAdmin() {
       />
       <AutoClearModal
         isOpen={showAutoModal}
-        autoClear={autoClear}
+        autoClear={autoClearConfigs[selectedConfigCollection]}
         tempAuto={tempAuto}
         setTempAuto={setTempAuto}
         onConfirm={confirmAuto}
         onClose={closeAuto}
+        collectionName={collections[selectedConfigCollection] || "Selected Collection"}
       />
-
+      <AutoClearLogModal
+        isOpen={showLogModal}
+        collections={collections}
+        logs={logs}
+        setLogCollection={setLogCollection}
+        logCollection={logCollection}
+        onClose={() => setShowLogModal(false)}
+      />
       <AlertModal
         isOpen={showConfirmModal && pendingManualClear}
         onClose={handleModalClose}

@@ -3,17 +3,17 @@ import mongoose from 'mongoose';
 const AutoClearSchema = new mongoose.Schema({
   interval: {
     type: String,
-    enum: ['day', 'week', 'month', 'custom'], 
+    enum: ['day', 'week', 'month', 'custom'],
     required: true,
   },
   collectionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Collection",
-      required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Collection",
+    required: true,
   },
   target: {
     type: String,
-    enum: ['today', 'week', 'month', 'custom', 'all'], 
+    enum: ['today', 'week', 'month', 'custom', 'all'],
     required: true,
   },
   startDate: {
@@ -21,6 +21,14 @@ const AutoClearSchema = new mongoose.Schema({
   },
   endDate: {
     type: Date,
+  },
+  customIntervalValue: {
+    type: Number,
+    min: 1,
+  },
+  customIntervalUnit: {
+    type: String,
+    enum: ['minute', 'hour', 'day'],
   },
   lastClearedAt: {
     type: Date,

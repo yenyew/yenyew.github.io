@@ -19,7 +19,7 @@ router.get('/:collectionId', async (req, res) => {
 // CREATE or UPDATE config for a specific collection
 router.post('/:collectionId', async (req, res) => {
   const { collectionId } = req.params;
-  const { interval, target, startDate, endDate } = req.body;
+  const { interval, target, startDate, endDate, customIntervalValue, customIntervalUnit } = req.body;
 
   if (!['day', 'week', 'month', 'custom'].includes(interval)) {
     return res.status(400).send("Invalid interval");
@@ -27,14 +27,15 @@ router.post('/:collectionId', async (req, res) => {
   if (!['today', 'week', 'month', 'custom', 'all'].includes(target)) {
     return res.status(400).send("Invalid target");
   }
-  if ((interval === 'custom' || target === 'custom') && (!startDate || !endDate)) {
-    return res.status(400).send("Start and end date required for custom interval/target");
+  if ((interval === 'custom' && (!customIntervalValue || !customIntervalUnit)) ||
+      (target === 'custom' && (!startDate || !endDate))) {
+    return res.status(400).send("Required fields missing for custom interval/target");
   }
 
   try {
     const config = await AutoClearConfig.findOneAndUpdate(
       { collectionId },
-      { interval, target, startDate, endDate },
+      { interval, target, startDate, endDate, customIntervalValue, customIntervalUnit },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.status(200).json({ message: "Config saved", config });
@@ -42,7 +43,6 @@ router.post('/:collectionId', async (req, res) => {
     res.status(500).json({ message: 'Failed to save config', error: err.message });
   }
 });
-
 // DELETE config for a specific collection
 router.delete('/:collectionId', async (req, res) => {
   const { collectionId } = req.params;
