@@ -1,45 +1,68 @@
-// routes/autoClear.mjs
 import express from 'express';
 import AutoClearConfig from '../models/autoCleardb.mjs';
+import AutoClearLog from '../models/autoClearLogsdb.mjs'; 
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-  const config = await AutoClearConfig.findOne();
-  res.status(200).json(config);
+// GET config for a specific collection
+router.get('/:collectionId', async (req, res) => {
+  const { collectionId } = req.params;
+  try {
+    const config = await AutoClearConfig.findOne({ collectionId });
+    if (!config) return res.status(404).json({ message: 'No config found' });
+    res.status(200).json(config);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 });
 
-router.post('/', async (req, res) => {
+// CREATE or UPDATE config for a specific collection
+router.post('/:collectionId', async (req, res) => {
+  const { collectionId } = req.params;
   const { interval, target, startDate, endDate } = req.body;
 
   if (!['day', 'week', 'month', 'custom'].includes(interval)) {
     return res.status(400).send("Invalid interval");
   }
-
   if (!['today', 'week', 'month', 'custom', 'all'].includes(target)) {
     return res.status(400).send("Invalid target");
   }
-
-  if (target === 'custom' && (!startDate || !endDate)) {
-    return res.status(400).send("Start and end date required for custom target");
+  if ((interval === 'custom' || target === 'custom') && (!startDate || !endDate)) {
+    return res.status(400).send("Start and end date required for custom interval/target");
   }
 
-  if (interval === 'custom' && (!startDate || !endDate)) {
-    return res.status(400).send("Start and end date required for custom interval");
+  try {
+    const config = await AutoClearConfig.findOneAndUpdate(
+      { collectionId },
+      { interval, target, startDate, endDate },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.status(200).json({ message: "Config saved", config });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to save config', error: err.message });
   }
+});
 
-  let config = await AutoClearConfig.findOne();
-  if (!config) {
-    config = await AutoClearConfig.create({ interval, target, startDate, endDate });
-  } else {
-    config.interval = interval;
-    config.target = target;
-    config.startDate = startDate;
-    config.endDate = endDate;
-    await config.save();
+// DELETE config for a specific collection
+router.delete('/:collectionId', async (req, res) => {
+  const { collectionId } = req.params;
+  try {
+    const result = await AutoClearConfig.findOneAndDelete({ collectionId });
+    if (!result) return res.status(404).json({ message: 'No config found to delete' });
+    res.status(200).json({ message: 'Config deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Delete failed', error: err.message });
   }
+});
 
-  res.status(200).json({ message: "Auto-clear config saved", config });
+router.get('/:collectionId/logs', async (req, res) => {
+  const { collectionId } = req.params;
+  try {
+    const logs = await AutoClearLog.find({ collectionId }).sort({ clearedAt: -1 });
+    res.status(200).json(logs);
+  } catch (err) {
+    res.status(500).json({ message: 'Could not fetch logs', error: err.message });
+  }
 });
 
 export default router;
