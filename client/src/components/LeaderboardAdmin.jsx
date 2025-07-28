@@ -29,12 +29,15 @@ function isWithin(date, filter) {
 
 export default function LeaderboardAdmin() {
   const baseUrl = "http://localhost:5000";
+  const navigate = useNavigate();
 
   const [players, setPlayers] = useState([]);
   const [collections, setCollections] = useState({});
   const [filter, setFilter] = useState("all");
   const [selectedCollection, setSelectedCollection] = useState("all");
   const [page, setPage] = useState(0);
+  const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [autoClear, setAutoClear] = useState({ interval: "day", target: "today", lastUpdated: null });
   const [tempAuto, setTempAuto] = useState(autoClear);
@@ -42,10 +45,6 @@ export default function LeaderboardAdmin() {
   const [manualRange, setManualRange] = useState("day");
   const [manualCol, setManualCol] = useState("all");
   const [showAutoModal, setShowAutoModal] = useState(false);
-  const navigate = useNavigate();
-
-  const [hoveredPlayerId, setHoveredPlayerId] = useState(null);
-  const pageSize = 5;
 
   // AlertModal states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -56,64 +55,74 @@ export default function LeaderboardAdmin() {
   const [pendingManualClear, setPendingManualClear] = useState(false);
   const [pendingClearCount, setPendingClearCount] = useState(0);
 
+  const pageSize = 5;
+
   useEffect(() => {
     async function fetchData() {
-      const [plRes, colRes, acRes] = await Promise.all([
-        fetch(`${baseUrl}/players`),
-        fetch(`${baseUrl}/collections`),
-        fetch(`${baseUrl}/auto-clear-config`)
-      ]);
-      const [plData, colData, acData] = await Promise.all([
-        plRes.json(), colRes.json(), acRes.json()
-      ]);
+      setLoading(true);
+      try {
+        // Fetch players and collections
+        const [playersRes, collectionsRes] = await Promise.all([
+          fetch(`${baseUrl}/players`),
+          fetch(`${baseUrl}/collections`),
+        ]);
+        const [playersData, collectionsData] = await Promise.all([
+          playersRes.json(),
+          collectionsRes.json(),
+        ]);
 
-      const done = plData.filter(p => p.finishedAt);
-      done.sort((a, b) => a.totalTimeInSeconds - b.totalTimeInSeconds);
-      setPlayers(done);
+        // Filter players who have finished and sort by time
+        const finishedPlayers = playersData
+          .filter(p => p.finishedAt)
+          .sort((a, b) => a.totalTimeInSeconds - b.totalTimeInSeconds);
+        setPlayers(finishedPlayers);
 
-      const cmap = {};
-      colData.forEach(c => cmap[c._id] = c.name);
-      setCollections(cmap);
+        // Create collections map
+        const collectionsMap = {};
+        collectionsData.forEach(c => (collectionsMap[c._id] = c.name));
+        setCollections(collectionsMap);
 
-      if (acData) {
-        const cfg = {
-          interval: acData.interval,
-          target: acData.target,
-          startDate: acData.startDate || "",
-          endDate: acData.endDate || "",
-          customIntervalValue: acData.customIntervalValue || "",
-          customIntervalUnit: acData.customIntervalUnit || "minute",
-          lastUpdated: acData.lastUpdated || new Date().toISOString()
-        };
-        setAutoClear(cfg);
-        setTempAuto(cfg);
+        // Fetch auto-clear configs for each collection
+        const autoClearConfigs = await Promise.all(
+          collectionsData.map(async (col) => {
+            const res = await fetch(`${baseUrl}/auto-clear-config/${col._id}`);
+            return res.status === 200 ? await res.json() : null;
+          })
+        );
+        const validConfig = autoClearConfigs.find(config => config) || autoClear;
+        setAutoClear(validConfig);
+        setTempAuto(validConfig);
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching leaderboard data:", err);
+        setModalTitle("Error");
+        setModalMessage("Failed to load leaderboard data.");
+        setShowErrorModal(true);
+        setLoading(false);
       }
     }
     fetchData();
   }, []);
 
-  const filtered = players.filter(p =>
+  useEffect(() => setPage(0), [filter, selectedCollection]);
+
+  const filteredPlayers = players.filter(p =>
     isWithin(p.finishedAt, filter) &&
     (selectedCollection === "all" || p.collectionId === selectedCollection)
   );
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+  const totalPages = Math.ceil(filteredPlayers.length / pageSize);
+  const pagedPlayers = filteredPlayers.slice(page * pageSize, (page + 1) * pageSize);
 
-  const formatTime = s => {
+  const formatTime = (s) => {
     const m = Math.floor(s / 60), sec = s % 60;
     const h = Math.floor(m / 60);
     return `${h > 0 ? `${h}h ` : ""}${m % 60}m ${sec}s`;
   };
 
-  const formatDate = dt => {
-    const date = new Date(dt);
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
-    const year = String(date.getFullYear()).slice(-2);
-    const hour = date.getHours().toString().padStart(2, '0');
-    const minute = date.getMinutes().toString().padStart(2, '0');
-    return `${day}/${month}/${year}, ${hour}:${minute}`;
-  };
+  const formatDate = (dateStr) => new Date(dateStr).toLocaleString("en-SG", {
+    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
 
   // Manual Clear
   const openManual = () => {
@@ -121,14 +130,12 @@ export default function LeaderboardAdmin() {
     setManualCol("all");
     setShowManualModal(true);
   };
+
   const closeManual = () => setShowManualModal(false);
 
-  // Fetch count and show confirmation modal
   const confirmManualClear = async () => {
     setShowManualModal(false);
-
-    // Filter players in frontend (since you already have all players)
-    const count = players.filter(p =>
+    const count = filteredPlayers.filter(p =>
       isWithin(p.finishedAt, manualRange) &&
       (manualCol === "all" || p.collectionId === manualCol)
     ).length;
@@ -150,17 +157,17 @@ export default function LeaderboardAdmin() {
         await fetch(`${baseUrl}/players/manual-clear/${manualRange}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(manualCol === "all" ? {} : { collectionId: manualCol })
+          body: JSON.stringify(manualCol === "all" ? {} : { collectionId: manualCol }),
         });
       }
       setModalTitle("Success");
-      setModalMessage("Players cleared.");
+      setModalMessage("Players cleared successfully.");
       setShowSuccessModal(true);
       setPage(0);
       setTimeout(() => window.location.reload(), 1200);
     } catch (e) {
       setModalTitle("Error");
-      setModalMessage("Failed to clear leaderboard");
+      setModalMessage("Failed to clear leaderboard.");
       setShowErrorModal(true);
     }
     setShowConfirmModal(false);
@@ -172,6 +179,7 @@ export default function LeaderboardAdmin() {
     setTempAuto(autoClear);
     setShowAutoModal(true);
   };
+
   const closeAuto = () => setShowAutoModal(false);
 
   const confirmAuto = async () => {
@@ -185,48 +193,23 @@ export default function LeaderboardAdmin() {
       ...(tempAuto.interval === "custom" && {
         customIntervalValue: Number(tempAuto.customIntervalValue),
         customIntervalUnit: tempAuto.customIntervalUnit,
-      })
+      }),
     };
-
-    const intervalToMinutes = {
-      minute: 1,
-      hour: 60,
-      day: 1440,
-      week: 10080,
-      month: 43200,
-    };
-
-    const targetThreshold = {
-      today: 1440,
-      week: 10080,
-      month: 43200,
-    };
-
-    const intervalMins = payload.customIntervalValue * intervalToMinutes[payload.customIntervalUnit];
-    const requiredMins = targetThreshold[payload.target] || 0;
-
-    if (tempAuto.interval === "custom" && intervalMins < requiredMins) {
-      setModalTitle("Invalid Interval");
-      setModalMessage("Custom interval too frequent for selected target range. Increase the interval or adjust target.");
-      setShowErrorModal(true);
-      setShowAutoModal(false);
-      return;
-    }
 
     try {
-      await fetch(`${baseUrl}/auto-clear-config`, {
+      await fetch(`${baseUrl}/auto-clear-config/${selectedCollection === "all" ? collections[Object.keys(collections)[0]] : selectedCollection}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       setAutoClear({ ...payload, lastUpdated: new Date().toISOString() });
       setModalTitle("Success");
-      setModalMessage("Auto-clear config saved.");
+      setModalMessage("Auto-clear configuration saved.");
       setShowSuccessModal(true);
       setShowAutoModal(false);
-    } catch {
+    } catch (e) {
       setModalTitle("Error");
-      setModalMessage("Failed to save auto-clear config");
+      setModalMessage("Failed to save auto-clear configuration.");
       setShowErrorModal(true);
     }
   };
@@ -238,149 +221,168 @@ export default function LeaderboardAdmin() {
     setPendingManualClear(false);
   };
 
-  return (
-    <>
+  if (loading) {
+    return (
       <div className="page-container">
-        <img src="/images/waterfall.jpg" className="page-background" alt="" />
+        <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
         <div className="page-overlay"></div>
-        <div className="page-content leaderboard-page">
-          <h1 className="leaderboard-title">Admin Leaderboard</h1>
+        <div className="page-content" style={{ textAlign: "center" }}>
+          <p>Loading leaderboard...</p>
+        </div>
+      </div>
+    );
+  }
 
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, justifyContent: "center" }}>
-            <select className="filter-select" value={filter} onChange={e => setFilter(e.target.value)}>
-              {FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-            </select>
-            <select className="filter-select" value={selectedCollection} onChange={e => setSelectedCollection(e.target.value)}>
-              <option value="all">All Collections</option>
-              {Object.entries(collections).map(([id, name]) => (
-                <option key={id} value={id}>{name}</option>
-              ))}
-            </select>
+  return (
+    <div className="page-container">
+      <img src="/images/waterfall.jpg" alt="Background" className="page-background" />
+      <div className="page-overlay"></div>
+      <div className="page-content leaderboard-page">
+        <h1 className="leaderboard-title">Admin Leaderboard</h1>
+
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, justifyContent: "center" }}>
+          <select className="filter-select" value={filter} onChange={e => setFilter(e.target.value)}>
+            {FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
+          <select className="filter-select" value={selectedCollection} onChange={e => setSelectedCollection(e.target.value)}>
+            <option value="all">All Collections</option>
+            {Object.entries(collections).map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+        </div>
+
+        {pagedPlayers.length === 0 ? (
+          <div style={{ textAlign: "center", margin: "40px 0" }}>
+            <p className="no-results">
+              No completed players in {selectedCollection === "all" ? "All Collections" : collections[selectedCollection]}.
+            </p>
+            {filter !== "all" && (
+              <p style={{ fontSize: "14px", color: "#666", marginTop: "10px" }}>
+                Try changing the time filter to see more results.
+              </p>
+            )}
           </div>
+        ) : (
+          <>
+            <table className="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Time</th>
+                  <th>Collection</th>
+                  <th>Date</th>
+                  <th>Redeemed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagedPlayers.map((player, index) => {
+                  const rank = filteredPlayers.findIndex(p => p._id === player._id) + 1;
+                  return (
+                    <tr
+                      key={player._id}
+                      style={{ backgroundColor: "rgba(255, 255, 255, 0.35)" }}
+                      onMouseEnter={() => setHoveredPlayerId(player._id)}
+                      onMouseLeave={() => setHoveredPlayerId(null)}
+                    >
+                      <td>{rank}</td>
+                      <td style={{ position: "relative" }}>
+                        {player.username}
+                        {hoveredPlayerId === player._id && (
+                          <div className="player-tooltip">
+                            <div><strong>Collection:</strong> {collections[player.collectionId] || "Unknown"}</div>
+                            <div><strong>Finished:</strong> {formatDate(player.finishedAt)}</div>
+                            {player.redeemed && <div><strong>Redeemed:</strong> {formatDate(player.redeemedAt)}</div>}
+                          </div>
+                        )}
+                      </td>
+                      <td>{formatTime(player.totalTimeInSeconds)}</td>
+                      <td>{collections[player.collectionId] || "Unknown"}</td>
+                      <td>{formatDate(player.finishedAt)}</td>
+                      <td>{player.redeemed ? "✓" : "✗"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
-          {paged.length === 0 ? (
-            <p className="no-results">No completed players.</p>
-          ) : (
-            <>
-              <table className="leaderboard-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th><th>Name</th><th>Time</th><th>Collection</th><th>Date</th><th>Redeemed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paged.map((p, i) => {
-                    const rank = i + 1 + page * pageSize;
-                    const getRowStyle = () => {
-                      return { backgroundColor: "rgba(255, 255, 255, 0.35)" };
-                    };
+            {totalPages > 1 && (
+              <div className="pagination" style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "20px",
+                margin: "20px 0",
+                maxWidth: "300px",
+                marginLeft: "auto",
+                marginRight: "auto"
+              }}>
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  style={{ minWidth: "80px" }}
+                >
+                  ← Prev
+                </button>
+                <span style={{ textAlign: "center", minWidth: "100px" }}>
+                  Page {page + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  style={{ minWidth: "80px" }}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
-                    return (
-                      <tr
-                        key={p._id}
-                        style={getRowStyle()}
-                        onMouseEnter={() => setHoveredPlayerId(p._id)}
-                        onMouseLeave={() => setHoveredPlayerId(null)}
-                      >
-                        <td>{rank}</td>
-                        <td style={{ position: "relative" }}>
-                          {p.username}
-                          {hoveredPlayerId === p._id && (
-                            <div className="player-tooltip">
-                              <div><strong>Collection:</strong> {collections[p.collectionId] || "Unknown"}</div>
-                              <div><strong>Finished:</strong> {formatDate(p.finishedAt)}</div>
-                              {p.redeemed && <div><strong>Redeemed:</strong> {formatDate(p.redeemedAt)}</div>}
-                            </div>
-                          )}
-                        </td>
-                        <td>{formatTime(p.totalTimeInSeconds)}</td>
-                        <td>{collections[p.collectionId] || "Unknown"}</td>
-                        <td>{formatDate(p.finishedAt)}</td>
-                        <td>{p.redeemed ? "✓" : "✗"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {totalPages > 1 && (
-                <div className="pagination" style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "20px",
-                  margin: "20px 0",
-                  maxWidth: "300px",
-                  marginLeft: "auto",
-                  marginRight: "auto"
-                }}>
-                  <button
-                    onClick={() => setPage(x => Math.max(0, x - 1))}
-                    disabled={page === 0}
-                    style={{ minWidth: "80px" }}
-                  >
-                    ← Prev
-                  </button>
-                  <span style={{ textAlign: "center", minWidth: "100px" }}>
-                    Page {page + 1} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage(x => Math.min(totalPages - 1, x + 1))}
-                    disabled={page >= totalPages - 1}
-                    style={{ minWidth: "80px" }}
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          <div style={{
-            marginTop: 30,
-            display: "flex",
-            gap: 12,
-            justifyContent: "center",
-            flexWrap: "wrap"
-          }}>
-            <button
-              onClick={openManual}
-              style={{
-                padding: "10px 20px",
-                fontSize: "14px",
-                borderRadius: "8px",
-                border: "none",
-                background: "#ff6b6b",
-                color: "white",
-                cursor: "pointer",
-                minWidth: "120px"
-              }}
-            >
-              Manual Clear
-            </button>
-            <button
-              onClick={openAuto}
-              style={{
-                padding: "10px 20px",
-                fontSize: "14px",
-                borderRadius: "8px",
-                border: "none",
-                background: "#4ecdc4",
-                color: "white",
-                cursor: "pointer",
-                minWidth: "120px"
-              }}
-            >
-              Auto-Clear
-            </button>
-            <button className="return-button" style={{ minWidth: "120px" }} onClick={() => navigate("/admin")}>
-              Return
-            </button>
-          </div>
+        <div style={{
+          marginTop: 30,
+          display: "flex",
+          gap: 12,
+          justifyContent: "center",
+          flexWrap: "wrap"
+        }}>
+          <button
+            onClick={openManual}
+            style={{
+              padding: "10px 20px",
+              fontSize: "14px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#ff6b6b",
+              color: "white",
+              cursor: "pointer",
+              minWidth: "120px"
+            }}
+          >
+            Manual Clear
+          </button>
+          <button
+            onClick={openAuto}
+            style={{
+              padding: "10px 20px",
+              fontSize: "14px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#4ecdc4",
+              color: "white",
+              cursor: "pointer",
+              minWidth: "120px"
+            }}
+          >
+            Auto-Clear
+          </button>
+          <button className="return-button" style={{ minWidth: "120px" }} onClick={() => navigate("/admin")}>
+            Return
+          </button>
         </div>
       </div>
 
-      {/* Modals */}
       <ManualClearModal
         isOpen={showManualModal}
         manualRange={manualRange}
@@ -400,7 +402,6 @@ export default function LeaderboardAdmin() {
         onClose={closeAuto}
       />
 
-      {/* AlertModals */}
       <AlertModal
         isOpen={showConfirmModal && pendingManualClear}
         onClose={handleModalClose}
@@ -430,6 +431,6 @@ export default function LeaderboardAdmin() {
         type="error"
         showCancel={false}
       />
-    </>
+    </div>
   );
 }
