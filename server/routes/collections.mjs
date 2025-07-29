@@ -107,37 +107,6 @@ router.get('/code/:code', async (req, res) => {
   }
 });
 
-
-
-// Get questions by collection code 
-// router.get('/:code/questions', async (req, res) => {
-//   try {
-//     const collection = await Collection.findOne({
-//       code: req.params.code,
-//       isOnline: true
-//     }).populate('questionOrder');
-
-//     if (!collection) {
-//       return res.status(404).json({ message: 'Collection not found or is offline' });
-//     }
-
-//     let questions;
-//     if (collection.questionOrder?.length) {
-//       questions = collection.questionOrder;
-//     } else {
-//       questions = await Question.find({ collectionId: collection._id });
-//     }
-
-//     res.status(200).json({
-//       collection: collection.name,
-//       code: collection.code,
-//       questions
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Failed to fetch questions', error: error.message });
-//   }
-// });
-
 // Get effective settings
 router.get('/:id/effective-settings', async (req, res) => {
   try {
@@ -294,8 +263,8 @@ router.patch('/:id/game-settings', async (req, res) => {
   }
 });
 
-// Delete collection
-router.delete('/:id', async (req, res) => {
+// Delete collection and associated players
+router.delete("/:id", async (req, res) => {
   try {
     const collection = await Collection.findById(req.params.id);
     if (!collection) {
@@ -304,14 +273,22 @@ router.delete('/:id', async (req, res) => {
 
     if (collection.isPublic) {
       return res.status(403).json({
-        message: "Cannot delete a public collection. Set it offline instead."
+        message: "Cannot delete a public collection. Set it offline instead.",
       });
     }
 
+    // Delete all players associated with this collection
+    const playerDeleteResult = await Player.deleteMany({ collectionId: new ObjectId(req.params.id) });
+
+    // Delete the collection
     await Collection.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Collection deleted successfully." });
+
+    res.status(200).json({
+      message: "Collection and associated players deleted successfully.",
+      deletedPlayersCount: playerDeleteResult.deletedCount,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete collection", error: error.message });
+    res.status(500).json({ message: "Failed to delete collection and players", error: error.message });
   }
 });
 

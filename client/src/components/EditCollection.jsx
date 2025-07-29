@@ -197,7 +197,7 @@ const EditCollection = () => {
       setShowErrorModal(true);
     } else {
       setModalTitle("Confirm Delete");
-      setModalMessage("Are you sure you want to delete this collection?");
+      setModalMessage("Are you sure you want to delete this collection? Players data will be lost but Questions will be preserved.");
       setShowDeleteConfirmModal(true);
     }
   };
