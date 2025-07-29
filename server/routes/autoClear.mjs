@@ -4,38 +4,57 @@ import AutoClearLog from '../models/autoClearLogsdb.mjs';
 
 const router = express.Router();
 
-// GET config for a specific collection
+// GET config for a collection
 router.get('/:collectionId', async (req, res) => {
-  const { collectionId } = req.params;
   try {
-    const config = await AutoClearConfig.findOne({ collectionId });
-    if (!config) return res.status(404).json({ message: 'No config found' });
+    const config = await AutoClearConfig.findOne({ collectionId: req.params.collectionId });
+    if (!config) return res.status(404).send("No config found");
     res.status(200).json(config);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch config', error: err.message });
   }
 });
 
-// CREATE or UPDATE config for a specific collection
+// POST config for a collection
 router.post('/:collectionId', async (req, res) => {
   const { collectionId } = req.params;
   const { interval, target, startDate, endDate, customIntervalValue, customIntervalUnit } = req.body;
 
+  // Validate interval
   if (!['day', 'week', 'month', 'custom'].includes(interval)) {
     return res.status(400).send("Invalid interval");
   }
-  if (!['today', 'week', 'month', 'custom', 'all'].includes(target)) {
-    return res.status(400).send("Invalid target");
+
+  // Validate target based on interval
+  const validTargets = {
+    day: ['today', 'custom', 'all'],
+    week: ['today', 'week', 'custom', 'all'],
+    month: ['today', 'week', 'month', 'custom', 'all'],
+    custom: ['today', 'week', 'month', 'all'],
+  };
+  if (!validTargets[interval].includes(target)) {
+    return res.status(400).send(`Invalid target for interval ${interval}`);
   }
-  if ((interval === 'custom' && (!customIntervalValue || !customIntervalUnit)) ||
-      (target === 'custom' && (!startDate || !endDate))) {
-    return res.status(400).send("Required fields missing for custom interval/target");
+
+  // Validate required fields
+  if (target === 'custom' && (!startDate || !endDate)) {
+    return res.status(400).send("Start and end dates required for custom target");
+  }
+  if (interval === 'custom' && (!customIntervalValue || !customIntervalUnit)) {
+    return res.status(400).send("Custom interval value and unit required for custom interval");
   }
 
   try {
     const config = await AutoClearConfig.findOneAndUpdate(
       { collectionId },
-      { interval, target, startDate, endDate, customIntervalValue, customIntervalUnit },
+      { 
+        interval, 
+        target, 
+        startDate: target === 'custom' ? startDate : null, 
+        endDate: target === 'custom' ? endDate : null, 
+        customIntervalValue: interval === 'custom' ? Number(customIntervalValue) : null, 
+        customIntervalUnit: interval === 'custom' ? customIntervalUnit : null 
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.status(200).json({ message: "Config saved", config });
@@ -43,26 +62,31 @@ router.post('/:collectionId', async (req, res) => {
     res.status(500).json({ message: 'Failed to save config', error: err.message });
   }
 });
-// DELETE config for a specific collection
+
+// DELETE config for a collection
 router.delete('/:collectionId', async (req, res) => {
-  const { collectionId } = req.params;
   try {
-    const result = await AutoClearConfig.findOneAndDelete({ collectionId });
-    if (!result) return res.status(404).json({ message: 'No config found to delete' });
-    res.status(200).json({ message: 'Config deleted' });
+    const result = await AutoClearConfig.deleteOne({ collectionId: req.params.collectionId });
+    if (result.deletedCount === 0) {
+      return res.status(404).send("No config found to delete");
+    }
+    res.status(200).json({ message: "Auto-clear config deleted" });
   } catch (err) {
-    res.status(500).json({ message: 'Delete failed', error: err.message });
+    res.status(500).json({ message: 'Failed to delete config', error: err.message });
   }
 });
 
+// GET logs for a collection
 router.get('/:collectionId/logs', async (req, res) => {
-  const { collectionId } = req.params;
   try {
-    const logs = await AutoClearLog.find({ collectionId }).sort({ clearedAt: -1 });
+    const logs = await AutoClearLog.find({ collectionId: req.params.collectionId })
+      .sort({ clearedAt: -1 }) // Newest first
+      .limit(30); // Limit to 30 logs
     res.status(200).json(logs);
   } catch (err) {
-    res.status(500).json({ message: 'Could not fetch logs', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch logs', error: err.message });
   }
 });
 
 export default router;
+

@@ -14,6 +14,7 @@ import Player from './models/playerdb.mjs';
 import BadUsername from './routes/badUsername.mjs';
 import globalSettingsRoutes from "./routes/globalSettings.mjs";
 import landingCustomisationRoutes from './routes/landingCustomisation.mjs';
+import AutoClearLog from './models/autoClearLogsdb.mjs';
 
 dotenv.config();
 
@@ -72,7 +73,7 @@ setInterval(async () => {
 
       // Determine if clearing is due based on interval
       if (config.interval === "day") {
-        due = now - last >= 10 * 1000; // 10 seconds for testing
+        due = now - last >= 10 * 1000; // 10 seconds for testing (use 24 * 60 * 60 * 1000 in production)
       } else if (config.interval === "week") {
         due = now - last >= 7 * 24 * 60 * 60 * 1000;
       } else if (config.interval === "month") {
@@ -91,7 +92,7 @@ setInterval(async () => {
 
       if (!due) continue;
 
-      let filter = { collectionId: config.collectionId }; // Restrict to this collection
+      let filter = { collectionId: config.collectionId };
       if (config.target === "today") {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -120,7 +121,12 @@ setInterval(async () => {
         const start = new Date(config.startDate);
         const end = new Date(config.endDate);
         end.setHours(23, 59, 59, 999);
+        if (now < start) continue;
         filter.finishedAt = { $gte: start, $lte: end };
+        if (now > end) {
+          config.target = "all";
+          await config.save();
+        }
       } else if (config.target === "all") {
         filter.finishedAt = { $lte: now };
       }
@@ -137,8 +143,19 @@ setInterval(async () => {
         target: config.target,
         range: config.target === "custom" ? { start: config.startDate, end: config.endDate } : undefined,
         clearedCount: result.deletedCount,
-        clearedIds: result.deletedIds || [], 
+        clearedIds: result.deletedIds || [],
       });
+
+      // Delete logs beyond the 30 most recent for this collection
+      const logs = await AutoClearLog.find({ collectionId: config.collectionId })
+        .sort({ clearedAt: -1 }) // Sort by newest first
+        .skip(30); // Skip the 30 most recent logs
+      if (logs.length > 0) {
+        await AutoClearLog.deleteMany({
+          collectionId: config.collectionId,
+          _id: { $in: logs.map(log => log._id) },
+        });
+      }
 
       console.log(
         `[AUTO CLEAR] Collection ${config.collectionId}: Deleted ${result.deletedCount} players (Target: ${config.target})`

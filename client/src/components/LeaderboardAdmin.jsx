@@ -64,6 +64,7 @@ export default function LeaderboardAdmin() {
   const [modalMessage, setModalMessage] = useState("");
   const [pendingManualClear, setPendingManualClear] = useState(false);
   const [pendingClearCount, setPendingClearCount] = useState(0);
+  const [pendingDeleteConfig, setPendingDeleteConfig] = useState(false);
 
   const pageSize = 5;
 
@@ -71,7 +72,6 @@ export default function LeaderboardAdmin() {
     async function fetchData() {
       setLoading(true);
       try {
-        // Fetch players and collections
         const [playersRes, collectionsRes] = await Promise.all([
           fetch(`${baseUrl}/players`),
           fetch(`${baseUrl}/collections`),
@@ -81,18 +81,15 @@ export default function LeaderboardAdmin() {
           collectionsRes.json(),
         ]);
 
-        // Filter players who have finished and sort by time
         const finishedPlayers = playersData
           .filter(p => p.finishedAt)
           .sort((a, b) => a.totalTimeInSeconds - b.totalTimeInSeconds);
         setPlayers(finishedPlayers);
 
-        // Create collections map
         const collectionsMap = {};
         collectionsData.forEach(c => (collectionsMap[c._id] = c.name));
         setCollections(collectionsMap);
 
-        // Fetch auto-clear configs for each collection
         const configs = await Promise.all(
           collectionsData.map(async (col) => {
             const res = await fetch(`${baseUrl}/auto-clear-config/${col._id}`);
@@ -263,6 +260,39 @@ export default function LeaderboardAdmin() {
     }
   };
 
+  const deleteAuto = async () => {
+    setShowAutoModal(false);
+    setModalTitle("Confirm Delete");
+    setModalMessage(`Are you sure you want to delete the auto-clear configuration for ${collections[selectedConfigCollection]}? This will stop all auto-clearing for this collection.`);
+    setPendingDeleteConfig(true);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDeleteAuto = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/auto-clear-config/${selectedConfigCollection}`, {
+        method: "DELETE",
+      });
+      if (response.status === 200) {
+        setAutoClearConfigs({
+          ...autoClearConfigs,
+          [selectedConfigCollection]: null,
+        });
+        setModalTitle("Success");
+        setModalMessage(`Auto-clear configuration deleted for ${collections[selectedConfigCollection]}.`);
+        setShowSuccessModal(true);
+      } else {
+        throw new Error("Failed to delete config");
+      }
+    } catch (e) {
+      setModalTitle("Error");
+      setModalMessage("Failed to delete auto-clear configuration.");
+      setShowErrorModal(true);
+    }
+    setShowConfirmModal(false);
+    setPendingDeleteConfig(false);
+  };
+
   // View Logs
   const openLogs = () => {
     if (selectedCollection === "all") {
@@ -280,6 +310,7 @@ export default function LeaderboardAdmin() {
     setShowErrorModal(false);
     setShowConfirmModal(false);
     setPendingManualClear(false);
+    setPendingDeleteConfig(false);
   };
 
   if (loading) {
@@ -316,14 +347,8 @@ export default function LeaderboardAdmin() {
         {selectedCollection !== "all" && autoClearConfigs[selectedCollection] && (
           <div style={{ textAlign: "center", marginBottom: 20 }}>
             <p style={{ fontSize: "0.9em", color: "#666" }}>
-              <strong>Auto-Clear Config:</strong> Interval: {autoClearConfigs[selectedCollection].interval}, 
-              Target: {autoClearConfigs[selectedCollection].target}
-              {autoClearConfigs[selectedCollection].interval === "custom" && (
-                <span>, Custom: {autoClearConfigs[selectedCollection].customIntervalValue} {autoClearConfigs[selectedCollection].customIntervalUnit}</span>
-              )}
-              {autoClearConfigs[selectedCollection].target === "custom" && (
-                <span>, Range: {new Date(autoClearConfigs[selectedCollection].startDate).toLocaleDateString()} - {new Date(autoClearConfigs[selectedCollection].endDate).toLocaleDateString()}</span>
-              )}
+              <strong>Auto-Clear Config:</strong> Clear {autoClearConfigs[selectedCollection].interval === "custom" ? `every ${autoClearConfigs[selectedCollection].customIntervalValue} ${autoClearConfigs[selectedCollection].customIntervalUnit}` : `every ${autoClearConfigs[selectedCollection].interval}`} 
+              {autoClearConfigs[selectedCollection].target === "custom" ? `, data from ${new Date(autoClearConfigs[selectedCollection].startDate).toLocaleDateString()} to ${new Date(autoClearConfigs[selectedCollection].endDate).toLocaleDateString()}` : `, ${autoClearConfigs[selectedCollection].target} data`}
             </p>
           </div>
         )}
@@ -491,6 +516,7 @@ export default function LeaderboardAdmin() {
         setTempAuto={setTempAuto}
         onConfirm={confirmAuto}
         onClose={closeAuto}
+        onDelete={deleteAuto}
         collectionName={collections[selectedConfigCollection] || "Selected Collection"}
       />
       <AutoClearLogModal
@@ -502,12 +528,12 @@ export default function LeaderboardAdmin() {
         onClose={() => setShowLogModal(false)}
       />
       <AlertModal
-        isOpen={showConfirmModal && pendingManualClear}
+        isOpen={showConfirmModal && (pendingManualClear || pendingDeleteConfig)}
         onClose={handleModalClose}
-        onConfirm={doManualClear}
+        onConfirm={pendingManualClear ? doManualClear : confirmDeleteAuto}
         title={modalTitle}
         message={modalMessage}
-        confirmText="Clear"
+        confirmText={pendingManualClear ? "Clear" : "Delete"}
         cancelText="Cancel"
         type="warning"
         showCancel={true}

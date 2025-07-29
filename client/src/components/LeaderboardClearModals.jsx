@@ -42,12 +42,11 @@ export function ManualClearModal({ isOpen, manualRange, setManualRange, manualCo
   );
 }
 
-export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onConfirm, onClose, collectionName }) {
+export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onConfirm, onClose, onDelete, collectionName }) {
   if (!isOpen) return null;
 
   const isCustomIntervalInvalid =
     tempAuto.interval === "custom" && (!tempAuto.customIntervalValue || !tempAuto.customIntervalUnit);
-
   const isSaveDisabled =
     (tempAuto.target === "custom" && (!tempAuto.startDate || !tempAuto.endDate)) ||
     isCustomIntervalInvalid;
@@ -57,36 +56,55 @@ export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onCon
     { label: "Weekly", value: "week" },
     { label: "Monthly", value: "month" },
     { label: "Custom Interval", value: "custom" },
-  ].filter((interval) => {
-    if (tempAuto.target === "today") return true;
-    if (tempAuto.target === "week") return ["week", "month", "custom"].includes(interval.value);
-    if (tempAuto.target === "month") return ["month", "custom"].includes(interval.value);
-    if (tempAuto.target === "all" || tempAuto.target === "custom") return true;
-    return false;
+  ];
+
+  const availableTargets = [
+    { label: "Today", value: "today" },
+    { label: "This Week", value: "week" },
+    { label: "This Month", value: "month" },
+    { label: "Custom Range", value: "custom" },
+    { label: "All Players", value: "all" },
+  ].filter((target) => {
+    if (tempAuto.interval === "day") return ["today", "custom", "all"].includes(target.value);
+    if (tempAuto.interval === "week") return ["today", "week", "custom", "all"].includes(target.value);
+    if (tempAuto.interval === "month") return true;
+    if (tempAuto.interval === "custom") return ["today", "week", "month", "all"].includes(target.value);
+    return true;
   });
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ color: "black" }}>
+      <div className="modal-content" style={{ color: "black", maxWidth: "500px", width: "90%" }}>
         <h3 style={{ color: "black" }}>Auto-Clear Configuration for {collectionName}</h3>
         {autoClear && (
           <p style={{ fontSize: "0.9em", color: "black", marginBottom: "10px" }}>
-            <strong style={{ color: "black" }}>Current:</strong> Interval: {autoClear.interval}, 
-            Target: {autoClear.target}
-            {autoClear.interval === "custom" && (
-              <span>, Custom: {autoClear.customIntervalValue} {autoClear.customIntervalUnit}</span>
-            )}
-            {autoClear.target === "custom" && (
-              <span>, Range: {new Date(autoClear.startDate).toLocaleDateString()} - {new Date(autoClear.endDate).toLocaleDateString()}</span>
-            )}
+            <strong style={{ color: "black" }}>Current:</strong> Clear {autoClear.interval === "custom" ? `every ${autoClear.customIntervalValue} ${autoClear.customIntervalUnit}` : `every ${autoClear.interval}`} 
+            {autoClear.target === "custom" ? `, data from ${new Date(autoClear.startDate).toLocaleDateString()} to ${new Date(autoClear.endDate).toLocaleDateString()}` : `, ${autoClear.target} data`}
           </p>
         )}
 
         <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
-          <label style={{ color: "black" }}>Interval:</label>
+          <label style={{ color: "black", fontWeight: "bold" }}>Clear Frequency:</label>
           <select
             value={tempAuto.interval}
-            onChange={(e) => setTempAuto((t) => ({ ...t, interval: e.target.value }))}
+            onChange={(e) => {
+              const newInterval = e.target.value;
+              const validTargets = {
+                day: ["today", "custom", "all"],
+                week: ["today", "week", "custom", "all"],
+                month: ["today", "week", "month", "custom", "all"],
+                custom: ["today", "week", "month", "all"],
+              };
+              const newTarget = validTargets[newInterval].includes(tempAuto.target) ? tempAuto.target : "today";
+              setTempAuto((t) => ({ 
+                ...t, 
+                interval: newInterval, 
+                target: newTarget,
+                customIntervalValue: newInterval === "custom" ? t.customIntervalValue || 1 : null,
+                customIntervalUnit: newInterval === "custom" ? t.customIntervalUnit || "minute" : null,
+              }));
+            }}
+            style={{ width: "100%", padding: "5px" }}
           >
             {availableIntervals.map((interval) => (
               <option key={interval.value} value={interval.value}>
@@ -97,71 +115,120 @@ export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onCon
         </div>
 
         {tempAuto.interval === "custom" && (
-          <div style={{ marginTop: 10, textAlign: "left", color: "black" }}>
-            <label style={{ color: "black" }}>Custom Interval:</label>
-            <input
-              type="number"
-              min="1"
-              value={tempAuto.customIntervalValue || ""}
-              onChange={(e) => setTempAuto((t) => ({ ...t, customIntervalValue: e.target.value }))}
-              placeholder="Enter number"
-              style={{ color: "black" }}
-            />
-            <select
-              value={tempAuto.customIntervalUnit || "minute"}
-              onChange={(e) => setTempAuto((t) => ({ ...t, customIntervalUnit: e.target.value }))}
-            >
-              <option value="minute">Minutes</option>
-              <option value="hour">Hours</option>
-              <option value="day">Days</option>
-            </select>
+          <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
+            <label style={{ color: "black", fontWeight: "bold" }}>Custom Frequency:</label>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <input
+                type="number"
+                min="1"
+                value={tempAuto.customIntervalValue || ""}
+                onChange={(e) => setTempAuto((t) => ({ ...t, customIntervalValue: e.target.value }))}
+                placeholder="Enter number"
+                style={{ color: "black", width: "120px", padding: "5px" }}
+              />
+              <select
+                value={tempAuto.customIntervalUnit || "minute"}
+                onChange={(e) => setTempAuto((t) => ({ ...t, customIntervalUnit: e.target.value }))}
+                style={{ padding: "5px" }}
+              >
+                <option value="minute">Minutes</option>
+                <option value="hour">Hours</option>
+                <option value="day">Days</option>
+              </select>
+            </div>
           </div>
         )}
 
         <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
-          <label style={{ color: "black" }}>Target Range:</label>
+          <label style={{ color: "black", fontWeight: "bold" }}>Data to Clear:</label>
           <select
             value={tempAuto.target}
-            onChange={(e) => setTempAuto((t) => ({ ...t, target: e.target.value }))}
+            onChange={(e) => setTempAuto((t) => ({ 
+              ...t, 
+              target: e.target.value,
+              startDate: e.target.value === "custom" ? t.startDate || new Date().toISOString().slice(0, 10) : null,
+              endDate: e.target.value === "custom" ? t.endDate || new Date().toISOString().slice(0, 10) : null,
+            }))}
+            style={{ width: "100%", padding: "5px" }}
           >
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="custom">Custom Range</option>
-            <option value="all">All Players</option>
+            {availableTargets.map((target) => (
+              <option key={target.value} value={target.value}>
+                {target.label}
+              </option>
+            ))}
           </select>
         </div>
 
         {tempAuto.target === "custom" && (
           <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
-            <label style={{ color: "black" }}>Start Date:</label>
-            <input
-              type="date"
-              value={tempAuto.startDate?.slice(0, 10) || ""}
-              onChange={(e) => setTempAuto((t) => ({ ...t, startDate: e.target.value }))}
-              style={{ color: "black" }}
-            />
-            <br />
-            <label style={{ color: "black" }}>End Date:</label>
-            <input
-              type="date"
-              value={tempAuto.endDate?.slice(0, 10) || ""}
-              onChange={(e) => setTempAuto((t) => ({ ...t, endDate: e.target.value }))}
-              style={{ color: "black" }}
-            />
+            <label style={{ color: "black", fontWeight: "bold" }}>Date Range:</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <label style={{ color: "black" }}>Start:</label>
+                <input
+                  type="date"
+                  value={tempAuto.startDate?.slice(0, 10) || ""}
+                  onChange={(e) => setTempAuto((t) => ({ ...t, startDate: e.target.value }))}
+                  style={{ color: "black", padding: "5px" }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <label style={{ color: "black" }}>End:</label>
+                <input
+                  type="date"
+                  value={tempAuto.endDate?.slice(0, 10) || ""}
+                  onChange={(e) => setTempAuto((t) => ({ ...t, endDate: e.target.value }))}
+                  style={{ color: "black", padding: "5px" }}
+                />
+              </div>
+            </div>
           </div>
         )}
 
-        <button
-          onClick={onConfirm}
-          style={{ marginRight: 10, color: "black" }}
-          disabled={isSaveDisabled}
-        >
-          Save
-        </button>
-        <button onClick={onClose} style={{ color: "black" }}>
-          Cancel
-        </button>
+        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "15px" }}>
+          {autoClear && (
+            <button
+              onClick={onDelete}
+              style={{ 
+                padding: "8px 16px", 
+                borderRadius: "4px", 
+                border: "none", 
+                background: "#ff6b6b", 
+                color: "white", 
+                cursor: "pointer" 
+              }}
+            >
+              Delete Config
+            </button>
+          )}
+          <button
+            onClick={onConfirm}
+            style={{ 
+              padding: "8px 16px", 
+              borderRadius: "4px", 
+              border: "none", 
+              background: isSaveDisabled ? "#ccc" : "#4ecdc4", 
+              color: "white", 
+              cursor: isSaveDisabled ? "not-allowed" : "pointer" 
+            }}
+            disabled={isSaveDisabled}
+          >
+            Save
+          </button>
+          <button 
+            onClick={onClose} 
+            style={{ 
+              padding: "8px 16px", 
+              borderRadius: "4px", 
+              border: "1px solid #ddd", 
+              background: "transparent", 
+              color: "black", 
+              cursor: "pointer" 
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -170,6 +237,7 @@ export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onCon
 export function AutoClearLogModal({ isOpen, collections, logs, setLogCollection, logCollection, onClose }) {
   const [page, setPage] = useState(0);
   const pageSize = 3;
+  const maxPages = 10; // Limit to 10 pages (30 logs)
 
   if (!isOpen) return null;
 
@@ -178,17 +246,17 @@ export function AutoClearLogModal({ isOpen, collections, logs, setLogCollection,
   });
 
   const filteredLogs = logs.filter(log => logCollection === "all" || log.collectionId === logCollection);
-  const totalPages = Math.ceil(filteredLogs.length / pageSize);
+  const totalPages = Math.min(Math.ceil(filteredLogs.length / pageSize), maxPages);
   const pagedLogs = filteredLogs.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <div className="modal-overlay">
       <div className="modal-content" style={{ 
         color: "black", 
-        maxWidth: "500px", // Reduced width
-        width: "90%", // Responsive width for smaller screens
-        maxHeight: "80vh", // Limit height to 80% of viewport
-        overflowY: "auto" // Scroll if content exceeds height
+        maxWidth: "500px", 
+        width: "90%", 
+        maxHeight: "80vh", 
+        overflowY: "auto" 
       }}>
         <h3 style={{ color: "black", marginBottom: "10px" }}>Auto-Clear Logs</h3>
         <div style={{ marginBottom: "10px", textAlign: "left", color: "black" }}>
@@ -197,7 +265,7 @@ export function AutoClearLogModal({ isOpen, collections, logs, setLogCollection,
             value={logCollection}
             onChange={(e) => {
               setLogCollection(e.target.value);
-              setPage(0); // Reset to first page when collection changes
+              setPage(0);
             }}
             style={{ width: "100%", padding: "5px" }}
           >
@@ -213,12 +281,12 @@ export function AutoClearLogModal({ isOpen, collections, logs, setLogCollection,
           </p>
         ) : (
           <>
-            <div style={{ overflowX: "auto" }}> {/* Horizontal scroll for table if needed */}
+            <div style={{ overflowX: "auto" }}>
               <table style={{ 
                 width: "100%", 
                 borderCollapse: "collapse", 
                 color: "black",
-                fontSize: "14px" // Smaller font for compactness
+                fontSize: "14px"
               }}>
                 <thead>
                   <tr>

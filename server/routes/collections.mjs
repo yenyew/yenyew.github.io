@@ -8,10 +8,13 @@ const router = express.Router();
 // Get all collections
 router.get('/', async (req, res) => {
   try {
-    const results = await Collection.find({});
-    res.status(200).json(results);
+    const collections = await Collection.find({}).lean();
+    for (const col of collections) {
+      col.questionCount = await Question.countDocuments({ collectionId: col._id });
+    }
+    res.status(200).json(collections);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
