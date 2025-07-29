@@ -1,27 +1,26 @@
 import express from 'express';
 import Question from '../models/questionsdb.mjs';
+import Collection from '../models/collectiondb.mjs';
 import mongoose from 'mongoose';
-import multer from "multer";
-const upload = multer({ dest: "uploads/" });
+import multer from 'multer';
+const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
 
 // Get all questions (optionally filtered by collectionId)
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { collectionId } = req.query;
-    const filter = collectionId
-      ? { collectionId }
-      : {};
+    const filter = collectionId ? { collectionId } : {};
     const questions = await Question.find(filter);
     res.status(200).json(questions);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Get a specific question by number (scoped by collectionId in query params)
-router.get("/:number/:collectionId", async (req, res) => {
+// Get a specific question by number (scoped by collectionId)
+router.get('/:number/:collectionId', async (req, res) => {
   try {
     const { number, collectionId } = req.params;
     const result = await Question.findOne({
@@ -29,26 +28,30 @@ router.get("/:number/:collectionId", async (req, res) => {
       collectionId,
     });
     if (!result) {
-      return res.status(404).json({ message: "Question not found in this collection." });
+      return res.status(404).json({ message: 'Question not found in this collection.' });
     }
-    res.status(200).json({ message: "Record found", data: result });
+    res.status(200).json({ message: 'Record found', data: result });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 // Create a new question (supports image upload)
-router.post("/", upload.single("image"), async (req, res) => {
+router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { number, collectionId, question, hint, answer, funFact, type, options } = req.body;
+
+    // Validate collectionId
+    if (!mongoose.Types.ObjectId.isValid(collectionId)) {
+      return res.status(400).json({ message: 'Invalid collectionId' });
+    }
+
     // Check for duplicate question number in the collection
-    const existing = await Question.findOne({
-      number,
-      collectionId,
-    });
+    const existing = await Question.findOne({ number, collectionId });
     if (existing) {
       return res.status(400).json({ message: `Question ${number} already exists in this collection.` });
     }
+
     const newQuestion = {
       number,
       collectionId,
@@ -57,29 +60,69 @@ router.post("/", upload.single("image"), async (req, res) => {
       answer,
       funFact,
       type,
-      ...(type === "mcq" || type === "multiple-choice" ? { options } : {}),
+      ...(type === 'mcq' || type === 'multiple-choice' ? { options } : {}),
       ...(req.file ? { image: req.file.path } : {}),
     };
+
     const result = await Question.create(newQuestion);
+
+    // Add question ID to collection's questionOrder
+    await Collection.findByIdAndUpdate(
+      collectionId,
+      { $addToSet: { questionOrder: result._id } },
+      { runValidators: true }
+    );
+
     res.status(201).json(result);
   } catch (error) {
-    console.error("Error creating question:", error);
-    res.status(500).json({ message: "Server error while creating question", error: error.message });
+    console.error('Error creating question:', error);
+    res.status(500).json({ message: 'Server error while creating question', error: error.message });
   }
 });
 
 // Update a question (scoped by number + collectionId)
-router.patch("/:number/:collectionId", upload.single("image"), async (req, res) => {
+router.patch('/:number/:collectionId', upload.single('image'), async (req, res) => {
   try {
     const { number, collectionId } = req.params;
+    const { newCollectionId } = req.body;
+
+    // Validate collectionId
+    if (!mongoose.Types.ObjectId.isValid(collectionId)) {
+      return res.status(400).json({ message: 'Invalid collectionId' });
+    }
+
     const questionDoc = await Question.findOne({
       number: parseInt(number),
       collectionId,
     });
     if (!questionDoc) {
-      return res.status(404).json({ message: "Question not found in this collection." });
+      return res.status(404).json({ message: 'Question not found in this collection.' });
     }
-    // Update fields from form
+
+    // If changing collectionId, update questionOrder
+    if (newCollectionId && newCollectionId !== collectionId) {
+      if (!mongoose.Types.ObjectId.isValid(newCollectionId)) {
+        return res.status(400).json({ message: 'Invalid newCollectionId' });
+      }
+
+      // Remove from old collection's questionOrder
+      await Collection.findByIdAndUpdate(
+        collectionId,
+        { $pull: { questionOrder: questionDoc._id } },
+        { runValidators: true }
+      );
+
+      // Add to new collection's questionOrder
+      await Collection.findByIdAndUpdate(
+        newCollectionId,
+        { $addToSet: { questionOrder: questionDoc._id } },
+        { runValidators: true }
+      );
+
+      questionDoc.collectionId = newCollectionId;
+    }
+
+    // Update question fields
     if (req.body.question) questionDoc.question = req.body.question.trim();
     if (req.body.hint) questionDoc.hint = req.body.hint.trim();
     if (req.body.funFact) questionDoc.funFact = req.body.funFact.trim();
@@ -88,44 +131,54 @@ router.patch("/:number/:collectionId", upload.single("image"), async (req, res) 
       try {
         questionDoc.answer = JSON.parse(req.body.answer);
       } catch {
-        return res.status(400).json({ message: "Invalid JSON in 'answer'" });
+        return res.status(400).json({ message: 'Invalid JSON in "answer"' });
       }
     }
     if (req.body.options) {
       try {
         questionDoc.options = JSON.parse(req.body.options);
       } catch {
-        return res.status(400).json({ message: "Invalid JSON in 'options'" });
+        return res.status(400).json({ message: 'Invalid JSON in "options"' });
       }
     }
     if (req.file) {
       questionDoc.image = req.file.path;
-    } else if (req.body.deleteImage === "true") {
+    } else if (req.body.deleteImage === 'true') {
       questionDoc.image = null;
     }
+
     await questionDoc.save();
-    res.status(200).json({ message: "Question updated successfully." });
+    res.status(200).json({ message: 'Question updated successfully.' });
   } catch (err) {
-    console.error("Error in PATCH /:number/:collectionId:", err);
-    res.status(500).json({ message: "Error updating question", error: err.message });
+    console.error('Error in PATCH /:number/:collectionId:', err);
+    res.status(500).json({ message: 'Error updating question', error: err.message });
   }
 });
 
-// Delete a question (scoped by number + collectionId as path params)
-router.delete("/:number/:collectionId", async (req, res) => {
+// Delete a question (scoped by number + collectionId)
+router.delete('/:number/:collectionId', async (req, res) => {
   try {
     const query = {
       number: parseInt(req.params.number),
       collectionId: req.params.collectionId,
     };
-    const result = await Question.deleteOne(query);
-    if (result.deletedCount === 0) {
-      res.status(404).json({ message: "Question not found in this collection." });
-    } else {
-      res.status(200).json({ message: "Question deleted successfully." });
+
+    const question = await Question.findOne(query);
+    if (!question) {
+      return res.status(404).json({ message: 'Question not found in this collection.' });
     }
+
+    // Remove question ID from collection's questionOrder
+    await Collection.findByIdAndUpdate(
+      query.collectionId,
+      { $pull: { questionOrder: question._id } },
+      { runValidators: true }
+    );
+
+    await Question.deleteOne(query);
+    res.status(200).json({ message: 'Question deleted successfully.' });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting question", error: error.message });
+    res.status(500).json({ message: 'Error deleting question', error: error.message });
   }
 });
 

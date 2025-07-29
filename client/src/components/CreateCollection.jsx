@@ -190,7 +190,7 @@ const CreateCollection = () => {
           <div style={{ display: "flex", marginBottom: "10px", gap: "10px" }}>
             <input
               type="text"
-              placeholder="Collection Code"
+              placeholder="Code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               disabled={isPublic}
