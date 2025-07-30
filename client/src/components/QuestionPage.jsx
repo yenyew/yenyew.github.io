@@ -111,7 +111,17 @@ const QuestionPage = () => {
         }
 
         // Apply game mode randomization per-game
-        if (settingsData && settingsData.gameMode === 'random') {
+        const playerIndex = parseInt(sessionStorage.getItem("playerIndex") || "0", 10);
+
+        if (settingsData && settingsData.gameMode === 'rotating') {
+          const n = fetchedQuestions.length;
+          const rotated = fetchedQuestions.map((_, i) => fetchedQuestions[(i + playerIndex) % n]);
+          setQuestions(rotated);
+        } else if (settingsData && settingsData.gameMode === 'rotating-reverse') {
+          const n = fetchedQuestions.length;
+          const rotated = fetchedQuestions.map((_, i) => fetchedQuestions[(i - playerIndex - 1 + n) % n]);
+          setQuestions(rotated);
+        } else if (settingsData && settingsData.gameMode === 'random') {
           const shuffled = [...fetchedQuestions];
           for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));

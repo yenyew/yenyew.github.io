@@ -98,11 +98,11 @@ const CollectionsBank = () => {
     });
   };
 
-  const handleDeleteClick = (id, isPublic, name) => {
-    if (isPublic) {
-      setModalTitle('Cannot Delete Public Collection');
+  const handleDeleteClick = (id, isPublic, name, isOnline) => {
+    if (isPublic && isOnline) {
+      setModalTitle('Cannot Delete Online Public Collection');
       setModalMessage(
-        `The collection "${name}" is public. Please set its online status to offline in Edit Collection before deleting.`
+        `The collection "${name}" is public and online. Please set its online status to offline in Edit Collection before deleting.`
       );
       setDeleteTargetId(id);
       setShowConfirmModal(true);
@@ -127,9 +127,9 @@ const CollectionsBank = () => {
   };
 
   const handleConfirmAction = () => {
-    if (modalTitle === 'Cannot Delete Public Collection') {
+    if (modalTitle === 'Cannot Delete Online Public Collection') {
       handleModalClose();
-      navigate(`/collections/${deleteTargetId}`);
+      navigate(`/edit-collection/${deleteTargetId}`);
     } else {
       confirmDelete();
     }
@@ -235,7 +235,7 @@ const CollectionsBank = () => {
                           borderRadius: '4px',
                         }}
                       >
-                        Code: {col.code}
+                        Code: {col.isPublic ? 'N/A' : col.code}
                       </span>
                     </div>
                     <div style={{ marginBottom: '8px' }}>
@@ -257,7 +257,7 @@ const CollectionsBank = () => {
                         style={{ backgroundColor: '#DC3545', color: '#fff', fontSize: '14px', padding: '5px 10px' }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteClick(col._id, col.isPublic, col.name);
+                          handleDeleteClick(col._id, col.isPublic, col.name, col.isOnline);
                         }}
                       >
                         Delete
@@ -295,7 +295,7 @@ const CollectionsBank = () => {
         onConfirm={handleConfirmAction}
         title={modalTitle}
         message={modalMessage}
-        confirmText={modalTitle === 'Cannot Delete Public Collection' ? 'Edit Collection' : 'Delete'}
+        confirmText={modalTitle === 'Cannot Delete Online Public Collection' ? 'Edit Collection' : 'Delete'}
         cancelText="Cancel"
         type="warning"
         showCancel={true}

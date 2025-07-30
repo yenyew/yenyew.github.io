@@ -57,10 +57,11 @@ export default function RulesPage() {
         const msg = await createRes.text();
         throw new Error(msg || "Player creation failed.");
       }
-      const { _id: playerId } = await createRes.json();
-      sessionStorage.setItem("playerId", playerId);
+      const player = await createRes.json();
+      sessionStorage.setItem("playerId", player._id);
+      sessionStorage.setItem("playerIndex", player.playerIndex); // <-- Store playerIndex
 
-      await fetch(`http://localhost:5000/players/${playerId}`, {
+      await fetch(`http://localhost:5000/players/${player._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ startedAt, totalTimeInSeconds: 0, collectionId }),
