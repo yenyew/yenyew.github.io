@@ -14,8 +14,10 @@ const AdminSchema = new Schema({
   },
   role: {
     type: String,
+    enum: ["main", "admin"],
     default: "admin",
-  },
+  }
+
 }, {
   timestamps: true, // adds createdAt and updatedAt automatically
 });
