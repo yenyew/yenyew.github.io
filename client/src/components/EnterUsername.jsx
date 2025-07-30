@@ -119,7 +119,7 @@ export default function EnterUsername() {
       <button
         className="return-button"
         style={{ position: "absolute", bottom: "24px", left: "24px", zIndex: 2, width: "auto", padding: "10px 24px" }}
-        onClick={() => navigate("/getcode")}
+        onClick={() => navigate("/")}
       >
         Back
       </button>
@@ -134,11 +134,12 @@ export default function EnterUsername() {
             lineHeight: "1.5",
           }}
         >
-          Hi there! Welcome to the Changi<br />Experience Studio @ Jewel!
+          Welcome!<br />
+          Let's get started on your adventure.
         </h1>
 
         <p style={{ marginBottom: "2rem", fontSize: "1.1rem" }}>
-          How should I address you on this journey?
+          What name should we use for you?
         </p>
 
         <form onSubmit={onSubmit}>

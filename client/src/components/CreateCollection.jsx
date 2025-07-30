@@ -16,7 +16,7 @@ const CreateCollection = () => {
   const [showCheckboxInfoModal, setShowCheckboxInfoModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false); // New state for copy success
+  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ const CreateCollection = () => {
       try {
         const res = await fetch("http://localhost:5000/collections");
         const data = await res.json();
-        const publicCol = data.find((c) => c.isPublic);
+        const publicCol = data.find((c) => c.isPublic && c.isOnline); // Check for online public collection
         setExistingPublicCollection(publicCol || null);
       } catch {
         console.error("Failed to check public collections");
@@ -59,7 +59,7 @@ const CreateCollection = () => {
     setShowErrorModal(false);
     setShowPublicConfirmModal(false);
     setShowCheckboxInfoModal(false);
-    setShowCopySuccessModal(false); // Close copy success modal
+    setShowCopySuccessModal(false);
     setCheckboxType(null);
   };
 
@@ -71,16 +71,16 @@ const CreateCollection = () => {
       setShowErrorModal(true);
       return;
     }
-    if (!isPublic && !code.trim()) {
+    if (!isPublic && !code.trim()) { // Only check code for non-public collections
       setModalTitle("Invalid Input");
       setModalMessage("Please enter or generate a collection code.");
       setShowErrorModal(true);
       return;
     }
-    if (isPublic && existingPublicCollection) {
-      setModalTitle("Existing Public Collection");
+    if (isPublic && isOnline && existingPublicCollection) {
+      setModalTitle("Online Public Collection Exists");
       setModalMessage(
-        `A public collection "${existingPublicCollection.name}" already exists. Please set its online status to offline in Edit Collection, then try again.`
+        `A public collection "${existingPublicCollection.name}" is already online. Please set it offline in Edit Collection, then try again.`
       );
       setShowPublicConfirmModal(true);
       return;
@@ -104,7 +104,7 @@ const CreateCollection = () => {
         setModalTitle("Success");
         setModalMessage(
           isPublic
-            ? "Collection created successfully and set as the public collection!"
+            ? "Public collection created successfully!"
             : "Collection created successfully!"
         );
         setShowSuccessModal(true);
@@ -149,8 +149,8 @@ const CreateCollection = () => {
     setModalMessage(
       type === "public"
         ? newValue
-          ? "This makes the collection the only public one accessible via 'Play as Guest'. Only one collection can be public at a time. The collection code will be disabled."
-          : "This will remove the collection from being the public one."
+          ? "This makes the collection public and accessible via 'Play as Guest'. Only one public collection can be online at a time. The collection code will be disabled."
+          : "This will remove the collection from being public."
         : newValue
         ? "The collection will be playable by users."
         : "The collection will be disabled and unplayable."

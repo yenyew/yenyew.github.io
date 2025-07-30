@@ -21,7 +21,7 @@ const HomePage = ({ previewData }) => {
   };
 
   const handlePlayClick = () => {
-    navigate('/getname');
+    navigate('/getcode');
   };
 
   const handleAdminLoginClick = () => {

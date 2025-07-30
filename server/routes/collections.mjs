@@ -153,16 +153,31 @@ router.post('/', async (req, res) => {
   try {
     const { name, code, questionOrder = [], gameMode = 'default', isPublic = false, isOnline = true } = req.body;
 
-    const existing = await Collection.findOne({ code });
-    if (existing) {
-      return res.status(400).json({ message: "Collection code must be unique" });
+    // Only check for code uniqueness if the collection is not public
+    if (!isPublic && code) {
+      const existing = await Collection.findOne({ code });
+      if (existing) {
+        return res.status(400).json({ message: "Collection code must be unique" });
+      }
     }
 
-    if (isPublic) {
-      await Collection.updateMany({ isPublic: true }, { isPublic: false });
+    // Validate that only one public collection is online
+    if (isPublic && isOnline) {
+      const onlinePublic = await Collection.findOne({ isPublic: true, isOnline: true });
+      if (onlinePublic) {
+        return res.status(400).json({ message: "Another public collection is already online." });
+      }
     }
 
-    const newCollection = await Collection.create({ name, code, questionOrder, gameMode, isPublic, isOnline });
+    // Create the collection, omitting code if public
+    const newCollection = await Collection.create({
+      name,
+      code: isPublic ? undefined : code,
+      questionOrder,
+      gameMode,
+      isPublic,
+      isOnline,
+    });
     res.status(201).json(newCollection);
   } catch (error) {
     res.status(400).json({ message: "Failed to create collection", error: error.message });
@@ -182,8 +197,15 @@ router.patch('/:id', async (req, res) => {
     if (isPublic !== undefined) updateData.isPublic = isPublic;
     if (isOnline !== undefined) updateData.isOnline = isOnline;
 
-    if (isPublic) {
-      await Collection.updateMany({ isPublic: true, _id: { $ne: req.params.id } }, { isPublic: false });
+    if (isPublic && isOnline) {
+      const onlinePublic = await Collection.findOne({
+        isPublic: true,
+        isOnline: true,
+        _id: { $ne: req.params.id },
+      });
+      if (onlinePublic) {
+        return res.status(400).json({ message: "Another public collection is already online." });
+      }
     }
 
     const updated = await Collection.findByIdAndUpdate(
@@ -271,9 +293,9 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ message: "Collection not found" });
     }
 
-    if (collection.isPublic) {
+    if (collection.isPublic && collection.isOnline) {
       return res.status(403).json({
-        message: "Cannot delete a public collection. Set it offline instead.",
+        message: "Cannot delete an online public collection. Set it offline first.",
       });
     }
 
