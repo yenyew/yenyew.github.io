@@ -27,6 +27,9 @@ router.post("/", async (req, res) => {
     return res.status(400).send("Invalid or missing collection ID");
   }
 
+  // Count existing players in this collection to assign playerIndex
+  const playerCount = await Player.countDocuments({ collectionId });
+
   const newPlayer = {
     username,
     totalTimeInSeconds: totalTimeInSeconds || 0,
@@ -37,7 +40,8 @@ router.post("/", async (req, res) => {
     wrongAnswers: wrongAnswers || 0,
     redeemed: false,
     redeemedAt: null,
-    collectionId
+    collectionId,
+    playerIndex: playerCount
   };
 
   const result = await Player.create(newPlayer);

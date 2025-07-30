@@ -39,6 +39,10 @@
       type: Date,
       default: null
     },
+    playerIndex: {
+      type: Number,
+      default: 0,
+    },
     collectionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Collection", // Reference to the Collection model
