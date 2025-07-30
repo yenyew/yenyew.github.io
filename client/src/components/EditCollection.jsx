@@ -18,7 +18,7 @@ const EditCollection = () => {
   const [showPublicConfirmModal, setShowPublicConfirmModal] = useState(false);
   const [showCheckboxInfoModal, setShowCheckboxInfoModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false); // New state for copy success
+  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [checkboxType, setCheckboxType] = useState(null);
@@ -62,7 +62,7 @@ const EditCollection = () => {
       try {
         const res = await fetch("http://localhost:5000/collections");
         const data = await res.json();
-        const publicCol = data.find((c) => c.isPublic && c._id !== id);
+        const publicCol = data.find((c) => c.isPublic && c.isOnline && c._id !== id); // Check for other online public collections
         setExistingPublicCollection(publicCol || null);
       } catch {
         console.error("Failed to check public collections");
@@ -79,7 +79,7 @@ const EditCollection = () => {
     setShowPublicConfirmModal(false);
     setShowCheckboxInfoModal(false);
     setShowDeleteConfirmModal(false);
-    setShowCopySuccessModal(false); // Close copy success modal
+    setShowCopySuccessModal(false);
     setCheckboxType(null);
   };
 
@@ -97,10 +97,10 @@ const EditCollection = () => {
       setShowErrorModal(true);
       return;
     }
-    if (isPublic && existingPublicCollection) {
-      setModalTitle("Existing Public Collection");
+    if (isPublic && isOnline && existingPublicCollection) {
+      setModalTitle("Online Public Collection Exists");
       setModalMessage(
-        `A public collection "${existingPublicCollection.name}" already exists. Please set it offline before making another one public.`
+        `A public collection "${existingPublicCollection.name}" is already online. Please set it offline before making this one online.`
       );
       setShowPublicConfirmModal(true);
       return;
@@ -168,7 +168,7 @@ const EditCollection = () => {
     setModalMessage(
       type === "public"
         ? newValue
-          ? "This will make the collection public and available to all users. Collection code will be cleared and disabled."
+          ? "This will make the collection public and available to all users. Only one public collection can be online at a time. Collection code will be cleared and disabled."
           : "This will remove this collection from public access."
         : newValue
         ? "This will make the collection available for gameplay."
@@ -197,7 +197,7 @@ const EditCollection = () => {
       setShowErrorModal(true);
     } else {
       setModalTitle("Confirm Delete");
-      setModalMessage("Are you sure you want to delete this collection?");
+      setModalMessage("Are you sure you want to delete this collection? Players data will be lost but Questions will be preserved.");
       setShowDeleteConfirmModal(true);
     }
   };

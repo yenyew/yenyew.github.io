@@ -32,7 +32,7 @@ export default function EnterCollCode() {
 
       const data = await res.json();
       sessionStorage.setItem("collectionId", data._id);
-      navigate("/rules");
+      navigate("/getname");
     } catch (err) {
       console.error("Code validation failed:", err);
       showError("Something went wrong. Please try again later.");
@@ -51,7 +51,7 @@ export default function EnterCollCode() {
 
       const data = await res.json();
       sessionStorage.setItem("collectionId", data._id);
-      navigate("/rules");
+      navigate("/getname");
     } catch (err) {
       console.error("Public collection fetch failed:", err);
       showError("Something went wrong. Please try again later.");
@@ -70,7 +70,7 @@ export default function EnterCollCode() {
       <button
         className="return-button"
         style={{ position: "absolute", bottom: "24px", left: "24px", zIndex: 2, width: "auto", padding: "10px 24px" }}
-        onClick={() => navigate("/getname")}
+        onClick={() => navigate("/")}
       >
         Back
       </button>

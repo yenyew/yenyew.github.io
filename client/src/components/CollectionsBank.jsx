@@ -111,7 +111,7 @@ const CollectionsBank = () => {
     setDeleteTargetId(id);
     setModalTitle('Confirm Delete');
     setModalMessage(
-      `Are you sure you want to delete "${name}"? Associated questions will remain in the database.`
+      `Are you sure you want to delete "${name}"? Players data will be lost but Questions will be preserved`
     );
     setShowConfirmModal(true);
   };
