@@ -34,6 +34,10 @@ const AutoClearSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  clearTime: {
+    type: String,
+    default: "00:00",
+  },
 }, {
   timestamps: true,
 });

@@ -58,20 +58,6 @@ export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onCon
     { label: "Custom Interval", value: "custom" },
   ];
 
-  const availableTargets = [
-    { label: "Today", value: "today" },
-    { label: "This Week", value: "week" },
-    { label: "This Month", value: "month" },
-    { label: "Custom Range", value: "custom" },
-    { label: "All Players", value: "all" },
-  ].filter((target) => {
-    if (tempAuto.interval === "day") return ["today", "custom", "all"].includes(target.value);
-    if (tempAuto.interval === "week") return ["today", "week", "custom", "all"].includes(target.value);
-    if (tempAuto.interval === "month") return true;
-    if (tempAuto.interval === "custom") return ["today", "week", "month", "all"].includes(target.value);
-    return true;
-  });
-
   return (
     <div className="modal-overlay">
       <div className="modal-content" style={{ color: "black", maxWidth: "500px", width: "90%" }}>
@@ -89,17 +75,10 @@ export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onCon
             value={tempAuto.interval}
             onChange={(e) => {
               const newInterval = e.target.value;
-              const validTargets = {
-                day: ["today", "custom", "all"],
-                week: ["today", "week", "custom", "all"],
-                month: ["today", "week", "month", "custom", "all"],
-                custom: ["today", "week", "month", "all"],
-              };
-              const newTarget = validTargets[newInterval].includes(tempAuto.target) ? tempAuto.target : "today";
-              setTempAuto((t) => ({ 
-                ...t, 
-                interval: newInterval, 
-                target: newTarget,
+              setTempAuto((t) => ({
+                ...t,
+                interval: newInterval,
+                target: newInterval === "custom" ? t.target : newInterval === "day" ? "today" : newInterval === "week" ? "week" : "month",
                 customIntervalValue: newInterval === "custom" ? t.customIntervalValue || 1 : null,
                 customIntervalUnit: newInterval === "custom" ? t.customIntervalUnit || "minute" : null,
               }));
@@ -139,25 +118,28 @@ export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onCon
           </div>
         )}
 
-        <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
-          <label style={{ color: "black", fontWeight: "bold" }}>Data to Clear:</label>
-          <select
-            value={tempAuto.target}
-            onChange={(e) => setTempAuto((t) => ({ 
-              ...t, 
-              target: e.target.value,
-              startDate: e.target.value === "custom" ? t.startDate || new Date().toISOString().slice(0, 10) : null,
-              endDate: e.target.value === "custom" ? t.endDate || new Date().toISOString().slice(0, 10) : null,
-            }))}
-            style={{ width: "100%", padding: "5px" }}
-          >
-            {availableTargets.map((target) => (
-              <option key={target.value} value={target.value}>
-                {target.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Only show Data to Clear dropdown for custom interval */}
+        {tempAuto.interval === "custom" && (
+          <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
+            <label style={{ color: "black", fontWeight: "bold" }}>Data to Clear:</label>
+            <select
+              value={tempAuto.target}
+              onChange={(e) => setTempAuto((t) => ({ 
+                ...t, 
+                target: e.target.value,
+                startDate: e.target.value === "custom" ? t.startDate || new Date().toISOString().slice(0, 10) : null,
+                endDate: e.target.value === "custom" ? t.endDate || new Date().toISOString().slice(0, 10) : null,
+              }))}
+              style={{ width: "100%", padding: "5px" }}
+            >
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="custom">Custom Range</option>
+              <option value="all">All Players</option>
+            </select>
+          </div>
+        )}
 
         {tempAuto.target === "custom" && (
           <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
@@ -184,6 +166,17 @@ export function AutoClearModal({ isOpen, autoClear, tempAuto, setTempAuto, onCon
             </div>
           </div>
         )}
+
+        {/* Clear Time Picker */}
+        <div style={{ marginBottom: 10, textAlign: "left", color: "black" }}>
+          <label style={{ color: "black", fontWeight: "bold" }}>Clear Time:</label>
+          <input
+            type="time"
+            value={tempAuto.clearTime || "00:00"}
+            onChange={e => setTempAuto(t => ({ ...t, clearTime: e.target.value }))}
+            style={{ width: "120px", padding: "5px", color: "white", background: "#222" }} // <-- color: "white"
+          />
+        </div>
 
         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "15px" }}>
           {autoClear && (
