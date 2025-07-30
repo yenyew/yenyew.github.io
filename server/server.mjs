@@ -62,18 +62,22 @@ app.listen(PORT, () => {
 
 setInterval(async () => {
   try {
-    const configs = await AutoClearConfig.find(); // Fetch all auto-clear configs
+    const configs = await AutoClearConfig.find();
     if (!configs || configs.length === 0) return;
 
     const now = new Date();
+    const nowTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
     for (const config of configs) {
+      // Only run if current time matches clearTime
+      if (config.clearTime && nowTime !== config.clearTime) continue;
+
       const last = config.lastClearedAt || new Date(0);
       let due = false;
 
       // Determine if clearing is due based on interval
       if (config.interval === "day") {
-        due = now - last >= 10 * 1000; // 10 seconds for testing (use 24 * 60 * 60 * 1000 in production)
+        due = now - last >= 24 * 60 * 60 * 1000; // 1 day
       } else if (config.interval === "week") {
         due = now - last >= 7 * 24 * 60 * 60 * 1000;
       } else if (config.interval === "month") {

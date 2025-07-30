@@ -228,6 +228,7 @@ export default function LeaderboardAdmin() {
     const payload = {
       interval: tempAuto.interval,
       target: tempAuto.target,
+      clearTime: tempAuto.clearTime, 
       ...(tempAuto.target === "custom" && {
         startDate: tempAuto.startDate,
         endDate: tempAuto.endDate,
@@ -553,7 +554,7 @@ export default function LeaderboardAdmin() {
         title={modalTitle}
         message={modalMessage}
         confirmText="OK"
-        type="error"
+        type="info"
         showCancel={false}
       />
     </div>

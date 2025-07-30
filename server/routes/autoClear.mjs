@@ -18,12 +18,19 @@ router.get('/:collectionId', async (req, res) => {
 // POST config for a collection
 router.post('/:collectionId', async (req, res) => {
   const { collectionId } = req.params;
-  const { interval, target, startDate, endDate, customIntervalValue, customIntervalUnit } = req.body;
+  const { interval, target, clearTime, startDate, endDate, customIntervalValue, customIntervalUnit } = req.body;
 
-  // Validate interval
-  if (!['day', 'week', 'month', 'custom'].includes(interval)) {
-    return res.status(400).send("Invalid interval");
+  // Only allow matching interval and target
+  const validPairs = {
+    day: "today",
+    week: "week",
+    month: "month",
+    custom: "custom",
+  };
+  if (validPairs[interval] !== target) {
+    return res.status(400).send("Frequency and data range must match.");
   }
+
 
   // Validate target based on interval
   const validTargets = {
@@ -50,8 +57,9 @@ router.post('/:collectionId', async (req, res) => {
       { 
         interval, 
         target, 
-        startDate: target === 'custom' ? startDate : null, 
-        endDate: target === 'custom' ? endDate : null, 
+        clearTime: clearTime || "00:00",
+        startDate: interval === 'custom' ? startDate : null, 
+        endDate: interval === 'custom' ? endDate : null, 
         customIntervalValue: interval === 'custom' ? Number(customIntervalValue) : null, 
         customIntervalUnit: interval === 'custom' ? customIntervalUnit : null 
       },
