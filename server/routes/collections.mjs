@@ -62,7 +62,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ✅ Add this route AFTER the one for /:id
 router.get('/:id/questions', async (req, res) => {
   try {
     const collection = await Collection.findById(req.params.id).populate('questionOrder');
