@@ -9,6 +9,7 @@ export default function RulesPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [collectionName, setCollectionName] = useState("");
+  const [welcomeMessage, setWelcomeMessage] = useState(""); // <-- NEW
   const [showCountdown, setShowCountdown] = useState(false);
   const [isLoading, setIsLoading] = useState(true); 
 
@@ -17,7 +18,7 @@ export default function RulesPage() {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
-    // Fetch username and collection details from sessionStorage and backend
+  // Fetch username and collection details from sessionStorage and backend
   useEffect(() => {
     const storedUsername = sessionStorage.getItem("username");
     const collectionId = sessionStorage.getItem("collectionId");
@@ -30,7 +31,7 @@ export default function RulesPage() {
       setUsername(storedUsername);
     }
 
-    // Fetch collection name using the stored collectionId
+    // Fetch collection name and welcome message using the stored collectionId
     if (collectionId) {
       fetch("http://localhost:5000/collections")
         .then((res) => res.json())
@@ -38,6 +39,7 @@ export default function RulesPage() {
           const match = data.find((col) => col._id === collectionId);
           if (match) {
             setCollectionName(match.name);
+            setWelcomeMessage(match.welcomeMessage || ""); // <-- NEW
           }
           setIsLoading(false); // Done loading once collection info is retrieved
         })
@@ -133,7 +135,16 @@ export default function RulesPage() {
               <br />
               Are you ready to begin?
             </h2>
-
+            <div
+              style={{
+                margin: "1rem 0",
+                fontStyle: "italic",
+                color: "#333",
+                fontSize: "1.1rem",
+              }}
+            >
+              {welcomeMessage}
+            </div>
             <button onClick={handleStart} className="rules-start-button">
               Yes
             </button>

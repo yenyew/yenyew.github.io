@@ -150,7 +150,7 @@ router.get('/:id/effective-settings', async (req, res) => {
 // Create a new collection
 router.post('/', async (req, res) => {
   try {
-    const { name, code, questionOrder = [], gameMode = 'default', isPublic = false, isOnline = true } = req.body;
+    const { name, code, questionOrder = [], gameMode = 'default', isPublic = false, isOnline = true, welcomeMessage = "" } = req.body;
 
     // Only check for code uniqueness if the collection is not public
     if (!isPublic && code) {
@@ -176,6 +176,7 @@ router.post('/', async (req, res) => {
       gameMode,
       isPublic,
       isOnline,
+      welcomeMessage,
     });
     res.status(201).json(newCollection);
   } catch (error) {
@@ -186,7 +187,7 @@ router.post('/', async (req, res) => {
 // Update an existing collection
 router.patch('/:id', async (req, res) => {
   try {
-    const { name, code, questionOrder, gameMode, isPublic, isOnline } = req.body;
+    const { name, code, questionOrder, gameMode, isPublic, isOnline, welcomeMessage } = req.body;
 
     const updateData = {};
     if (name) updateData.name = name;
@@ -195,6 +196,8 @@ router.patch('/:id', async (req, res) => {
     if (gameMode) updateData.gameMode = gameMode;
     if (isPublic !== undefined) updateData.isPublic = isPublic;
     if (isOnline !== undefined) updateData.isOnline = isOnline;
+    if (welcomeMessage !== undefined) updateData.welcomeMessage = welcomeMessage; 
+
 
     if (isPublic && isOnline) {
       const onlinePublic = await Collection.findOne({
