@@ -34,7 +34,7 @@ const AdminScreen = () => {
         <img src="/images/ces.jpg" alt="Changi Experience Studio" />
       </div>
 
-      <div className="buttons">
+      <div className="manage-admin-wrapper">
         <h1 style={{ color: "#000", fontSize: "32px", textAlign: "center", marginBottom: "10px" }}>
           Admin Dashboard
         </h1>
@@ -66,7 +66,6 @@ const AdminScreen = () => {
           Manage Bad Usernames
         </button>
 
-        {/* ✅ New Manage Admins Button */}
         <button onClick={() => navigate("/manage-admins")} className="login-btn" style={btnStyle("#ffc107")}>
           Manage Admins
         </button>
@@ -86,7 +85,6 @@ const AdminScreen = () => {
   );
 };
 
-// Button styling helper
 const btnStyle = (bgColor) => ({
   marginTop: "12px",
   width: "100%",

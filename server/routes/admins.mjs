@@ -3,6 +3,9 @@ import Admin from "../models/admindb.mjs";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
 
 const router = express.Router();
 const JWT_SECRET = "your_secret_key";
@@ -46,18 +49,27 @@ router.get("/:id", authenticateJWT, async (req, res) => {
   }
 });
 
-// REGISTER new admin (main only)
 router.post("/register", authenticateJWT, async (req, res) => {
   if (req.user.role !== "main")
     return res.status(403).json({ message: "Only main admin can add admins" });
 
-  const { username, password } = req.body;
+  const { username, email, password } = req.body;
+
+  // Simple email regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   try {
+    if (!username || !email || !password)
+      return res.status(400).json({ message: "All fields are required" });
+
+    if (!emailRegex.test(email))
+      return res.status(400).json({ message: "Invalid email format" });
+
     const existing = await Admin.findOne({ username });
     if (existing) return res.status(400).json({ message: "Username already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newAdmin = new Admin({ username, password: hashedPassword, role: "admin" });
+    const newAdmin = new Admin({ username, email, password: hashedPassword, role: "admin" });
     const result = await newAdmin.save();
 
     res.status(201).json({ message: "Admin registered", userId: result._id });
@@ -123,5 +135,74 @@ router.post("/login", async (req, res) => {
 router.post("/logout", authenticateJWT, async (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
+
+// REQUEST PASSWORD RESET
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const admin = await Admin.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } });
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+    const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "15m" });
+
+    admin.resetToken = token;
+    admin.resetTokenExpiry = Date.now() + 15 * 60 * 1000;
+    await admin.save();
+
+    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+
+    // Setup Nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"CES Admin Portal" <${process.env.EMAIL_USER}>`,
+      to: admin.email, 
+      subject: "Reset your CES Admin password",
+      html: `
+        <p>You requested a password reset. Click the link below to reset your password:</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+        <p>This link will expire in 15 minutes.</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Reset link sent to email." });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to send email", error: error.message });
+  }
+});
+
+
+// RESET PASSWORD
+router.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const admin = await Admin.findOne({ _id: decoded.id, resetToken: token });
+
+    if (!admin || admin.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ message: "Token expired or invalid" });
+    }
+
+    admin.password = await bcrypt.hash(newPassword, 10);
+    admin.resetToken = null;
+    admin.resetTokenExpiry = null;
+    await admin.save();
+
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    res.status(400).json({ message: "Invalid or expired token", error: error.message });
+  }
+});
+
 
 export default router;

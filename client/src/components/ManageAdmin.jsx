@@ -6,6 +6,7 @@ import "./MainStyles.css";
 const ManageAdmin = () => {
     const [admins, setAdmins] = useState([]);
     const [newUsername, setNewUsername] = useState("");
+    const [newEmail, setNewEmail] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState("");
@@ -39,7 +40,7 @@ const ManageAdmin = () => {
     };
 
     const addAdmin = async () => {
-        if (!newUsername || !newPassword) return alert("Fields cannot be empty");
+        if (!newUsername || !newEmail || !newPassword) return alert("Fields cannot be empty");
 
         setLoading(true);
         const res = await fetch("http://localhost:5000/admins/register", {
@@ -48,13 +49,14 @@ const ManageAdmin = () => {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ username: newUsername, password: newPassword }),
+            body: JSON.stringify({ username: newUsername, email: newEmail, password: newPassword }),
         });
         const data = await res.json();
         setLoading(false);
 
         if (res.ok) {
             setNewUsername("");
+            setNewEmail("");
             setNewPassword("");
             fetchAdmins();
         } else {
@@ -93,29 +95,28 @@ const ManageAdmin = () => {
     };
 
     useEffect(() => {
-  if (!token) return navigate("/login");
+        if (!token) return navigate("/login");
 
-  try {
-    const decoded = jwtDecode(token);
-    setUserId(decoded.id);
+        try {
+            const decoded = jwtDecode(token);
+            setUserId(decoded.id);
 
-    if (decoded.role !== "main") {
-      if (!sessionStorage.getItem("alertShown")) {
-        alert("Access denied. Only the main admin can manage admins.");
-        sessionStorage.setItem("alertShown", "true");
-      }
-      navigate("/admin");
-      return; 
-    }
+            if (decoded.role !== "main") {
+                if (!sessionStorage.getItem("alertShown")) {
+                    alert("Access denied. Only the main admin can manage admins.");
+                    sessionStorage.setItem("alertShown", "true");
+                }
+                navigate("/admin");
+                return;
+            }
 
-    setIsMain(true);
-    fetchAdmins();
-  } catch (err) {
-    console.error("Invalid token");
-    navigate("/login");
-  }
-}, [navigate]);
-
+            setIsMain(true);
+            fetchAdmins();
+        } catch (err) {
+            console.error("Invalid token");
+            navigate("/login");
+        }
+    }, [navigate]);
 
     return (
         <div className="login-container">
@@ -126,7 +127,7 @@ const ManageAdmin = () => {
                 <img src="/images/ces.jpg" alt="Changi Experience Studio" />
             </div>
 
-            <div className="buttons">
+            <div className="manage-admin-wrapper">
                 <h1 style={{ color: "#000", fontSize: "28px", textAlign: "center", marginBottom: "20px" }}>
                     Manage Admins
                 </h1>
@@ -140,6 +141,13 @@ const ManageAdmin = () => {
                         style={inputStyle}
                     />
                     <input
+                        type="text"
+                        placeholder="New admin email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        style={inputStyle}
+                    />
+                    <input
                         type="password"
                         placeholder="Password"
                         value={newPassword}
@@ -149,6 +157,9 @@ const ManageAdmin = () => {
                     <button className="login-btn" style={btnStyle("#28a745")} onClick={addAdmin} disabled={loading}>
                         {loading ? "Adding..." : "Add Admin"}
                     </button>
+                    <button className="login-btn" style={{ marginTop: "12px", ...btnStyle("#6c757d") }} onClick={() => navigate("/admin")}>
+                        ← Back to Admin
+                    </button>
                 </div>
 
                 <div>
@@ -157,6 +168,7 @@ const ManageAdmin = () => {
                         {admins.map((admin) => (
                             <li key={admin._id} style={{ marginBottom: "12px" }}>
                                 <strong>{admin.username}</strong>
+                                <div><strong>{admin.email}</strong></div>
                                 <button className="login-btn" style={btnStyle("#dc3545")} onClick={() => deleteAdmin(admin._id)}>
                                     Remove
                                 </button>
@@ -172,7 +184,6 @@ const ManageAdmin = () => {
     );
 };
 
-// Reuse styles
 const inputStyle = {
     marginRight: "8px",
     padding: "8px",
