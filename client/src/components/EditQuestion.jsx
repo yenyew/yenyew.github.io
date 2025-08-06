@@ -222,27 +222,17 @@ const EditQuestion = () => {
       return;
     }
 
-    if (type === "open" && !answer.trim()) {
-      setAlertTitle("Invalid Input");
-      setAlertMessage("Please enter at least one answer.");
+    if (question.length > 1500) {
+      setAlertTitle("Too Long");
+      setAlertMessage("Question description must not exceed 1500 characters.");
       setAlertType("error");
       setShowAlert(true);
       return;
     }
 
-    const trimmedAnswers =
-      type === "open"
-        ? answer
-            .split(",")
-            .map((a) => a.trim())
-            .filter((a) => a)
-        : correctIndex !== null
-        ? [options[correctIndex]]
-        : [];
-
-    if (type === "open" && trimmedAnswers.length === 0) {
-      setAlertTitle("Invalid Input");
-      setAlertMessage("Please enter at least one valid answer.");
+    if (!hint.trim() || !funFact.trim()) {
+      setAlertTitle("Missing Fields");
+      setAlertMessage("Hint and fun fact cannot be empty.");
       setAlertType("error");
       setShowAlert(true);
       return;
@@ -251,7 +241,6 @@ const EditQuestion = () => {
     const formData = new FormData();
     formData.append("question", question.trim());
     formData.append("hint", hint.trim());
-    formData.append("answer", JSON.stringify(trimmedAnswers));
     formData.append("funFact", funFact.trim());
     formData.append("collectionId", collectionId);
     formData.append("number", number);
@@ -259,7 +248,51 @@ const EditQuestion = () => {
 
     if (type === "mcq") {
       const trimmedOptions = options.map((opt) => opt.trim()).filter((opt) => opt);
-      formData.append("options", JSON.stringify(trimmedOptions));
+      const uniqueOptions = [...new Set(trimmedOptions)];
+
+      if (trimmedOptions.length < 2 || trimmedOptions.length > 4) {
+        setAlertTitle("MCQ Error");
+        setAlertMessage("Please enter between 2 and 4 non-empty MCQ options.");
+        setAlertType("error");
+        setShowAlert(true);
+        return;
+      }
+
+      if (trimmedOptions.length !== uniqueOptions.length) {
+        setAlertTitle("Duplicate Options");
+        setAlertMessage("Each MCQ option must be unique.");
+        setAlertType("error");
+        setShowAlert(true);
+        return;
+      }
+
+      if (correctIndex === null || !trimmedOptions[correctIndex]) {
+        setAlertTitle("Correct Answer Required");
+        setAlertMessage("Please select a valid correct answer.");
+        setAlertType("error");
+        setShowAlert(true);
+        return;
+      }
+
+      // Append each option
+      trimmedOptions.forEach((opt) => formData.append("options", opt));
+      // Append correct answer
+      formData.append("answer", trimmedOptions[correctIndex]);
+    } else {
+      const parsedAnswers = answer
+        .split(",")
+        .map((a) => a.trim().replace(/^['"]|['"]$/g, ""))
+        .filter((a) => a);
+
+      if (!parsedAnswers.length) {
+        setAlertTitle("Invalid Input");
+        setAlertMessage("Please enter at least one valid open-ended answer.");
+        setAlertType("error");
+        setShowAlert(true);
+        return;
+      }
+
+      parsedAnswers.forEach((ans) => formData.append("answer", ans));
     }
 
     if (image) formData.append("image", image);
@@ -290,6 +323,7 @@ const EditQuestion = () => {
       setShowAlert(true);
     }
   };
+
 
   // MCQ Options Modal logic
   const openModal = () => setIsModalOpen(true);
@@ -342,7 +376,7 @@ const EditQuestion = () => {
             className="login-btn"
             style={{ marginBottom: "10px" }}
           />
-          
+
           {type === "mcq" && (
             <button type="button" onClick={openModal} className="login-btn">
               Manage MCQ Options
@@ -350,7 +384,7 @@ const EditQuestion = () => {
           )}
 
           {type === "open" && (
-            <>  
+            <>
               <p>Enter acceptable answers (comma-separated):</p>
               <input
                 type="text"
