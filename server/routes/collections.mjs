@@ -2,6 +2,8 @@ import express from 'express';
 import Collection from '../models/collectiondb.mjs';
 import Question from "../models/questionsdb.mjs";
 import GlobalSettings from "../models/globalSettingsdb.mjs";
+import Player from "../models/playerdb.mjs";
+
 
 const router = express.Router();
 
@@ -300,7 +302,7 @@ router.delete("/:id", async (req, res) => {
     }
 
     // Delete all players associated with this collection
-    const playerDeleteResult = await Player.deleteMany({ collectionId: new ObjectId(req.params.id) });
+    const playerDeleteResult = await Player.deleteMany({ collectionId: collection._id });
 
     // Delete the collection
     await Collection.findByIdAndDelete(req.params.id);
