@@ -1,18 +1,29 @@
 import React, { useState, useEffect, useRef } from "react";
 import AlertModal from './AlertModal';
+import Loading from './Loading';
 import "./MainStyles.css";
 import "./QuestionPage.css";
 
 const QuestionPage = () => {
+  // --- State and refs ---
   const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(
+    parseInt(sessionStorage.getItem("currentQuestionIndex") || "0", 10)
+  );
+  const [correctAnswers, setCorrectAnswers] = useState(
+    parseInt(sessionStorage.getItem("correctAnswers") || "0", 10)
+  );
   const [userAnswer, setUserAnswer] = useState("");
-  const [hintsUsed, setHintsUsed] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(
+    parseInt(sessionStorage.getItem("hintsUsed") || "0", 10)
+  );
+  const [elapsed, setElapsed] = useState(
+    parseInt(sessionStorage.getItem("elapsed") || "0", 10)
+  );
   const [gameSettings, setGameSettings] = useState(null);
   const [timerPaused, setTimerPaused] = useState(false);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Modal states
   const [showHintModal, setShowHintModal] = useState(false);
@@ -25,10 +36,45 @@ const QuestionPage = () => {
   const [infoTitle, setInfoTitle] = useState("");
   const [infoType, setInfoType] = useState("info");
 
-  const startTime = useRef(Date.now());
-  const wrongAnswers = useRef(0);
-  const questionsSkipped = useRef(0);
-  const timePenalty = useRef(0);
+  // --- Refs for values not triggering re-render ---
+  const savedStartTime = sessionStorage.getItem("quizStartTime");
+  if (!savedStartTime) {
+    sessionStorage.setItem("quizStartTime", Date.now().toString());
+  }
+  const startTime = useRef(parseInt(sessionStorage.getItem("quizStartTime"), 10));
+  const wrongAnswers = useRef(
+    parseInt(sessionStorage.getItem("wrongAnswers") || "0", 10)
+  );
+  const questionsSkipped = useRef(
+    parseInt(sessionStorage.getItem("questionsSkipped") || "0", 10)
+  );
+  const timePenalty = useRef(
+    parseInt(sessionStorage.getItem("timePenalty") || "0", 10)
+  );
+
+  // --- Persist state/refs to sessionStorage ---
+  useEffect(() => {
+    sessionStorage.setItem("currentQuestionIndex", currentIndex.toString());
+  }, [currentIndex]);
+
+  useEffect(() => {
+    sessionStorage.setItem("correctAnswers", correctAnswers.toString());
+  }, [correctAnswers]);
+
+  useEffect(() => {
+    sessionStorage.setItem("hintsUsed", hintsUsed.toString());
+  }, [hintsUsed]);
+
+  useEffect(() => {
+    sessionStorage.setItem("elapsed", elapsed.toString());
+  }, [elapsed]);
+
+  // Persist refs when they change (manually after mutation)
+  const persistRefs = () => {
+    sessionStorage.setItem("wrongAnswers", wrongAnswers.current.toString());
+    sessionStorage.setItem("questionsSkipped", questionsSkipped.current.toString());
+    sessionStorage.setItem("timePenalty", timePenalty.current.toString());
+  };
 
   // Timer control functions (manual pause/resume, not for tab inactivity)
   const pauseTimer = () => {
@@ -75,6 +121,7 @@ const QuestionPage = () => {
     const collectionId = sessionStorage.getItem("collectionId");
     if (!collectionId) {
       setError("No collection selected. Please enter a code or play as a guest.");
+      setLoading(false);
       return;
     }
 
@@ -84,6 +131,7 @@ const QuestionPage = () => {
       if (!settingsResponse.ok) {
         const data = await settingsResponse.json();
         setError(data.message || "Failed to load game settings.");
+        setLoading(false);
         return;
       }
       const settingsData = await settingsResponse.json();
@@ -95,6 +143,7 @@ const QuestionPage = () => {
 
       if (!collection) {
         setError("Collection not found or is offline.");
+        setLoading(false);
         return;
       }
 
@@ -104,6 +153,7 @@ const QuestionPage = () => {
         if (!response.ok) {
           const data = await response.json();
           setError(data.message || "Failed to load questions.");
+          setLoading(false);
           return;
         }
         const data = await response.json();
@@ -113,6 +163,7 @@ const QuestionPage = () => {
         if (!res.ok) {
           const data = await res.json();
           setError(data.message || "Failed to load questions.");
+          setLoading(false);
           return;
         }
         const data = await res.json();
@@ -141,9 +192,11 @@ const QuestionPage = () => {
         setQuestions(fetchedQuestions);
       }
 
+      setLoading(false);
     } catch (error) {
       console.error("Failed to fetch questions and settings:", error);
       setError("Something went wrong. Please try again later.");
+      setLoading(false);
     }
   }
 
@@ -152,11 +205,15 @@ const QuestionPage = () => {
     const interval = setInterval(() => {
       if (!timerPaused) {
         const now = Date.now();
-        setElapsed(Math.max(0, Math.floor((now - startTime.current) / 1000) + timePenalty.current));
+        const newElapsed = Math.max(0, Math.floor((now - startTime.current) / 1000) + timePenalty.current);
+        setElapsed(newElapsed);
       }
     }, 1000);
     return () => clearInterval(interval);
   }, [timerPaused]);
+
+  // --- Persist refs after mutation ---
+  // Call persistRefs() after any mutation to wrongAnswers, questionsSkipped, or timePenalty
 
   const formatTime = (seconds) => {
     const safeSeconds = Math.max(0, seconds);
@@ -193,8 +250,13 @@ const QuestionPage = () => {
 
   const confirmHint = () => {
     const hint = questions[currentIndex]?.hint;
-    setHintsUsed((prev) => prev + 1);
+    setHintsUsed((prev) => {
+      const newVal = prev + 1;
+      sessionStorage.setItem("hintsUsed", newVal.toString());
+      return newVal;
+    });
     timePenalty.current += gameSettings.hintPenalty;
+    persistRefs();
     showInfo("💡 Hint", hint, "info");
   };
 
@@ -222,13 +284,18 @@ const QuestionPage = () => {
     );
 
     if (isCorrect) {
-      setCorrectAnswers((prev) => prev + 1);
+      setCorrectAnswers((prev) => {
+        const newVal = prev + 1;
+        sessionStorage.setItem("correctAnswers", newVal.toString());
+        return newVal;
+      });
       setUserAnswer("");
       const funFact = questions[currentIndex].funFact || "No fun fact available.";
       showAnswerInfo("Correct!", funFact, "success");
     } else {
       wrongAnswers.current += 1;
       timePenalty.current += gameSettings.wrongAnswerPenalty;
+      persistRefs();
       setUserAnswer("");
       showAnswerInfo("Incorrect", "Try again! You can still answer this question.", "error");
     }
@@ -242,6 +309,7 @@ const QuestionPage = () => {
   const confirmSkip = () => {
     timePenalty.current += gameSettings.skipPenalty;
     questionsSkipped.current += 1;
+    persistRefs();
     setUserAnswer("");
     const currentQuestion = questions[currentIndex];
     const correctAnswer = Array.isArray(currentQuestion.answer)
@@ -265,7 +333,11 @@ const QuestionPage = () => {
       } else {
         animateAirplaneMovement();
         setTimeout(() => {
-          setCurrentIndex((prev) => prev + 1);
+          setCurrentIndex((prev) => {
+            const nextIndex = prev + 1;
+            sessionStorage.setItem("currentQuestionIndex", nextIndex.toString());
+            return nextIndex;
+          });
         }, 600);
       }
     }
@@ -303,6 +375,15 @@ const QuestionPage = () => {
 
     sessionStorage.setItem("correctAnswers", finalCorrect.toString());
     sessionStorage.setItem("totalQuestions", questions.length.toString());
+
+    // Clear progress-related sessionStorage keys
+    sessionStorage.removeItem("currentQuestionIndex");
+    sessionStorage.removeItem("elapsed");
+    sessionStorage.removeItem("hintsUsed");
+    sessionStorage.removeItem("wrongAnswers");
+    sessionStorage.removeItem("questionsSkipped");
+    sessionStorage.removeItem("timePenalty");
+    sessionStorage.removeItem("quizStartTime"); 
 
     setTimeout(() => {
       window.location.href = "/results";
@@ -350,6 +431,13 @@ const QuestionPage = () => {
           sessionStorage.removeItem("collectionId");
           sessionStorage.removeItem("correctAnswers");
           sessionStorage.removeItem("totalQuestions");
+          sessionStorage.removeItem("currentQuestionIndex");
+          sessionStorage.removeItem("elapsed");
+          sessionStorage.removeItem("hintsUsed");
+          sessionStorage.removeItem("wrongAnswers");
+          sessionStorage.removeItem("questionsSkipped");
+          sessionStorage.removeItem("timePenalty");
+          sessionStorage.removeItem("quizStartTime");
           window.location.href = "/";
         }}
         title="Leave Game?"
@@ -362,10 +450,10 @@ const QuestionPage = () => {
     );
   }
 
-  if (questions.length === 0 || !gameSettings) {
+  if (loading || questions.length === 0 || !gameSettings) {
     return (
       <div className="game-page-wrapper">
-        <div className="game-loading">Loading questions...</div>
+        <Loading />
       </div>
     );
   }
@@ -373,7 +461,7 @@ const QuestionPage = () => {
   if (!questions[currentIndex]) {
     return (
       <div className="game-page-wrapper">
-        <div className="game-loading">Loading question...</div>
+        <Loading />
       </div>
     );
   }
