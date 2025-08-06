@@ -28,21 +28,14 @@ const QuestionPage = () => {
   const wrongAnswers = useRef(0);
   const questionsSkipped = useRef(0);
   const timePenalty = useRef(0);
-  const pausedTime = useRef(0);
 
-  // Timer control functions
+  // Timer control functions (manual pause/resume, not for tab inactivity)
   const pauseTimer = () => {
-    if (!timerPaused) {
-      setTimerPaused(true);
-      pausedTime.current += Date.now() - startTime.current;
-    }
+    setTimerPaused(true);
   };
 
   const resumeTimer = () => {
-    if (timerPaused) {
-      setTimerPaused(false);
-      startTime.current = Date.now();
-    }
+    setTimerPaused(false);
   };
 
   // Helper functions for modals
@@ -141,21 +134,22 @@ const QuestionPage = () => {
     fetchQuestionsAndSettings();
   }, []);
 
-  // Timer effect
+  // Timer effect: always uses real time since start, plus penalties
   useEffect(() => {
     const interval = setInterval(() => {
       if (!timerPaused) {
         const now = Date.now();
-        setElapsed(Math.floor((now - startTime.current - pausedTime.current) / 1000) + timePenalty.current);
+        setElapsed(Math.max(0, Math.floor((now - startTime.current) / 1000) + timePenalty.current));
       }
     }, 1000);
     return () => clearInterval(interval);
   }, [timerPaused]);
 
   const formatTime = (seconds) => {
-    const hours = String(Math.floor(seconds / 3600)).padStart(2, "0");
-    const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
-    const secs = String(seconds % 60).padStart(2, "0");
+    const safeSeconds = Math.max(0, seconds);
+    const hours = String(Math.floor(safeSeconds / 3600)).padStart(2, "0");
+    const mins = String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0");
+    const secs = String(safeSeconds % 60).padStart(2, "0");
     return `${hours}:${mins}:${secs}`;
   };
 
@@ -266,8 +260,8 @@ const QuestionPage = () => {
 
   const handleFinish = async (answeredLast) => {
     const finalCorrect = correctAnswers + (answeredLast ? 1 : 0);
-    const rawTime = Math.floor((Date.now() - startTime.current - pausedTime.current) / 1000);
-    const finalTime = rawTime + timePenalty.current;
+    const rawTime = Math.floor((Date.now() - startTime.current) / 1000);
+    const finalTime = Math.max(0, rawTime + timePenalty.current);
 
     showInfo("🎊 Quiz Complete!", "Great job! Redirecting to results...", "success");
 
@@ -437,13 +431,13 @@ const QuestionPage = () => {
           onClick={handleHintClick}
           className="game-hint-button"
         >
-          Hint (-{Math.floor(gameSettings.hintPenalty / 60)} min)
+          Hint (+{Math.floor(gameSettings.hintPenalty / 60)} min)
         </button>
         <button
           onClick={handleSkip}
           className="game-skip-button"
         >
-          Skip (-{Math.floor(gameSettings.skipPenalty / 60)} min)
+          Skip (+{Math.floor(gameSettings.skipPenalty / 60)} min)
         </button>
       </div>
 
