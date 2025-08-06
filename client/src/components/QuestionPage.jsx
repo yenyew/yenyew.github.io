@@ -20,6 +20,7 @@ const QuestionPage = () => {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showAnswerModal, setShowAnswerModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [infoMessage, setInfoMessage] = useState("");
   const [infoTitle, setInfoTitle] = useState("");
   const [infoType, setInfoType] = useState("info");
@@ -54,85 +55,97 @@ const QuestionPage = () => {
     pauseTimer();
   };
 
+  // --- Back Button Protection ---
   useEffect(() => {
-    const fetchQuestionsAndSettings = async () => {
-      const collectionId = sessionStorage.getItem("collectionId");
-      if (!collectionId) {
-        setError("No collection selected. Please enter a code or play as a guest.");
+    const handlePopState = (e) => {
+      e.preventDefault();
+      setShowLeaveModal(true);
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  // --- Fetch Questions and Settings ---
+  async function fetchQuestionsAndSettings() {
+    const collectionId = sessionStorage.getItem("collectionId");
+    if (!collectionId) {
+      setError("No collection selected. Please enter a code or play as a guest.");
+      return;
+    }
+
+    try {
+      // Fetch effective settings for this collection
+      const settingsResponse = await fetch(`http://localhost:5000/collections/${collectionId}/effective-settings`);
+      if (!settingsResponse.ok) {
+        const data = await settingsResponse.json();
+        setError(data.message || "Failed to load game settings.");
+        return;
+      }
+      const settingsData = await settingsResponse.json();
+      setGameSettings(settingsData);
+
+      // Fetch collection details to get the code
+      const collectionRes = await fetch(`http://localhost:5000/collections/${collectionId}`);
+      const collection = await collectionRes.json();
+
+      if (!collection) {
+        setError("Collection not found or is offline.");
         return;
       }
 
-      try {
-        // Fetch effective settings for this collection
-        const settingsResponse = await fetch(`http://localhost:5000/collections/${collectionId}/effective-settings`);
-        if (!settingsResponse.ok) {
-          const data = await settingsResponse.json();
-          setError(data.message || "Failed to load game settings.");
-          return;
-        }
-        const settingsData = await settingsResponse.json();
-        setGameSettings(settingsData);
-
-        // Fetch collection details to get the code
-        const collectionRes = await fetch(`http://localhost:5000/collections/${collectionId}`);
-        const collection = await collectionRes.json();
-
-        if (!collection) {
-          setError("Collection not found or is offline.");
-          return;
-        }
-
-        let fetchedQuestions = [];
-        if (collection.questionOrder && collection.questionOrder.length > 0) {
-          const response = await fetch(`http://localhost:5000/collections/${collection._id}/questions`);
-          if (!response.ok) {
-            const data = await response.json();
-            setError(data.message || "Failed to load questions.");
-            return;
-          }
+      let fetchedQuestions = [];
+      if (collection.questionOrder && collection.questionOrder.length > 0) {
+        const response = await fetch(`http://localhost:5000/collections/${collection._id}/questions`);
+        if (!response.ok) {
           const data = await response.json();
-          fetchedQuestions = Array.isArray(data) ? data : data.questions || [];
-        } else {
-          const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
-          if (!res.ok) {
-            const data = await res.json();
-            setError(data.message || "Failed to load questions.");
-            return;
-          }
+          setError(data.message || "Failed to load questions.");
+          return;
+        }
+        const data = await response.json();
+        fetchedQuestions = Array.isArray(data) ? data : data.questions || [];
+      } else {
+        const res = await fetch(`http://localhost:5000/questions?collectionId=${collectionId}`);
+        if (!res.ok) {
           const data = await res.json();
-          fetchedQuestions = data;
+          setError(data.message || "Failed to load questions.");
+          return;
         }
-
-        // Apply game mode randomization per-game
-        const playerIndex = parseInt(sessionStorage.getItem("playerIndex") || "0", 10);
-
-        if (settingsData && settingsData.gameMode === 'rotating') {
-          const n = fetchedQuestions.length;
-          const rotated = fetchedQuestions.map((_, i) => fetchedQuestions[(i + playerIndex) % n]);
-          setQuestions(rotated);
-        } else if (settingsData && settingsData.gameMode === 'rotating-reverse') {
-          const n = fetchedQuestions.length;
-          const rotated = fetchedQuestions.map((_, i) => fetchedQuestions[(i - playerIndex - 1 + n) % n]);
-          setQuestions(rotated);
-        } else if (settingsData && settingsData.gameMode === 'random') {
-          const shuffled = [...fetchedQuestions];
-          for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-          }
-          setQuestions(shuffled);
-        } else {
-          setQuestions(fetchedQuestions);
-        }
-
-      } catch (error) {
-        console.error("Failed to fetch questions and settings:", error);
-        setError("Something went wrong. Please try again later.");
+        const data = await res.json();
+        fetchedQuestions = data;
       }
-    };
 
-    fetchQuestionsAndSettings();
-  }, []);
+      // Apply game mode randomization per-game
+      const playerIndex = parseInt(sessionStorage.getItem("playerIndex") || "0", 10);
+
+      if (settingsData && settingsData.gameMode === 'rotating') {
+        const n = fetchedQuestions.length;
+        const rotated = fetchedQuestions.map((_, i) => fetchedQuestions[(i + playerIndex) % n]);
+        setQuestions(rotated);
+      } else if (settingsData && settingsData.gameMode === 'rotating-reverse') {
+        const n = fetchedQuestions.length;
+        const rotated = fetchedQuestions.map((_, i) => fetchedQuestions[(i - playerIndex - 1 + n) % n]);
+        setQuestions(rotated);
+      } else if (settingsData && settingsData.gameMode === 'random') {
+        const shuffled = [...fetchedQuestions];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        setQuestions(shuffled);
+      } else {
+        setQuestions(fetchedQuestions);
+      }
+
+    } catch (error) {
+      console.error("Failed to fetch questions and settings:", error);
+      setError("Something went wrong. Please try again later.");
+    }
+  }
 
   // Timer effect: always uses real time since start, plus penalties
   useEffect(() => {
@@ -296,6 +309,12 @@ const QuestionPage = () => {
     }, 2000);
   };
 
+  // --- Fetch questions on mount ---
+  useEffect(() => {
+    fetchQuestionsAndSettings();
+    // eslint-disable-next-line
+  }, []);
+
   // Handle error state
   if (error) {
     return (
@@ -310,6 +329,36 @@ const QuestionPage = () => {
           showCancel={false}
         />
       </div>
+    );
+  }
+
+  if (showLeaveModal) {
+    return (
+      <AlertModal
+        isOpen={showLeaveModal}
+        onClose={() => setShowLeaveModal(false)}
+        onConfirm={async () => {
+          const playerId = sessionStorage.getItem("playerId");
+          if (playerId) {
+              await fetch(`http://localhost:5000/players/${playerId}`, {
+                method: "DELETE",
+              });
+          }
+          sessionStorage.removeItem("gameState");
+          sessionStorage.removeItem("playerId");
+          sessionStorage.removeItem("playerIndex");
+          sessionStorage.removeItem("collectionId");
+          sessionStorage.removeItem("correctAnswers");
+          sessionStorage.removeItem("totalQuestions");
+          window.location.href = "/";
+        }}
+        title="Leave Game?"
+        message="Leaving this page will end your quiz progress. Are you sure?"
+        confirmText="Leave"
+        cancelText="Stay"
+        type="warning"
+        showCancel={true}
+      />
     );
   }
 
@@ -397,7 +446,6 @@ const QuestionPage = () => {
       </div>
 
       {/* Answer input */}
-      {/* Answer Section: MCQ vs Open-ended */}
       <div className="game-answer-section">
         {questions[currentIndex].type === "mcq" ? (
           <div className="game-mcq-options">
