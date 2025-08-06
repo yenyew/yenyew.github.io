@@ -107,6 +107,13 @@ const LoginScreen = () => {
               <button type="button" onClick={() => navigate("/")}>Go to Home</button>
             </div>
           </form>
+          <button
+            type="button"
+            onClick={() => navigate("/reset-password")}
+            style={{ marginTop: "12px", background: "none", border: "none", color: "#007bff", cursor: "pointer", textDecoration: "underline" }}
+          >
+            Forgot Password?
+          </button>
 
           <div className="jewel-logo-wrapper">
             <img src="/images/jewel.png" alt="Jewel Logo" />

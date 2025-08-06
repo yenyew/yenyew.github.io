@@ -8,14 +8,29 @@ const AdminSchema = new Schema({
     required: true,
     unique: true,
   },
+  email: {
+    type: String,
+    required: true,
+  },
   password: {
     type: String,
     required: true,
   },
   role: {
     type: String,
+    enum: ["main", "admin"],
     default: "admin",
   },
+
+  resetToken: {
+  type: String,
+  default: null,
+},
+resetTokenExpiry: {
+  type: Date,
+  default: null,
+}
+
 }, {
   timestamps: true, // adds createdAt and updatedAt automatically
 });

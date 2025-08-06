@@ -1,35 +1,46 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import "./MainStyles.css";
 
 const AdminScreen = () => {
   const navigate = useNavigate();
+  const [adminRole, setAdminRole] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
       alert("You must be logged in to access this page.");
       navigate("/login");
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode(token);
+      setAdminRole(decoded.role);
+    } catch (err) {
+      console.error("Invalid token:", err);
+      localStorage.removeItem("jwtToken");
+      navigate("/login");
     }
   }, [navigate]);
 
   return (
     <div className="login-container">
-      <img
-        src="/images/changihome.jpg"
-        alt="Background"
-        className="background-image"
-      />
+      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="page-overlay"></div>
 
       <div className="top-left-logo">
         <img src="/images/ces.jpg" alt="Changi Experience Studio" />
       </div>
 
-      <div className="buttons">
-        <h1 style={{ color: "#000", fontSize: "32px", textAlign: "center", marginBottom: "20px" }}>
+      <div className="manage-admin-wrapper">
+        <h1 style={{ color: "#000", fontSize: "32px", textAlign: "center", marginBottom: "10px" }}>
           Admin Dashboard
         </h1>
+        <p style={{ textAlign: "center", fontSize: "18px", color: "#333", marginBottom: "20px" }}>
+          Role: <strong>{adminRole}</strong>
+        </p>
 
         <button
           onClick={() => navigate("/collections-bank")}
@@ -134,5 +145,13 @@ const AdminScreen = () => {
     </div>
   );
 };
+
+const btnStyle = (bgColor) => ({
+  marginTop: "12px",
+  width: "100%",
+  maxWidth: "300px",
+  backgroundColor: bgColor,
+  color: "#000",
+});
 
 export default AdminScreen;
