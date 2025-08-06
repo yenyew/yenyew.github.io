@@ -70,80 +70,113 @@ const CreateQuestion = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const allRes = await fetch("http://localhost:5000/questions");
-      const allQuestions = await allRes.json();
-      const exists = allQuestions.some(
-        (q) =>
-          q.number === parseInt(number) &&
-          q.collectionId === collectionId
-      );
-      if (exists) {
-        setAlertTitle("Duplicate Question");
-        setAlertMessage("A question with that number already exists in the selected collection.");
-        setAlertType("error");
-        setShowAlert(true);
-        setIsSubmitting(false);
-        return;
-      }
+  e.preventDefault();
+  setIsSubmitting(true);
 
-      // Use FormData for image upload
-      const formData = new FormData();
-      formData.append("number", number);
-      formData.append("collectionId", collectionId);
-      formData.append("question", question);
-      formData.append("type", type);
-      formData.append("hint", hint);
-      formData.append(
-        "answer",
-        JSON.stringify(
-          type === "mcq" && correctIndex !== null
-            ? [options[correctIndex]]
-            : answer.split(",").map((ans) => ans.trim())
-        )
-      );
-      formData.append("funFact", funFact);
-      if (type === "mcq") formData.append("options", JSON.stringify(options));
-      if (image) formData.append("image", image);
-
-      const response = await fetch("http://localhost:5000/questions", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        setAlertTitle("Success");
-        setAlertMessage("Question added successfully!");
-        setAlertType("success");
-        setShowAlert(true);
-        setNumber("");
-        setCollectionId("");
-        setQuestion("");
-        setHint("");
-        setAnswer("");
-        setFunFact("");
-        setType("open");
-        setOptions(["", ""]);
-        setCorrectIndex(null);
-        setIsModalOpen(false);
-        setImage(null);
-      } else {
-        const data = await response.json();
-        setAlertTitle("Error");
-        setAlertMessage(data.message || "Could not add question.");
-        setAlertType("error");
-        setShowAlert(true);
-      }
-    } catch {
-      setAlertTitle("Error");
-      setAlertMessage("Failed to add question.");
-      setAlertType("error");
-      setShowAlert(true);
+  try {
+    // Fetch all existing questions to check duplicates
+    const allRes = await fetch("http://localhost:5000/questions");
+    const allQuestions = await allRes.json();
+    const exists = allQuestions.some(
+      (q) => q.number === parseInt(number) && q.collectionId === collectionId
+    );
+    if (exists) {
+      return showError("Duplicate Question", "A question with that number already exists in the selected collection.");
     }
-    setIsSubmitting(false);
-  };
+
+    // Basic validations
+    if (!number || !collectionId || !question || !type || !hint || !funFact) {
+      return showError("Missing Fields", "Please fill in all required fields.");
+    }
+
+    if (question.length > 1500) {
+      return showError("Too Long", "Question description must not exceed 1500 characters.");
+    }
+
+    const formData = new FormData();
+    formData.append("number", number);
+    formData.append("collectionId", collectionId);
+    formData.append("question", question);
+    formData.append("type", type);
+    formData.append("hint", hint);
+    formData.append("funFact", funFact);
+
+    if (type === "mcq") {
+      const cleanOptions = options.map((opt) => opt.trim()).filter((opt) => opt);
+      const uniqueOptions = [...new Set(cleanOptions)];
+
+      if (cleanOptions.length < 2 || cleanOptions.length > 4) {
+        return showError("MCQ Error", "Please enter between 2 and 4 non-empty MCQ options.");
+      }
+
+      if (cleanOptions.length !== uniqueOptions.length) {
+        return showError("Duplicate Options", "Each MCQ option must be unique.");
+      }
+
+      if (correctIndex === null || !cleanOptions[correctIndex]) {
+        return showError("Correct Answer Required", "Please select a valid correct answer.");
+      }
+
+      // Append options and correct answer
+      cleanOptions.forEach((opt) => formData.append("options", opt));
+      formData.append("answer", cleanOptions[correctIndex]);
+
+    } else {
+      // Open-ended answer parsing
+      const parsedAnswers = answer
+        .split(",")
+        .map((ans) => ans.trim().replace(/^['"]|['"]$/g, ""))
+        .filter((ans) => ans);
+
+      if (!parsedAnswers.length) {
+        return showError("Missing Answer", "Please enter at least one valid open-ended answer.");
+      }
+
+      parsedAnswers.forEach((ans) => formData.append("answer", ans));
+    }
+
+    if (image) formData.append("image", image);
+
+    const response = await fetch("http://localhost:5000/questions", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (response.ok) {
+      setAlertTitle("Success");
+      setAlertMessage("Question added successfully!");
+      setAlertType("success");
+      setShowAlert(true);
+      setNumber("");
+      setCollectionId("");
+      setQuestion("");
+      setHint("");
+      setAnswer("");
+      setFunFact("");
+      setType("open");
+      setOptions(["", ""]);
+      setCorrectIndex(null);
+      setIsModalOpen(false);
+      setImage(null);
+    } else {
+      const data = await response.json();
+      return showError("Error", data.message || "Could not add question.");
+    }
+  } catch (err) {
+    return showError("Error", "Failed to add question.");
+  }
+
+  setIsSubmitting(false);
+};
+
+const showError = (title, message) => {
+  setAlertTitle(title);
+  setAlertMessage(message);
+  setAlertType("error");
+  setShowAlert(true);
+  setIsSubmitting(false);
+};
+
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);

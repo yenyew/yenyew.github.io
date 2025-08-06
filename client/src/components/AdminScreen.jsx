@@ -2,16 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import "./MainStyles.css";
+import AlertModal from "./AlertModal";
 
 const AdminScreen = () => {
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
   const [adminRole, setAdminRole] = useState("");
+
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setShowModal(true);
       return;
     }
 
@@ -98,6 +100,20 @@ const AdminScreen = () => {
           Manage Bad Usernames
         </button>
 
+          <button
+          onClick={() => navigate("/manage-admins")}
+          className="login-btn"
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            maxWidth: "300px",
+            backgroundColor: "#cc4125",
+            color: "#000",
+          }}
+        >
+          Manage Admins
+        </button>
+
         <button
           onClick={() => navigate("/landing-customisation")}
           className="login-btn"
@@ -142,6 +158,16 @@ const AdminScreen = () => {
           Log Out
         </button>
       </div>
+       <AlertModal
+        isOpen={showModal}
+        onClose={() => navigate("/login")}
+        onConfirm={() => navigate("/login")}
+        type="error"
+        title="Access Denied"
+        message="You must be logged in to access this page."
+        confirmText="Go to Login"
+        showCancel={false}
+      />
     </div>
   );
 };

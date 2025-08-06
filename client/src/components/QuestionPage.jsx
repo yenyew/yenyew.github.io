@@ -279,9 +279,10 @@ const QuestionPage = () => {
       ? currentQuestion.answer
       : [currentQuestion.answer];
 
-    const isCorrect = acceptableAnswers.some(
-      (ans) => ans.toLowerCase().trim() === input
-    );
+    const isCorrect = acceptableAnswers
+  .map(ans => ans.toLowerCase().trim())
+  .includes(input);
+
 
     if (isCorrect) {
       setCorrectAnswers((prev) => {
