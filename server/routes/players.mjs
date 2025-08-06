@@ -27,6 +27,9 @@ router.post("/", async (req, res) => {
     return res.status(400).send("Invalid or missing collection ID");
   }
 
+  // Count existing players in this collection to assign playerIndex
+  const playerCount = await Player.countDocuments({ collectionId });
+
   const newPlayer = {
     username,
     totalTimeInSeconds: totalTimeInSeconds || 0,
@@ -37,7 +40,8 @@ router.post("/", async (req, res) => {
     wrongAnswers: wrongAnswers || 0,
     redeemed: false,
     redeemedAt: null,
-    collectionId
+    collectionId,
+    playerIndex: playerCount
   };
 
   const result = await Player.create(newPlayer);
@@ -124,6 +128,30 @@ router.post("/manual-clear/:duration", async (req, res) => {
   }
 });
 
+
+// Check if username exists for a specific collectionId
+router.get("/check-username/:username/:collectionId", async (req, res) => {
+  const { username, collectionId } = req.params;
+
+  if (!ObjectId.isValid(collectionId)) {
+    return res.status(400).send("Invalid collection ID");
+  }
+
+  try {
+    const existingPlayer = await Player.findOne({
+      username: username.trim(),
+      collectionId: new ObjectId(collectionId),
+    });
+
+    if (existingPlayer) {
+      return res.status(200).json({ exists: true });
+    }
+    return res.status(200).json({ exists: false });
+  } catch (err) {
+    console.error("Error checking username:", err);
+    res.status(500).send("Server error while checking username");
+  }
+});
 
 
 export default router;

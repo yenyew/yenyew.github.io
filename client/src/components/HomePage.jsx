@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MainStyles.css';
 
-const HomePage = () => {
+const HomePage = ({ previewData }) => {
   const navigate = useNavigate();
-  const [customisation, setCustomisation] = useState(null);
+  const [customisation, setCustomisation] = useState(previewData || null);
 
   useEffect(() => {
-    fetchCustomisation();
+    if (!previewData) fetchCustomisation();
   }, []);
 
   const fetchCustomisation = async () => {
@@ -17,12 +17,11 @@ const HomePage = () => {
       setCustomisation(data);
     } catch (error) {
       console.error('Error fetching customisation:', error);
-      // Use defaults if fetch fails
     }
   };
 
   const handlePlayClick = () => {
-    navigate('/getname');
+    navigate('/getcode');
   };
 
   const handleAdminLoginClick = () => {

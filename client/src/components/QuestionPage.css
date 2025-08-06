@@ -5,12 +5,12 @@
     background: linear-gradient(135deg, #e8f4fd, #f0f8ff);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     padding: 20px;
     box-sizing: border-box;
     position: fixed;
     top: 0;
     left: 0;
+    overflow-y: auto;
   }
 
   /* Loading state */
@@ -459,8 +459,3 @@
     font-weight: bold;
   }
 
-  /* Prevent any scrolling */
-  html,
-  body {
-    overflow: hidden !important;
-  }

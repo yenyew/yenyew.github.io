@@ -8,10 +8,13 @@ const router = express.Router();
 // Get all collections
 router.get('/', async (req, res) => {
   try {
-    const results = await Collection.find({});
-    res.status(200).json(results);
+    const collections = await Collection.find({}).lean();
+    for (const col of collections) {
+      col.questionCount = await Question.countDocuments({ collectionId: col._id });
+    }
+    res.status(200).json(collections);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -104,37 +107,6 @@ router.get('/code/:code', async (req, res) => {
   }
 });
 
-
-
-// Get questions by collection code 
-// router.get('/:code/questions', async (req, res) => {
-//   try {
-//     const collection = await Collection.findOne({
-//       code: req.params.code,
-//       isOnline: true
-//     }).populate('questionOrder');
-
-//     if (!collection) {
-//       return res.status(404).json({ message: 'Collection not found or is offline' });
-//     }
-
-//     let questions;
-//     if (collection.questionOrder?.length) {
-//       questions = collection.questionOrder;
-//     } else {
-//       questions = await Question.find({ collectionId: collection._id });
-//     }
-
-//     res.status(200).json({
-//       collection: collection.name,
-//       code: collection.code,
-//       questions
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Failed to fetch questions', error: error.message });
-//   }
-// });
-
 // Get effective settings
 router.get('/:id/effective-settings', async (req, res) => {
   try {
@@ -181,16 +153,31 @@ router.post('/', async (req, res) => {
   try {
     const { name, code, questionOrder = [], gameMode = 'default', isPublic = false, isOnline = true } = req.body;
 
-    const existing = await Collection.findOne({ code });
-    if (existing) {
-      return res.status(400).json({ message: "Collection code must be unique" });
+    // Only check for code uniqueness if the collection is not public
+    if (!isPublic && code) {
+      const existing = await Collection.findOne({ code });
+      if (existing) {
+        return res.status(400).json({ message: "Collection code must be unique" });
+      }
     }
 
-    if (isPublic) {
-      await Collection.updateMany({ isPublic: true }, { isPublic: false });
+    // Validate that only one public collection is online
+    if (isPublic && isOnline) {
+      const onlinePublic = await Collection.findOne({ isPublic: true, isOnline: true });
+      if (onlinePublic) {
+        return res.status(400).json({ message: "Another public collection is already online." });
+      }
     }
 
-    const newCollection = await Collection.create({ name, code, questionOrder, gameMode, isPublic, isOnline });
+    // Create the collection, omitting code if public
+    const newCollection = await Collection.create({
+      name,
+      code: isPublic ? undefined : code,
+      questionOrder,
+      gameMode,
+      isPublic,
+      isOnline,
+    });
     res.status(201).json(newCollection);
   } catch (error) {
     res.status(400).json({ message: "Failed to create collection", error: error.message });
@@ -210,8 +197,15 @@ router.patch('/:id', async (req, res) => {
     if (isPublic !== undefined) updateData.isPublic = isPublic;
     if (isOnline !== undefined) updateData.isOnline = isOnline;
 
-    if (isPublic) {
-      await Collection.updateMany({ isPublic: true, _id: { $ne: req.params.id } }, { isPublic: false });
+    if (isPublic && isOnline) {
+      const onlinePublic = await Collection.findOne({
+        isPublic: true,
+        isOnline: true,
+        _id: { $ne: req.params.id },
+      });
+      if (onlinePublic) {
+        return res.status(400).json({ message: "Another public collection is already online." });
+      }
     }
 
     const updated = await Collection.findByIdAndUpdate(
@@ -291,24 +285,32 @@ router.patch('/:id/game-settings', async (req, res) => {
   }
 });
 
-// Delete collection
-router.delete('/:id', async (req, res) => {
+// Delete collection and associated players
+router.delete("/:id", async (req, res) => {
   try {
     const collection = await Collection.findById(req.params.id);
     if (!collection) {
       return res.status(404).json({ message: "Collection not found" });
     }
 
-    if (collection.isPublic) {
+    if (collection.isPublic && collection.isOnline) {
       return res.status(403).json({
-        message: "Cannot delete a public collection. Set it offline instead."
+        message: "Cannot delete an online public collection. Set it offline first.",
       });
     }
 
+    // Delete all players associated with this collection
+    const playerDeleteResult = await Player.deleteMany({ collectionId: new ObjectId(req.params.id) });
+
+    // Delete the collection
     await Collection.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Collection deleted successfully." });
+
+    res.status(200).json({
+      message: "Collection and associated players deleted successfully.",
+      deletedPlayersCount: playerDeleteResult.deletedCount,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete collection", error: error.message });
+    res.status(500).json({ message: "Failed to delete collection and players", error: error.message });
   }
 });
 

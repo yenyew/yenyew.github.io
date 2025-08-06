@@ -40,6 +40,12 @@
   z-index: 1;
 }
 
+.scrollable-container {
+  max-height: 80vh; /* Restrict height to allow scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
+  box-sizing: border-box;
+}
+
 .rules-page .home-overlay {
   background-color: rgba(255, 255, 255, 0.8); /* darker dim for Rules page */
 }
@@ -49,7 +55,8 @@
   z-index: 2;
   width: 100%;
   max-width: 600px;
-  padding: 2rem;
+  padding: 1rem 2rem 2rem; /* top padding reduced */
+  margin-bottom: 0px; /* push it upwards */
   box-sizing: border-box;
   color: #000;
   text-align: center;
@@ -394,7 +401,7 @@ button.login-btn,
   max-width: 400px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   animation: slideIn 0.3s ease-out;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 .alert-modal-header {

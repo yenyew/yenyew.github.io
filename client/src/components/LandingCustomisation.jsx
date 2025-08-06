@@ -265,21 +265,36 @@ const LandingCustomisation = () => {
 
       {/* Live Preview Modal */}
       <AlertModal
-        isOpen={showPreviewModal}
-        onClose={handleModalClose}
-        title={modalTitle}
-        message={
-          <LivePreview
-            welcomeMessage={welcomeMessage}
-            description={description}
-            textColor={textColor}
-            backgroundImage={getPreviewBg()}
-          />
-        }
-        confirmText="OK"
-        type="info"
-        showCancel={false}
+  isOpen={showPreviewModal}
+  onClose={handleModalClose}
+  title={modalTitle}
+  message={
+    <div
+      style={{
+        width: '100%',
+        maxWidth: '320px',
+        maxHeight: '70vh',           // ← prevent it from filling the whole screen
+        margin: '0 auto',
+        padding: 0,
+        marginBottom: 0,
+        transform: 'scale(0.75)',
+        transformOrigin: 'top center',
+      }}
+    >
+      <LivePreview
+        welcomeMessage={welcomeMessage}
+        description={description}
+        textColor={textColor}
+        backgroundImage={getPreviewBg()}
       />
+    </div>
+  }
+  confirmText="OK"
+  type="info"
+  showCancel={false}
+/>
+
+
 
       {/* Confirm Modal (Save/Reset) */}
       <AlertModal

@@ -8,29 +8,44 @@ const CreateCollection = () => {
   const [code, setCode] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
-
   const [prevIsPublic, setPrevIsPublic] = useState(false);
   const [prevIsOnline, setPrevIsOnline] = useState(true);
-
   const [existingPublicCollection, setExistingPublicCollection] = useState(null);
   const [checkboxType, setCheckboxType] = useState(null);
-
   const [showPublicConfirmModal, setShowPublicConfirmModal] = useState(false);
   const [showCheckboxInfoModal, setShowCheckboxInfoModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-
+  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
-
   const navigate = useNavigate();
+
+  // Random code generator
+  const generateRandomCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  // Copy to clipboard function
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setModalTitle("Success");
+      setModalMessage("Code copied to clipboard!");
+      setShowCopySuccessModal(true);
+    }).catch(() => {
+      setModalTitle("Error");
+      setModalMessage("Failed to copy code.");
+      setShowErrorModal(true);
+    });
+  };
 
   useEffect(() => {
     const checkPublicCollection = async () => {
       try {
         const res = await fetch("http://localhost:5000/collections");
         const data = await res.json();
-        const publicCol = data.find((c) => c.isPublic);
+        const publicCol = data.find((c) => c.isPublic && c.isOnline); // Check for online public collection
         setExistingPublicCollection(publicCol || null);
       } catch {
         console.error("Failed to check public collections");
@@ -44,35 +59,32 @@ const CreateCollection = () => {
     setShowErrorModal(false);
     setShowPublicConfirmModal(false);
     setShowCheckboxInfoModal(false);
+    setShowCopySuccessModal(false);
     setCheckboxType(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!name.trim()) {
       setModalTitle("Invalid Input");
       setModalMessage("Please enter a collection name.");
       setShowErrorModal(true);
       return;
     }
-
-    if (!isPublic && !code.trim()) {
+    if (!isPublic && !code.trim()) { // Only check code for non-public collections
       setModalTitle("Invalid Input");
       setModalMessage("Please enter or generate a collection code.");
       setShowErrorModal(true);
       return;
     }
-
-    if (isPublic && existingPublicCollection) {
-      setModalTitle("Existing Public Collection");
+    if (isPublic && isOnline && existingPublicCollection) {
+      setModalTitle("Online Public Collection Exists");
       setModalMessage(
-        `A public collection "${existingPublicCollection.name}" already exists. Please set its online status to offline in Edit Collection, then try again.`
+        `A public collection "${existingPublicCollection.name}" is already online. Please set it offline in Edit Collection, then try again.`
       );
       setShowPublicConfirmModal(true);
       return;
     }
-
     await submitCollection();
   };
 
@@ -88,12 +100,11 @@ const CreateCollection = () => {
           isOnline,
         }),
       });
-
       if (res.ok) {
         setModalTitle("Success");
         setModalMessage(
           isPublic
-            ? "Collection created successfully and set as the public collection!"
+            ? "Public collection created successfully!"
             : "Collection created successfully!"
         );
         setShowSuccessModal(true);
@@ -133,16 +144,13 @@ const CreateCollection = () => {
       setPrevIsOnline(isOnline);
       setIsOnline(newValue);
     }
-
     setCheckboxType(type);
-    setModalTitle(
-      type === "public" ? "Set as Public?" : "Set Online?"
-    );
+    setModalTitle(type === "public" ? "Set as Public?" : "Set Online?");
     setModalMessage(
       type === "public"
         ? newValue
-          ? "This makes the collection the only public one accessible via 'Play as Guest'. Only one collection can be public at a time. The collection code will be disabled."
-          : "This will remove the collection from being the public one."
+          ? "This makes the collection public and accessible via 'Play as Guest'. Only one public collection can be online at a time. The collection code will be disabled."
+          : "This will remove the collection from being public."
         : newValue
         ? "The collection will be playable by users."
         : "The collection will be disabled and unplayable."
@@ -152,7 +160,7 @@ const CreateCollection = () => {
 
   const handleCheckboxConfirm = () => {
     setCheckboxType(null);
-    handleModalClose(); // Confirmed, state stays
+    handleModalClose();
   };
 
   const handleCheckboxCancel = () => {
@@ -163,17 +171,12 @@ const CreateCollection = () => {
 
   return (
     <div className="login-container">
-      <img
-        src="/images/changihome.jpg"
-        alt="Background"
-        className="background-image"
-      />
+      <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="page-overlay" />
       <div className="buttons">
         <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "10px" }}>
           Create New Collection
         </h2>
-
         <form onSubmit={handleSubmit} style={{ maxWidth: "300px", width: "100%" }}>
           <input
             type="text"
@@ -184,18 +187,45 @@ const CreateCollection = () => {
             className="login-btn"
             style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
-          <input
-            type="text"
-            placeholder="Collection Code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            disabled={isPublic}
-            className="login-btn"
-            style={{
-              marginBottom: "10px",
-              backgroundColor: isPublic ? "#e9ecef" : "white",
-            }}
-          />
+          <div style={{ display: "flex", marginBottom: "10px", gap: "10px" }}>
+            <input
+              type="text"
+              placeholder="Code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              disabled={isPublic}
+              className="login-btn"
+              style={{ backgroundColor: isPublic ? "#e9ecef" : "white", flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => setCode(generateRandomCode())}
+              disabled={isPublic}
+              className="login-btn"
+              style={{
+                width: "90px",
+                backgroundColor: isPublic ? "#e9ecef" : "#17C4C4",
+                color: isPublic ? "#6c757d" : "#fff",
+                padding: "0 10px",
+              }}
+            >
+              Generate
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyCode}
+              disabled={isPublic || !code.trim()}
+              className="login-btn"
+              style={{
+                width: "70px",
+                backgroundColor: isPublic || !code.trim() ? "#e9ecef" : "#17C4C4",
+                color: isPublic || !code.trim() ? "#6c757d" : "#fff",
+                padding: "0 10px",
+              }}
+            >
+              Copy
+            </button>
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
             <div>
               <input
@@ -230,18 +260,12 @@ const CreateCollection = () => {
             type="button"
             onClick={() => navigate("/collections-bank")}
             className="login-btn"
-            style={{
-              backgroundColor: "#17C4C4",
-              color: "#fff",
-              width: "100%",
-            }}
+            style={{ backgroundColor: "#17C4C4", color: "#fff", width: "100%" }}
           >
             Return
           </button>
         </form>
       </div>
-
-      {/* Modals */}
       <AlertModal
         isOpen={showSuccessModal}
         onClose={handleSuccessConfirm}
@@ -282,6 +306,15 @@ const CreateCollection = () => {
         cancelText="Cancel"
         type="info"
         showCancel={true}
+      />
+      <AlertModal
+        isOpen={showCopySuccessModal}
+        onClose={handleModalClose}
+        title={modalTitle}
+        message={modalMessage}
+        confirmText="OK"
+        type="success"
+        showCancel={false}
       />
     </div>
   );

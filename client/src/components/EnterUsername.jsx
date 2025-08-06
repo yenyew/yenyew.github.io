@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AlertModal from './AlertModal';
+import AlertModal from "./AlertModal";
 import "./MainStyles.css";
 
 export default function EnterUsername() {
@@ -32,6 +32,19 @@ export default function EnterUsername() {
     }
   };
 
+  const checkDuplicateUsername = async (username, collectionId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/players/check-username/${encodeURIComponent(username.trim())}/${collectionId}`
+      );
+      const data = await response.json();
+      return data.exists;
+    } catch (error) {
+      console.error("Error checking duplicate username:", error);
+      return false; // If there's an error, allow the username
+    }
+  };
+
   const showError = (message) => {
     setErrorMessage(message);
     setShowErrorModal(true);
@@ -50,14 +63,14 @@ export default function EnterUsername() {
 
     const cleanUsername = form.username.trim();
 
-    // Basic validation - check length
+    // Check length
     if (cleanUsername.length < 2) {
       showError("Username must be at least 2 characters long.");
       setLoading(false);
       return;
     }
 
-    // Basic validation - check for special characters (optional)
+    // Check for special characters
     const hasSpecialChars = /[^a-zA-Z0-9\s]/.test(cleanUsername);
     if (hasSpecialChars) {
       showError("Username can only contain letters, numbers, and spaces.");
@@ -73,9 +86,25 @@ export default function EnterUsername() {
       return;
     }
 
+    // Check for duplicate username
+    const collectionId = sessionStorage.getItem("collectionId");
+    if (!collectionId) {
+      showError("Collection ID is missing. Please enter the code again.");
+      setLoading(false);
+      navigate("/getcode");
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateUsername(cleanUsername, collectionId);
+    if (isDuplicate) {
+      showError("This username is already taken for this game. Please choose a different one.");
+      setLoading(false);
+      return;
+    }
+
     // Save and proceed
     sessionStorage.setItem("username", cleanUsername);
-    navigate("/getcode");
+    navigate("/rules");
   };
 
   return (
@@ -96,18 +125,21 @@ export default function EnterUsername() {
       </button>
 
       <div className="page-content">
-        <h1 style={{
-          fontSize: "1.8rem",
-          fontFamily: "serif",
-          fontWeight: "bold",
-          marginBottom: "1.5rem",
-          lineHeight: "1.5"
-        }}>
-          Hi there! Welcome to the Changi<br />Experience Studio @ Jewel!
+        <h1
+          style={{
+            fontSize: "1.8rem",
+            fontFamily: "serif",
+            fontWeight: "bold",
+            marginBottom: "1.5rem",
+            lineHeight: "1.5",
+          }}
+        >
+          Welcome!<br />
+          Let's get started on your adventure.
         </h1>
 
         <p style={{ marginBottom: "2rem", fontSize: "1.1rem" }}>
-          How should I address you on this journey?
+          What name should we use for you?
         </p>
 
         <form onSubmit={onSubmit}>
@@ -124,22 +156,17 @@ export default function EnterUsername() {
               width: "100%",
               maxWidth: "260px",
               marginBottom: "1.2rem",
-              textAlign: "center"
+              textAlign: "center",
             }}
           />
           <br />
-          <button 
-            type="submit" 
-            className="share-button" 
-            style={{ maxWidth: "200px", width: "100%" }}
-            disabled={loading}
-          >
+          <button type="submit" className="share-button" style={{ maxWidth: "200px", width: "100%" }} disabled={loading}>
             {loading ? "Checking..." : "Let's Go"}
           </button>
         </form>
       </div>
 
-      {/* ❌ Error Modal for validation issues */}
+      {/* Error Modal for validation issues */}
       <AlertModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}

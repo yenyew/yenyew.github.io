@@ -42,32 +42,88 @@ const AdminScreen = () => {
           Role: <strong>{adminRole}</strong>
         </p>
 
-        <button onClick={() => navigate("/questions")} className="login-btn" style={btnStyle("#28a745")}>
-          View and Edit Questions
-        </button>
-
-        <button onClick={() => navigate("/collections-bank")} className="login-btn" style={btnStyle("#17a2b8")}>
+        <button
+          onClick={() => navigate("/collections-bank")}
+          className="login-btn"
+          style={{
+            marginTop: "8px",
+            width: "100%",
+            maxWidth: "300px",
+            backgroundColor: "#17a2b8",
+            color: "#000",
+          }}
+        >
           View and Edit Collections
         </button>
 
-        <button onClick={() => navigate("/landing-customisation")} className="login-btn" style={btnStyle("#e67e22")}>
-          Customise Landing Page
+        <button
+          onClick={() => navigate("/questions")}
+          className="login-btn"
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            maxWidth: "300px",
+            backgroundColor: "#28a745",
+            color: "#000",
+          }}
+        >
+          View and Edit Questions
         </button>
 
-        <button onClick={() => navigate("/global-game-settings")} className="login-btn" style={btnStyle("#6f42c1")}>
+        <button
+          onClick={() => navigate("/global-game-settings")}
+          className="login-btn"
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            maxWidth: "300px",
+            backgroundColor: "#6f42c1",
+            color: "#000",
+          }}
+        >
           Default Game Settings
         </button>
 
-        <button onClick={() => navigate("/admin-leaderboard")} className="login-btn" style={btnStyle("#007b8a")}>
-          View Leaderboard
-        </button>
-
-        <button onClick={() => navigate("/bad-usernames")} className="login-btn" style={btnStyle("#cc4125")}>
+        <button
+          onClick={() => navigate("/bad-usernames")}
+          className="login-btn"
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            maxWidth: "300px",
+            backgroundColor: "#cc4125",
+            color: "#000",
+          }}
+        >
           Manage Bad Usernames
         </button>
 
-        <button onClick={() => navigate("/manage-admins")} className="login-btn" style={btnStyle("#ffc107")}>
-          Manage Admins
+        <button
+          onClick={() => navigate("/landing-customisation")}
+          className="login-btn"
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            maxWidth: "300px",
+            backgroundColor: "#e67e22",
+            color: "#000",
+          }}
+        >
+          Customise Landing Page
+        </button>
+
+        <button
+          onClick={() => navigate("/admin-leaderboard")}
+          className="login-btn"
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            maxWidth: "300px",
+            backgroundColor: "#007b8a",
+            color: "#000",
+          }}
+        >
+          View Leaderboard
         </button>
 
         <button
@@ -76,7 +132,12 @@ const AdminScreen = () => {
             navigate("/login");
           }}
           className="login-btn"
-          style={btnStyle("#ddd")}
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            maxWidth: "300px",
+            color: "#000",
+          }}
         >
           Log Out
         </button>

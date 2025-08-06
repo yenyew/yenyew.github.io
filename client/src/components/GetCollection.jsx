@@ -187,22 +187,56 @@ const GetCollection = () => {
           {selectedCollection && (
             <div style={{ backgroundColor: "rgba(255,255,255,0.9)", padding: "10px", borderRadius: "8px", marginBottom: "10px", display: "flex", gap: "8px", alignItems: "center" }}>
               <button
-                style={{ flex: 1, backgroundColor: "#FFC107", color: "#000", padding: "10px", border: "none", borderRadius: "6px", fontSize: "13px" }}
                 onClick={handleEditCollection}
+                style={{
+                  backgroundColor: "#28a745",
+                  color: "#000",
+                  fontSize: "12px",
+                  padding: "4px 8px",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
               >
                 Edit Collection
               </button>
               <button
-                style={{ flex: 1, backgroundColor: "#DC3545", color: "#fff", padding: "10px", border: "none", borderRadius: "6px", fontSize: "13px" }}
                 onClick={handleDeleteCollectionClick}
+                style={{
+                  backgroundColor: "#28a745",
+                  color: "#000",
+                  fontSize: "12px",
+                  padding: "4px 8px",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
               >
                 Delete Collection
               </button>
               <div style={{ flex: 1 }}>
-                <QuestionOrderModal collection={selectedCollection} questions={questions} setQuestions={setQuestions} />
+                <QuestionOrderModal
+                  collection={selectedCollection}
+                  questions={questions}
+                  setQuestions={setQuestions}
+                  onModalFeedback={(title, message, type, updatedCollection) => {
+                    setModalTitle(title);
+                    setModalMessage(message);
+                    type === "success" ? setShowSuccessModal(true) : setShowErrorModal(true);
+                    if (updatedCollection) setSelectedCollection(updatedCollection);
+                  }}
+                />
               </div>
               <div style={{ flex: 1 }}>
-                <GameSettingsModal collection={selectedCollection} />
+                <GameSettingsModal
+                  collection={selectedCollection}
+                  onModalFeedback={(title, message, type) => {
+                    setModalTitle(title);
+                    setModalMessage(message);
+                    if (type === "success") setShowSuccessModal(true);
+                    else setShowErrorModal(true);
+                  }}
+                />
               </div>
             </div>
           )}
@@ -242,7 +276,7 @@ const GetCollection = () => {
                   : navigate("/questions?collection=all")
               }
               className="login-btn"
-              style={{ backgroundColor: "#17C4C4", color: "#fff" }}
+              style={{ backgroundColor: "#17C4C4", color: "#000" }}
             >
               Return
             </button>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertModal from "./AlertModal";
 import "./MainStyles.css";
-
 
 const CreateQuestion = () => {
   const [number, setNumber] = useState("");
@@ -10,18 +10,29 @@ const CreateQuestion = () => {
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [funFact, setFunFact] = useState("");
-  const [type, setType] = useState("open"); // 'mcq' or 'open'
-  const [options, setOptions] = useState(""); // comma-separated options
-  const [message, setMessage] = useState("");
+  const [type, setType] = useState("open");
+  const [options, setOptions] = useState(["", ""]);
+  const [correctIndex, setCorrectIndex] = useState(null);
   const [collections, setCollections] = useState([]);
-  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [image, setImage] = useState(null);
 
+  // AlertModal state
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState("info");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
-      alert("You must be logged in to access this page.");
-      navigate("/login");
+      setAlertTitle("Not Logged In");
+      setAlertMessage("You must be logged in to access this page.");
+      setAlertType("error");
+      setShowAlert(true);
       return;
     }
     const fetchCollections = async () => {
@@ -29,128 +40,133 @@ const CreateQuestion = () => {
         const response = await fetch("http://localhost:5000/collections/");
         const data = await response.json();
         setCollections(data);
-      } catch (err) {
-        console.error("Failed to fetch collections:", err);
+      } catch {
+        setAlertTitle("Error");
+        setAlertMessage("Failed to fetch collections.");
+        setAlertType("error");
+        setShowAlert(true);
       }
     };
-
-
     fetchCollections();
-  }, []);
+  }, [navigate]);
 
+  const handleOptionChange = (index, value) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+
+  const addOption = () => {
+    if (options.length < 4) setOptions([...options, ""]);
+  };
+
+  const removeOption = (index) => {
+    if (options.length > 2) {
+      const newOptions = options.filter((_, i) => i !== index);
+      setOptions(newOptions);
+      if (correctIndex === index) setCorrectIndex(null);
+      else if (correctIndex > index) setCorrectIndex(correctIndex - 1);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("");
-
-
+    setIsSubmitting(true);
     try {
       const allRes = await fetch("http://localhost:5000/questions");
       const allQuestions = await allRes.json();
-
-
       const exists = allQuestions.some(
-        (q) => q.number === parseInt(number) && q.collectionId === collectionId
+        (q) =>
+          q.number === parseInt(number) &&
+          q.collectionId === collectionId
       );
-
-
       if (exists) {
-        alert("A question with that number already exists in the selected collection.");
+        setAlertTitle("Duplicate Question");
+        setAlertMessage("A question with that number already exists in the selected collection.");
+        setAlertType("error");
+        setShowAlert(true);
+        setIsSubmitting(false);
         return;
       }
 
-
-      const newQuestion = {
-        number: parseInt(number),
-        collectionId,
-        question,
-        type,
-        hint,
-        answer: answer.split(",").map(ans => ans.trim()),
-        funFact,
-        ...(type === "mcq" && { options: options.split(",").map(opt => opt.trim()) }),
-      };
-
+      // Use FormData for image upload
+      const formData = new FormData();
+      formData.append("number", number);
+      formData.append("collectionId", collectionId);
+      formData.append("question", question);
+      formData.append("type", type);
+      formData.append("hint", hint);
+      formData.append(
+        "answer",
+        JSON.stringify(
+          type === "mcq" && correctIndex !== null
+            ? [options[correctIndex]]
+            : answer.split(",").map((ans) => ans.trim())
+        )
+      );
+      formData.append("funFact", funFact);
+      if (type === "mcq") formData.append("options", JSON.stringify(options));
+      if (image) formData.append("image", image);
 
       const response = await fetch("http://localhost:5000/questions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQuestion),
+        body: formData,
       });
 
-
       if (response.ok) {
-        alert("Question added successfully!");
+        setAlertTitle("Success");
+        setAlertMessage("Question added successfully!");
+        setAlertType("success");
+        setShowAlert(true);
+        setNumber("");
         setCollectionId("");
         setQuestion("");
         setHint("");
         setAnswer("");
-        setNumber("");
         setFunFact("");
-        setOptions("");
         setType("open");
+        setOptions(["", ""]);
+        setCorrectIndex(null);
+        setIsModalOpen(false);
+        setImage(null);
       } else {
         const data = await response.json();
-        setMessage(`Error: ${data.message || "Could not add question."}`);
+        setAlertTitle("Error");
+        setAlertMessage(data.message || "Could not add question.");
+        setAlertType("error");
+        setShowAlert(true);
       }
-    } catch (err) {
-      console.error("Error submitting question:", err);
-      setMessage("Something went wrong. Please try again.");
+    } catch {
+      setAlertTitle("Error");
+      setAlertMessage("Failed to add question.");
+      setAlertType("error");
+      setShowAlert(true);
     }
+    setIsSubmitting(false);
   };
 
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+  // AlertModal close handler
+  const handleAlertClose = () => {
+    setShowAlert(false);
+    if (alertTitle === "Not Logged In") {
+      navigate("/login");
+    }
+  };
 
   return (
     <div className="login-container">
       <img src="/images/changihome.jpg" alt="Background" className="background-image" />
       <div className="page-overlay"></div>
-
-
-      <div className="header">
-        <button
-          onClick={() => navigate("/questions")}
-          className="login-btn"
-          style={{
-            backgroundColor: "#17C4C4",
-            color: "#fff",
-            width: "120px",
-            marginBottom: "10px",
-          }}
-        >
-          &lt; Back
-        </button>
-      </div>
-
-
-      <div className="buttons">
-        <h2 style={{ fontSize: "24px", color: "#000", textAlign: "center", marginBottom: "10px" }}>
-          Create a New Question:
-        </h2>
-
-
-        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "300px" }}>
-          {/* Question Type Selector */}
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            required
-            className="dropdown-select"
-            style={{
-              marginBottom: "10px",
-              height: "50px",
-              borderRadius: "20px",
-              backgroundColor: "white",
-              color: "#000",
-              fontSize: "16px",
-              padding: "0 10px",
-              width: "100%",
-              outline: "none",
-            }}
-          >
+      <div className="page-content scrollable-container">
+        <h2>Create a New Question</h2>
+        <form onSubmit={handleSubmit} className="centered-form">
+          <select value={type} onChange={(e) => setType(e.target.value)} required className="dropdown-select">
             <option value="open">Open-Ended Question</option>
             <option value="mcq">Multiple Choice Question</option>
           </select>
-
 
           <input
             type="number"
@@ -159,26 +175,13 @@ const CreateQuestion = () => {
             placeholder="Question Number"
             required
             className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
-
 
           <select
             value={collectionId}
             onChange={(e) => setCollectionId(e.target.value)}
             required
             className="dropdown-select"
-            style={{
-              marginBottom: "10px",
-              height: "50px",
-              borderRadius: "20px",
-              backgroundColor: "white",
-              color: "#000",
-              fontSize: "16px",
-              padding: "0 10px",
-              width: "100%",
-              outline: "none",
-            }}
           >
             <option value="">Select Collection</option>
             {collections.map((col) => (
@@ -188,95 +191,134 @@ const CreateQuestion = () => {
             ))}
           </select>
 
-
           <textarea
-            placeholder="Question Description"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Question Description"
             required
             className="login-btn"
-            style={{
-              marginBottom: "10px",
-              height: "100px",
-              borderRadius: "20px",
-              backgroundColor: "white",
-            }}
           />
-
 
           <input
             type="text"
-            placeholder="Hint"
             value={hint}
             onChange={(e) => setHint(e.target.value)}
+            placeholder="Hint"
             className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
 
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="login-btn"
+            style={{ marginBottom: "10px" }}
+          />
 
           {type === "mcq" && (
+            <button type="button" onClick={openModal} className="login-btn">
+              Manage MCQ Options
+            </button>
+          )}
+
+          {type === "open" && (
             <>
-              <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
-                Enter MCQ options, separated by commas (e.g., A,B,C,D).
-              </p>
+              <p>Enter acceptable answers (comma-separated):</p>
               <input
                 type="text"
-                placeholder="MCQ Options"
-                value={options}
-                onChange={(e) => setOptions(e.target.value)}
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="Answer(s)"
                 className="login-btn"
-                style={{ marginBottom: "10px", backgroundColor: "white" }}
-                required={type === "mcq"}
               />
             </>
           )}
 
-
-          <p style={{ fontSize: "12px", color: "#555", marginBottom: "8px" }}>
-            Enter {type === "mcq" ? "correct options" : "acceptable answers"}, separated by commas.
-          </p>
           <input
             type="text"
-            placeholder="Answer"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
-          />
-
-
-          <input
-            type="text"
-            placeholder="Fun Fact"
             value={funFact}
             onChange={(e) => setFunFact(e.target.value)}
+            placeholder="Fun Fact"
             className="login-btn"
-            style={{ marginBottom: "10px", backgroundColor: "white" }}
           />
 
-
+          <button type="submit" className="login-btn" disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Add"}
+          </button>
           <button
-            type="submit"
+            type="button"
+            onClick={() => navigate("/questions")}
             className="login-btn"
-            style={{
-              background: "linear-gradient(90deg, #C4EB22, #17C4C4)",
-              color: "black",
-              width: "120px",
-              marginTop: "10px",
-            }}
+            style={{ marginTop: "12px" }}
           >
-            Add
+            Return
           </button>
         </form>
-
-
-        {message && (
-          <div style={{ color: "red", marginTop: "10px" }}>{message}</div>
-        )}
       </div>
+
+      {/* Modal for MCQ Options */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Manage MCQ Options</h3>
+            <div className="mcq-options-container">
+              {options.map((opt, index) => (
+                <div key={index} className="mcq-option-row">
+                  <input
+                    type="text"
+                    value={opt}
+                    onChange={(e) => handleOptionChange(index, e.target.value)}
+                    placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                    className="login-btn"
+                  />
+                  {options.length > 2 && (
+                    <button type="button" onClick={() => removeOption(index)} style={{ marginLeft: 6 }}>
+                      ✖
+                    </button>
+                  )}
+                </div>
+              ))}
+              {options.length < 4 && (
+                <button type="button" onClick={addOption} style={{ marginTop: 8 }}>
+                  + Add Option
+                </button>
+              )}
+              <select
+                value={correctIndex !== null ? correctIndex : ""}
+                onChange={(e) => setCorrectIndex(Number(e.target.value))}
+                required
+                className="dropdown-select"
+                style={{ marginTop: 10 }}
+              >
+                <option value="">Select Correct Answer</option>
+                {options.map((opt, idx) => (
+                  <option key={idx} value={idx}>
+                    {`Option ${String.fromCharCode(65 + idx)} - ${opt || "Empty"}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="modal-actions">
+              <button type="button" onClick={closeModal} className="login-btn">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={handleAlertClose}
+        title={alertTitle}
+        message={alertMessage}
+        confirmText="OK"
+        type={alertType}
+        showCancel={false}
+      />
     </div>
   );
 };
-
 
 export default CreateQuestion;
