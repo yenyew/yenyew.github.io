@@ -18,7 +18,7 @@ export default function ResultPage() {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const navigate = useNavigate();
-
+  
   // On component mount, fetch player data
   useEffect(() => {
     const playerId = sessionStorage.getItem("playerId");
