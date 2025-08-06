@@ -472,6 +472,14 @@ const QuestionPage = () => {
     wrong: formatPenaltyTime(gameSettings.wrongAnswerPenalty)
   } : { hint: "", skip: "", wrong: "" };
 
+  const formatPenaltyShort = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0 && secs > 0) return `${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m`;
+    return `${secs}s`;
+  };
+
   return (
     <div className="game-page-wrapper">
       {/* Header with logo and time */}
@@ -567,13 +575,13 @@ const QuestionPage = () => {
           onClick={handleHintClick}
           className="game-hint-button"
         >
-          Hint (+{Math.floor(gameSettings.hintPenalty / 60)} min)
+          Hint (+{formatPenaltyShort(gameSettings.hintPenalty)})
         </button>
         <button
           onClick={handleSkip}
           className="game-skip-button"
         >
-          Skip (+{Math.floor(gameSettings.skipPenalty / 60)} min)
+          Skip (+{formatPenaltyShort(gameSettings.skipPenalty)})
         </button>
       </div>
 

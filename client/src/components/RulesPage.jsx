@@ -57,6 +57,8 @@ export default function RulesPage() {
 
   // Starts the game: creates a player in DB and navigates to the game page
   const beginGame = async () => {
+    sessionStorage.removeItem("playerId");
+    sessionStorage.removeItem("playerIndex");
     sessionStorage.removeItem("quizStartTime");
     sessionStorage.removeItem("elapsed");
     sessionStorage.removeItem("hintsUsed");

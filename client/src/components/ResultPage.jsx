@@ -19,13 +19,6 @@ export default function ResultPage() {
 
   const navigate = useNavigate();
   
-  useEffect(() => {
-    // Clean up quiz-only sessionStorage keys after results are shown
-    sessionStorage.removeItem("quizStartTime");
-    sessionStorage.removeItem("elapsed");
-    sessionStorage.removeItem("userAnswer");
-  }, []);
-
   // On component mount, fetch player data
   useEffect(() => {
     const playerId = sessionStorage.getItem("playerId");
