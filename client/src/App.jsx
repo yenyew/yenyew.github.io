@@ -23,6 +23,7 @@ import GetCollection from "./components/GetCollection.jsx";
 import EditCollection from "./components/EditCollection.jsx";
 import ManageAdmin from "./components/ManageAdmin.jsx";
 import ResetPassword from "./components/ResetPassword.jsx";
+import ErrorPage from "./components/404.jsx";
 
 
 export default function App() {
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/edit-collection/:id" element={<EditCollection />} />
         <Route path="/manage-admins" element={<ManageAdmin />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="*" element={<ErrorPage />} />
       </Routes>
     </div>
   );
