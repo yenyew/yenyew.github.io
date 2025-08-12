@@ -76,7 +76,7 @@ const HomePage = ({ previewData }) => {
       </div>
 
       <div className="home-content">
-  <div className="title-block">
+  <div className="title-block" style={{ marginTop: '60px' }}>
     <h1 style={{ color: customisation?.titleColor || '#000000' }}>
       {customisation?.welcomeMessage || 'Welcome To GoChangi!'}
     </h1>
@@ -85,15 +85,12 @@ const HomePage = ({ previewData }) => {
     </p>
   </div>
 
-  <div className="description-block">
-    <div className="home-buttons">
-      <button onClick={handlePlayClick}>Play</button>
-      <button onClick={handleAdminLoginClick}>Admin Login</button>
+    <div className="description-block" style={{ marginTop: '250px' }}>
+      <div className="home-buttons">
+        <button onClick={handlePlayClick}>Play</button>
+        <button onClick={handleAdminLoginClick}>Admin Login</button>
+      </div>
     </div>
-    <div className="jewel-logo-wrapper" style={{ marginTop: '20px' }}>
-      <img src="/images/jewel.png" alt="Jewel Logo" />
-    </div>
-  </div>
 </div>
     </div>
   );
