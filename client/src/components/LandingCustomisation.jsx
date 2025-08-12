@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// No third-party gradient picker
 import { useNavigate } from 'react-router-dom';
 import './LandingCustomisation.css';
 import AlertModal from './AlertModal';
@@ -6,6 +7,7 @@ import LivePreview from './LivePreview';
 
 const DEFAULT_BG = '/images/changihome.jpg';
 
+const DEFAULT_GRADIENT = 'linear-gradient(to right, #c4ec1b, #00c4cc)';
 const LandingCustomisation = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useState(null);
@@ -15,6 +17,11 @@ const LandingCustomisation = () => {
   const [welcomeMessage, setWelcomeMessage] = useState('Welcome To GoChangi!');
   const [description, setDescription] = useState('Discover Changi, One Clue at a Time!');
   const [textColor, setTextColor] = useState('#000000'); // Combined color
+  const [buttonGradient, setButtonGradient] = useState(DEFAULT_GRADIENT);
+  const [gradientStart, setGradientStart] = useState('#c4ec1b');
+  const [gradientEnd, setGradientEnd] = useState('#00c4cc');
+  const [gradientDirection, setGradientDirection] = useState('to right');
+  const [buttonTextColor, setButtonTextColor] = useState('#ffffff');
   const [showLogo, setShowLogo] = useState(true);
 
   // AlertModal states
@@ -37,7 +44,23 @@ const LandingCustomisation = () => {
 
       setWelcomeMessage(data.welcomeMessage);
       setDescription(data.description);
-      setTextColor(data.titleColor || '#000000');
+  setTextColor(data.titleColor || '#000000');
+  if (data.buttonGradient && typeof data.buttonGradient === 'string' && data.buttonGradient.startsWith('linear-gradient')) {
+    setButtonGradient(data.buttonGradient);
+    // Try to parse colors and direction from the gradient string
+    const match = data.buttonGradient.match(/linear-gradient\(([^,]+),\s*([^,]+),\s*([^\)]+)\)/);
+    if (match) {
+      setGradientDirection(match[1].trim());
+      setGradientStart(match[2].trim());
+      setGradientEnd(match[3].trim());
+    }
+  } else {
+    setButtonGradient(DEFAULT_GRADIENT);
+    setGradientStart('#c4ec1b');
+    setGradientEnd('#00c4cc');
+    setGradientDirection('to right');
+  }
+  setButtonTextColor(data.buttonTextColor || '#ffffff');
   setBackgroundImage(null); // Don't set file, just reset
   setShowLogo(data.showLogo !== false);
     } catch {
@@ -55,6 +78,8 @@ const LandingCustomisation = () => {
 
   const confirmSave = async () => {
     try {
+      // Always compose the latest gradient string before saving
+      const composedGradient = `linear-gradient(${gradientDirection}, ${gradientStart}, ${gradientEnd})`;
       const formData = new FormData();
       formData.append('welcomeMessage', welcomeMessage);
       formData.append('description', description);
@@ -64,6 +89,8 @@ const LandingCustomisation = () => {
         formData.append('backgroundImage', backgroundImage);
       }
       formData.append('showLogo', showLogo);
+      formData.append('buttonGradient', composedGradient);
+      formData.append('buttonTextColor', buttonTextColor);
 
       const response = await fetch('http://localhost:5000/landing-customisation', {
         method: 'POST',
@@ -71,10 +98,22 @@ const LandingCustomisation = () => {
       });
 
       if (response.ok) {
+        // Get the updated settings from backend and update local state
+        const updated = await response.json();
+        setSettings(updated);
+        setButtonGradient(updated.buttonGradient || composedGradient);
+        setGradientStart(
+          updated.buttonGradient?.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/)?.[1]?.trim() || gradientStart
+        );
+        setGradientEnd(
+          updated.buttonGradient?.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/)?.[2]?.trim() || gradientEnd
+        );
+        setGradientDirection(
+          updated.buttonGradient?.match(/linear-gradient\(([^,]+),/)?.[1]?.trim() || gradientDirection
+        );
         setModalTitle('Success');
         setModalMessage('Landing page updated successfully!');
         setShowSuccessModal(true);
-        fetchSettings();
       } else {
         setModalTitle('Error');
         setModalMessage('Error updating landing page.');
@@ -104,8 +143,13 @@ const LandingCustomisation = () => {
         setWelcomeMessage('Welcome To GoChangi!');
         setDescription('Discover Changi, One Clue at a Time!');
         setTextColor('#000000');
+        setButtonTextColor('#000000');
+        setButtonGradient(DEFAULT_GRADIENT);
+        setGradientStart('#c4ec1b');
+        setGradientEnd('#00c4cc');
+        setGradientDirection('to right');
         setBackgroundImage(null);
-  setSettings({ backgroundImage: DEFAULT_BG, showLogo: true });
+        setSettings({ backgroundImage: DEFAULT_BG, showLogo: true });
         setModalTitle('Success');
         setModalMessage('Settings reset successfully!');
         setShowSuccessModal(true);
@@ -226,6 +270,44 @@ const LandingCustomisation = () => {
               style={{ backgroundColor: 'white' }}
             />
           </div>
+          {/* Button Gradient Picker */}
+          <div>
+            <label className="custom-label">Button Gradient:</label>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+              <input type="color" value={gradientStart} onChange={e => {
+                setGradientStart(e.target.value);
+                setButtonGradient(`linear-gradient(${gradientDirection}, ${e.target.value}, ${gradientEnd})`);
+              }} />
+              <span>to</span>
+              <input type="color" value={gradientEnd} onChange={e => {
+                setGradientEnd(e.target.value);
+                setButtonGradient(`linear-gradient(${gradientDirection}, ${gradientStart}, ${e.target.value})`);
+              }} />
+              <select value={gradientDirection} onChange={e => {
+                setGradientDirection(e.target.value);
+                setButtonGradient(`linear-gradient(${e.target.value}, ${gradientStart}, ${gradientEnd})`);
+              }}>
+                <option value="to right">→</option>
+                <option value="to left">←</option>
+                <option value="to bottom">↓</option>
+                <option value="to top">↑</option>
+                <option value="135deg">↘</option>
+                <option value="45deg">↗</option>
+              </select>
+            </div>
+            <div style={{ width: '100%', height: '32px', borderRadius: '8px', background: buttonGradient, border: '1px solid #ccc' }} />
+          </div>
+          {/* Button Text Color */}
+          <div>
+            <label className="custom-label">Button Text Color:</label>
+            <input
+              type="color"
+              value={buttonTextColor}
+              onChange={(e) => setButtonTextColor(e.target.value)}
+              className="login-btn"
+              style={{ backgroundColor: 'white' }}
+            />
+          </div>
 
           {/* Toggle CES Logo */}
           <div>
@@ -299,6 +381,9 @@ const LandingCustomisation = () => {
         description={description}
         textColor={textColor}
         backgroundImage={getPreviewBg()}
+        showLogo={showLogo}
+        buttonColor={buttonGradient}
+        buttonTextColor={buttonTextColor}
       />
     </div>
   }

@@ -44,6 +44,14 @@ const landingCustomisationSchema = new mongoose.Schema({
     default: '#000000'
   },
   
+  buttonGradient: {
+    type: String,
+    default: 'linear-gradient(to right, #c4ec1b, #00c4cc)'
+  },
+  buttonTextColor: {
+    type: String,
+    default: '#ffffff'
+  },
   updatedAt: {
     type: Date,
     default: Date.now

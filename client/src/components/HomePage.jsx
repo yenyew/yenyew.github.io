@@ -89,8 +89,20 @@ const HomePage = ({ previewData }) => {
 
     <div className="description-block" style={{ marginTop: '250px' }}>
       <div className="home-buttons">
-        <button onClick={handlePlayClick}>Play</button>
-        <button onClick={handleAdminLoginClick}>Admin Login</button>
+        <button 
+          onClick={handlePlayClick}
+          style={{
+            background: customisation?.buttonGradient || 'linear-gradient(90deg, #C4EB22, #17C4C4)',
+            color: customisation?.buttonTextColor || '#fff'
+          }}
+        >Play</button>
+        <button 
+          onClick={handleAdminLoginClick}
+          style={{
+            background: customisation?.buttonGradient || 'linear-gradient(90deg, #C4EB22, #17C4C4)',
+            color: customisation?.buttonTextColor || '#fff'
+          }}
+        >Admin Login</button>
       </div>
     </div>
 </div>
