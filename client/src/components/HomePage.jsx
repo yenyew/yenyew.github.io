@@ -93,14 +93,14 @@ const HomePage = ({ previewData }) => {
           onClick={handlePlayClick}
           style={{
             background: customisation?.buttonGradient || 'linear-gradient(90deg, #C4EB22, #17C4C4)',
-            color: customisation?.buttonTextColor || '#fff'
+            color: customisation?.buttonTextColor || '#000'
           }}
         >Play</button>
         <button 
           onClick={handleAdminLoginClick}
           style={{
             background: customisation?.buttonGradient || 'linear-gradient(90deg, #C4EB22, #17C4C4)',
-            color: customisation?.buttonTextColor || '#fff'
+            color: customisation?.buttonTextColor || '#000'
           }}
         >Admin Login</button>
       </div>

@@ -60,7 +60,7 @@ const LandingCustomisation = () => {
     setGradientEnd('#00c4cc');
     setGradientDirection('to right');
   }
-  setButtonTextColor(data.buttonTextColor || '#ffffff');
+  setButtonTextColor(data.buttonTextColor || '#000000');
   setBackgroundImage(null); // Don't set file, just reset
   setShowLogo(data.showLogo !== false);
     } catch {
@@ -71,6 +71,19 @@ const LandingCustomisation = () => {
   };
 
   const handleSave = async () => {
+    // Length validations
+    if (welcomeMessage.length < 2 || welcomeMessage.length > 20) {
+      setModalTitle('Validation Error');
+      setModalMessage('Welcome message must be between 2 and 20 characters.');
+      setShowErrorModal(true);
+      return;
+    }
+    if (description.length < 1 || description.length > 50) {
+      setModalTitle('Validation Error');
+      setModalMessage('Description must be between 1 and 50 characters.');
+      setShowErrorModal(true);
+      return;
+    }
     setModalTitle('Confirm Save');
     setModalMessage('Are you sure you want to save these changes to the landing page?');
     setShowConfirmModal(true);
@@ -140,19 +153,19 @@ const LandingCustomisation = () => {
       });
 
       if (response.ok) {
-        setWelcomeMessage('Welcome To GoChangi!');
-        setDescription('Discover Changi, One Clue at a Time!');
-        setTextColor('#000000');
-        setButtonTextColor('#000000');
-        setButtonGradient(DEFAULT_GRADIENT);
-        setGradientStart('#c4ec1b');
-        setGradientEnd('#00c4cc');
-        setGradientDirection('to right');
-        setBackgroundImage(null);
-        setSettings({ backgroundImage: DEFAULT_BG, showLogo: true });
-        setModalTitle('Success');
-        setModalMessage('Settings reset successfully!');
-        setShowSuccessModal(true);
+  setWelcomeMessage('Welcome To GoChangi!');
+  setDescription('Discover Changi, One Clue at a Time!');
+  setTextColor('#000000');
+  setButtonTextColor('#000000');
+  setButtonGradient(DEFAULT_GRADIENT);
+  setGradientStart('#c4ec1b');
+  setGradientEnd('#00c4cc');
+  setGradientDirection('to right');
+  setBackgroundImage(null);
+  setSettings({ backgroundImage: DEFAULT_BG, showLogo: true, buttonTextColor: '#000000' });
+  setModalTitle('Success');
+  setModalMessage('Settings reset successfully!');
+  setShowSuccessModal(true);
       } else {
         setModalTitle('Error');
         setModalMessage('Error resetting settings.');

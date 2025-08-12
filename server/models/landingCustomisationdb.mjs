@@ -50,7 +50,7 @@ const landingCustomisationSchema = new mongoose.Schema({
   },
   buttonTextColor: {
     type: String,
-    default: '#ffffff'
+    default: '#000000'
   },
   updatedAt: {
     type: Date,
