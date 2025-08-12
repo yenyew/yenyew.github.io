@@ -168,7 +168,7 @@ export default function ResultPage() {
         </div>
 
         <p style={{ fontWeight: "bold", marginTop: "2rem" }}>
-          Redeem your gift at the booth now!
+          Redeem your gift now!
         </p>
 
         {/* Show redeem button if not redeemed */}
