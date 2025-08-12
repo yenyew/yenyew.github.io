@@ -15,6 +15,7 @@ const LandingCustomisation = () => {
   const [welcomeMessage, setWelcomeMessage] = useState('Welcome To GoChangi!');
   const [description, setDescription] = useState('Discover Changi, One Clue at a Time!');
   const [textColor, setTextColor] = useState('#000000'); // Combined color
+  const [showLogo, setShowLogo] = useState(true);
 
   // AlertModal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -37,7 +38,8 @@ const LandingCustomisation = () => {
       setWelcomeMessage(data.welcomeMessage);
       setDescription(data.description);
       setTextColor(data.titleColor || '#000000');
-      setBackgroundImage(null); // Don't set file, just reset
+  setBackgroundImage(null); // Don't set file, just reset
+  setShowLogo(data.showLogo !== false);
     } catch {
       setModalTitle('Error');
       setModalMessage('Failed to fetch landing page settings.');
@@ -61,6 +63,7 @@ const LandingCustomisation = () => {
       if (backgroundImage) {
         formData.append('backgroundImage', backgroundImage);
       }
+      formData.append('showLogo', showLogo);
 
       const response = await fetch('http://localhost:5000/landing-customisation', {
         method: 'POST',
@@ -102,7 +105,7 @@ const LandingCustomisation = () => {
         setDescription('Discover Changi, One Clue at a Time!');
         setTextColor('#000000');
         setBackgroundImage(null);
-        setSettings({ backgroundImage: DEFAULT_BG });
+  setSettings({ backgroundImage: DEFAULT_BG, showLogo: true });
         setModalTitle('Success');
         setModalMessage('Settings reset successfully!');
         setShowSuccessModal(true);
@@ -154,7 +157,7 @@ const LandingCustomisation = () => {
   };
 
   return (
-    <div className="landing-customisation-container">
+    <div className="landing-customisation-container" style={{ overflowY: 'auto', height: '100vh' }}>
       <img src={DEFAULT_BG} alt="Background" className="background-image" />
       <div className="page-overlay"></div>
 
@@ -162,7 +165,7 @@ const LandingCustomisation = () => {
         <h2 style={{ color: "#000", fontSize: "24px", marginBottom: "18px", textAlign: "center" }}>
           Customise Landing Page
         </h2>
-        <form style={{ maxWidth: '400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+  <form style={{ maxWidth: '400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* Welcome Message */}
           <div>
             <label className="custom-label">Welcome Message:</label>
@@ -224,6 +227,16 @@ const LandingCustomisation = () => {
             />
           </div>
 
+          {/* Toggle CES Logo */}
+          <div>
+            <label className="custom-label">Show CES Logo (top left):</label>
+            <input
+              type="checkbox"
+              checked={showLogo}
+              onChange={e => setShowLogo(e.target.checked)}
+              style={{ width: '20px', height: '20px' }}
+            />
+          </div>
           {/* Action Buttons */}
           <div className="button-row">
             <button

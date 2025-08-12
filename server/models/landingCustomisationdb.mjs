@@ -47,6 +47,10 @@ const landingCustomisationSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  showLogo: {
+    type: Boolean,
+    default: true
   }
 });
 

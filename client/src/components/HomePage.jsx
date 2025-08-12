@@ -71,9 +71,11 @@ const HomePage = ({ previewData }) => {
       
       <div className="home-overlay"></div>
 
-      <div className="top-left-logo">
-        <img src="/images/ces.jpg" alt="Changi Experience Studio" />
-      </div>
+      {customisation?.showLogo !== false && (
+        <div className="top-left-logo">
+          <img src="/images/ces.jpg" alt="Changi Experience Studio" />
+        </div>
+      )}
 
       <div className="home-content">
   <div className="title-block" style={{ marginTop: '60px' }}>
